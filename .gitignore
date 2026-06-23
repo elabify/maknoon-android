@@ -1,0 +1,30 @@
+# Keeps local builds clean; build artifacts are not tracked.
+
+# macOS
+.DS_Store
+
+# Gradle / Android
+.gradle/
+**/build/
+local.properties
+*.iml
+.idea/
+.kotlin/
+captures/
+
+# Release signing material: never commit keys or passwords.
+keystore.properties
+*.jks
+*.keystore
+**/keystore/
+
+# Rust (native cores, submodules)
+target/
+
+# Node / TypeScript (elabify-core)
+node_modules/
+dist/
+
+# Prebuilt native AARs (regenerate with the cores' build-aar.sh + copy-hwlibs)
+pq-crypto-rs/android/library/build/
+android-sdk-musnad/hwlibs/

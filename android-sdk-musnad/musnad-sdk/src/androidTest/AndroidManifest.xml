@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Test-only: allow cleartext so MockWebServer (http on 127.0.0.1) works.
+     The production library manifest does not enable cleartext. -->
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <application android:usesCleartextTraffic="true" />
+</manifest>

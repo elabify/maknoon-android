@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Cache paths exposed via FileProvider for sharing composed images (the
+     passport Share picture). Only the app's own cache "shares" subdir is
+     exposed. -->
+<paths>
+    <cache-path name="shares" path="shares/" />
+</paths>

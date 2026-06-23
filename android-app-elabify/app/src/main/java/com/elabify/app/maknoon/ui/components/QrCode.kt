@@ -1,0 +1,60 @@
+// Shared QR composable for receive addresses / payment URIs (ZXing, GMS-free).
+
+package com.elabify.app.maknoon.ui.components
+
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.produceState
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.ImageBitmap
+import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.graphics.painter.BitmapPainter
+import android.graphics.Bitmap
+import android.graphics.Color
+import com.google.zxing.BarcodeFormat
+import com.google.zxing.qrcode.QRCodeWriter
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
+
+@Composable
+fun QrCode(content: String, modifier: Modifier = Modifier, sizePx: Int = 512) {
+    // Encode off the main thread: ZXing encode + bitmap fill on a large payload
+    // is heavy enough to visibly freeze the UI if done during composition. Show
+    // a spinner until the bitmap is ready instead of blocking on a blank screen.
+    val bitmap by produceState<ImageBitmap?>(initialValue = null, content, sizePx) {
+        value = withContext(Dispatchers.Default) { qrBitmap(content, sizePx).asImageBitmap() }
+    }
+    Box(modifier, contentAlignment = Alignment.Center) {
+        val bmp = bitmap
+        if (bmp == null) {
+            CircularProgressIndicator()
+        } else {
+            Image(
+                painter = BitmapPainter(bmp),
+                contentDescription = "QR code",
+                modifier = Modifier.fillMaxSize(),
+            )
+        }
+    }
+}
+
+// Public so the passport Share composer can embed the same drop QR in a
+// shareable image (mirrors iOS BadgeQR.render into the composed picture).
+fun qrBitmap(content: String, size: Int): Bitmap {
+    val matrix = QRCodeWriter().encode(content, BarcodeFormat.QR_CODE, size, size)
+    // Bulk setPixels: a per-pixel setPixel loop over size*size (262k calls at
+    // 512px) is pathologically slow. Fill an IntArray once and hand it over.
+    val pixels = IntArray(size * size)
+    for (y in 0 until size) {
+        val row = y * size
+        for (x in 0 until size) {
+            pixels[row + x] = if (matrix.get(x, y)) Color.BLACK else Color.WHITE
+        }
+    }
+    return Bitmap.createBitmap(pixels, size, size, Bitmap.Config.RGB_565)
+}

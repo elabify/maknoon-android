@@ -1,0 +1,44 @@
+# Maknoon Android public-tree guard. A fast, self-contained scan that fails if
+# anything that must stay private slipped into a manual edit. The full debug
+# build (native AARs + Gradle) is heavy and documented in README.md; run it
+# locally before tagging a release.
+name: ci-android
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  leak-scan:
+    name: leak scan
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Scan for forbidden content
+        run: |
+          set -uo pipefail
+          # Patterns use char-classes (e.g. [/]) so this file does not itself
+          # contain the literal forbidden strings it scans for.
+          patterns=(
+            'elabify[/]musnad'
+            'BEGIN [A-Z ]*PRIVATE[ ]KEY'
+            'OPENSSH[ ]PRIVATE[ ]KEY'
+            'ghp_[0-9A-Za-z]{30,}'
+            'AKIA[0-9A-Z]{16}'
+            'xox[baprs]-[0-9A-Za-z-]{8,}'
+            'CARGO_REGISTRY[_]TOKEN'
+            'docs/(decisions|operations|integrations|reference)/'
+            '(\.\./|)(issuer-backend|verifier-server|vault-plugin|smart-contracts|demo-web-app|ios-sdk-musnad)'
+          )
+          fail=0
+          for p in "${patterns[@]}"; do
+            hits="$(grep -rEnI --exclude-dir=.git "$p" . 2>/dev/null || true)"
+            if [ -n "$hits" ]; then
+              echo "::error::forbidden pattern matched: /$p/"
+              echo "$hits" | head -20
+              fail=1
+            fi
+          done
+          [ "$fail" -eq 0 ] && echo "leak scan clean" || exit 1

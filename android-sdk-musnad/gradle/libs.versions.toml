@@ -1,0 +1,69 @@
+# Version catalog for the Maknoon Android SDK + super-app. Single source
+# of truth for dependency versions. GMS-free by policy (no play-services /
+# firebase / play-integrity / bundled ML Kit) so the app runs on GrapheneOS.
+
+[versions]
+agp = "8.7.3"
+# Match elabify-core (built with Kotlin 2.2.0); newer compiler reads the
+# pq-crypto AAR's older (2.0) UniFFI metadata fine.
+kotlin = "2.2.0"
+coroutines = "1.8.1"
+androidxCore = "1.13.1"
+biometric = "1.2.0-alpha05"
+annotation = "1.8.2"
+jna = "5.14.0"
+bouncycastle = "1.78.1"
+okhttp = "4.12.0"
+room = "2.6.1"
+sqlcipher = "4.6.1"
+junit = "4.13.2"
+androidxTestRunner = "1.6.2"
+androidxTestExtJunit = "1.2.1"
+ksp = "2.2.0-2.0.2"
+bdk = "2.3.1"
+walletcore = "0.12.8"
+# Yubico yubikit-android: official, GMS-free (talks to NFC/USB directly, no
+# Play services). The SDK uses :fido (Ctap2Session + ClientPin) + :management
+# (device serial) + :core; the app additionally pulls :android (NfcYubiKeyManager
+# for the NFC radio). Latest stable 2.x.
+yubikit = "3.1.0"
+
+[libraries]
+coroutines-core = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-core", version.ref = "coroutines" }
+coroutines-android = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-android", version.ref = "coroutines" }
+androidx-core = { module = "androidx.core:core-ktx", version.ref = "androidxCore" }
+androidx-annotation = { module = "androidx.annotation:annotation", version.ref = "annotation" }
+androidx-biometric = { module = "androidx.biometric:biometric", version.ref = "biometric" }
+# UniFFI-generated glue (inside the pq-crypto AAR) loads native libs via JNA.
+jna = { module = "net.java.dev.jna:jna", version.ref = "jna" }
+# X.509 attestation-chain parsing + AES-GCM/PBKDF2 backup engine (NOT ML-DSA).
+bouncycastle = { module = "org.bouncycastle:bcprov-jdk18on", version.ref = "bouncycastle" }
+okhttp = { module = "com.squareup.okhttp3:okhttp", version.ref = "okhttp" }
+okhttp-mockwebserver = { module = "com.squareup.okhttp3:mockwebserver", version.ref = "okhttp" }
+room-runtime = { module = "androidx.room:room-runtime", version.ref = "room" }
+room-ktx = { module = "androidx.room:room-ktx", version.ref = "room" }
+room-compiler = { module = "androidx.room:room-compiler", version.ref = "room" }
+sqlcipher = { module = "net.zetetic:sqlcipher-android", version.ref = "sqlcipher" }
+# elabify-core pure-Kotlin crypto (RPO-256, HKDF, Merkle, DID, BIP39),
+# pulled in via composite includeBuild from elabify-core/bindings/kotlin.
+elabify-core = { module = "com.elabify:elabify-core", version = "0.1.0" }
+# Bitcoin: matches the iOS BitcoinDevKit 2.3.1 so descriptors/derivation line up.
+bdk-android = { module = "org.bitcoindevkit:bdk-android", version.ref = "bdk" }
+# EVM / Solana / Tron: Trust WalletCore (KMP binding; com.trustwallet.core.*).
+walletcore = { module = "com.trustwallet.walletcore:walletcore", version.ref = "walletcore" }
+# Yubico yubikit-android modules. :fido + :management + :core for the SDK
+# YubiKeyClient; :android for the app's NfcYubiKeyManager radio control.
+yubikit-core = { module = "com.yubico.yubikit:core", version.ref = "yubikit" }
+yubikit-fido = { module = "com.yubico.yubikit:fido", version.ref = "yubikit" }
+yubikit-management = { module = "com.yubico.yubikit:management", version.ref = "yubikit" }
+yubikit-android = { module = "com.yubico.yubikit:android", version.ref = "yubikit" }
+junit = { module = "junit:junit", version.ref = "junit" }
+kotlin-test = { module = "org.jetbrains.kotlin:kotlin-test", version.ref = "kotlin" }
+androidx-test-runner = { module = "androidx.test:runner", version.ref = "androidxTestRunner" }
+androidx-test-ext-junit = { module = "androidx.test.ext:junit", version.ref = "androidxTestExtJunit" }
+
+[plugins]
+android-library = { id = "com.android.library", version.ref = "agp" }
+android-application = { id = "com.android.application", version.ref = "agp" }
+kotlin-android = { id = "org.jetbrains.kotlin.android", version.ref = "kotlin" }
+ksp = { id = "com.google.devtools.ksp", version.ref = "ksp" }

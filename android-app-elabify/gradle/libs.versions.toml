@@ -1,0 +1,52 @@
+# Version catalog for the Maknoon super-app. GMS-free by policy.
+
+[versions]
+agp = "8.7.3"
+kotlin = "2.2.0"
+coreKtx = "1.13.1"
+lifecycle = "2.8.7"
+activityCompose = "1.9.3"
+composeBom = "2024.12.01"
+biometric = "1.2.0-alpha05"
+zxing = "3.5.3"
+# ICAO 9303 eMRTD passport reading over android.nfc IsoDep (GMS-free).
+jmrtd = "0.7.42"
+scuba = "0.0.26"
+# SOD / CMS SignedData parsing + CSCA chain verification (Passive Auth).
+bouncycastle = "1.78.1"
+webkit = "1.12.1"
+# Yubico yubikit-android: official, GMS-free (talks to NFC/USB directly, no
+# Play services). The app uses :android (NfcYubiKeyManager NFC radio) + :core
+# (YubiKeyDevice); :fido + :management arrive transitively via the SDK's api
+# deps. Latest stable 2.x.
+yubikit = "3.1.0"
+
+[libraries]
+androidx-core-ktx = { module = "androidx.core:core-ktx", version.ref = "coreKtx" }
+androidx-lifecycle-runtime-ktx = { module = "androidx.lifecycle:lifecycle-runtime-ktx", version.ref = "lifecycle" }
+androidx-activity-compose = { module = "androidx.activity:activity-compose", version.ref = "activityCompose" }
+androidx-biometric = { module = "androidx.biometric:biometric", version.ref = "biometric" }
+zxing-core = { module = "com.google.zxing:core", version.ref = "zxing" }
+jmrtd = { module = "org.jmrtd:jmrtd", version.ref = "jmrtd" }
+scuba-sc-android = { module = "net.sf.scuba:scuba-sc-android", version.ref = "scuba" }
+bouncycastle = { module = "org.bouncycastle:bcprov-jdk18on", version.ref = "bouncycastle" }
+bouncycastle-pkix = { module = "org.bouncycastle:bcpkix-jdk18on", version.ref = "bouncycastle" }
+# WebViewAssetLoader for the sandboxed mini-app host (serves SHA-256-pinned
+# bundles via shouldInterceptRequest). GMS-free.
+androidx-webkit = { module = "androidx.webkit:webkit", version.ref = "webkit" }
+# yubikit-android NFC transport + core (NfcYubiKeyManager / YubiKeyDevice) for
+# the YubiKey enroll screen's NFC radio. :fido + :management come via the SDK.
+yubikit-android = { module = "com.yubico.yubikit:android", version.ref = "yubikit" }
+yubikit-core = { module = "com.yubico.yubikit:core", version.ref = "yubikit" }
+compose-bom = { module = "androidx.compose:compose-bom", version.ref = "composeBom" }
+compose-ui = { module = "androidx.compose.ui:ui" }
+compose-ui-graphics = { module = "androidx.compose.ui:ui-graphics" }
+compose-ui-tooling = { module = "androidx.compose.ui:ui-tooling" }
+compose-ui-tooling-preview = { module = "androidx.compose.ui:ui-tooling-preview" }
+compose-material3 = { module = "androidx.compose.material3:material3" }
+compose-material-icons-extended = { module = "androidx.compose.material:material-icons-extended" }
+
+[plugins]
+android-application = { id = "com.android.application", version.ref = "agp" }
+kotlin-android = { id = "org.jetbrains.kotlin.android", version.ref = "kotlin" }
+kotlin-compose = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }

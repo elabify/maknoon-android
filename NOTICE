@@ -1,0 +1,17 @@
+# NOTICE: third-party attributions
+
+This app + SDK (Apache-2.0; see LICENSE) depend on third-party software
+under permissive licenses (Apache-2.0 / MIT / BSD). The native cores are
+git submodules and carry their own licenses.
+
+## Notable third parties
+
+- **AndroidX / Jetpack Compose** (Google), Apache-2.0: UI toolkit
+- **Trust Wallet Core** (Trust Wallet), Apache-2.0/MIT: multi-chain wallet primitives
+- **SQLCipher / sqlcipher-android** (Zetetic), BSD: encrypted storage
+- **OkHttp** (Square), Apache-2.0: HTTP client
+- **ZXing** (ZXing Authors), Apache-2.0: QR generation
+- **yubikit-android** (Yubico), Apache-2.0/BSD: FIDO2/CTAP2 second factor
+- **BouncyCastle**, MIT: crypto provider
+
+Run `./gradlew :app:dependencies` for the exhaustive, version-exact list.

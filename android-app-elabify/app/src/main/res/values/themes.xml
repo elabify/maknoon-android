@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Compose drives the real theming (ui/theme/Theme.kt). This base
+         theme just gives the activity a no-action-bar window. -->
+    <style name="Theme.Maknoon" parent="android:Theme.Material.Light.NoActionBar" />
+</resources>
