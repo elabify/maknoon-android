@@ -53,10 +53,10 @@ class BitcoinWalletEnv private constructor(
             val kv = PrefsBitcoinStore(prefs)
             val store = cachedStore ?: synchronized(this) {
                 cachedStore ?: BitcoinWalletStore(kv).also {
-                    // First-run seeding, matching iOS's default "Bitcoin"
-                    // mainnet software wallet at account 0 so the dashboard is
-                    // never empty for a holder who just created an identity.
-                    it.seedDefaultIfNeeded()
+                    // No silent auto-seed: the default "Bitcoin" software wallet is
+                    // created only when the user explicitly chooses it (onboarding
+                    // "Create Bitcoin software wallet", or the wallet Add flow),
+                    // matching iOS. Until then the wallet list stays empty.
                     cachedStore = it
                 }
             }

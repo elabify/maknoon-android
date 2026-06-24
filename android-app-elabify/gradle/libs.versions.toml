@@ -50,3 +50,7 @@ compose-material-icons-extended = { module = "androidx.compose.material:material
 android-application = { id = "com.android.application", version.ref = "agp" }
 kotlin-android = { id = "org.jetbrains.kotlin.android", version.ref = "kotlin" }
 kotlin-compose = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
+# Gradle Play Publisher: `./gradlew :app:publishReleaseBundle` uploads the signed
+# AAB to the configured Play track. Credentials are supplied at run time (a
+# gitignored service-account JSON), so adding the plugin commits no secrets.
+play-publisher = { id = "com.github.triplet.play", version = "3.12.1" }

@@ -79,6 +79,7 @@ import androidx.compose.ui.unit.dp
 import com.elabify.app.maknoon.R
 import com.elabify.app.maknoon.miniapp.MiniAppCatalogSettings
 import com.elabify.app.maknoon.miniapp.MiniAppSettingsStore
+import com.elabify.app.maknoon.ui.components.AdvancedSection
 import com.elabify.app.maknoon.ui.components.SectionHeader
 import com.elabify.app.maknoon.ui.theme.MaknoonBrand
 import com.elabify.app.maknoon.ui.theme.MaknoonColors
@@ -136,6 +137,8 @@ fun AppsSettingsScreen(onBack: () -> Unit) {
                 FooterCaption(stringResource(R.string.settings_default_catalog_footer))
             }
 
+            // Advanced: additional catalogs + beta apps (0.6.1 friendliness pass).
+            AdvancedSection {
             // Section 2: Additional Apps catalogs.
             Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
                 SectionHeader(title = stringResource(R.string.settings_additional_apps_catalogs))
@@ -199,6 +202,7 @@ fun AppsSettingsScreen(onBack: () -> Unit) {
                         )
                     }
                 }
+            }
             }
         }
     }

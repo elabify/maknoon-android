@@ -454,13 +454,29 @@ data class IDDocument(
     val formattedDateOfExpiry: String?
         get() = formatYYMMDD(dateOfExpiry, DateKind.EXPIRY)
 
-    // ByteArray fields break the data-class default equals/hashCode
-    // (reference equality, which churns list diffs on every reload).
-    // Identity is the UUID, exactly like the iOS Identifiable conformance.
+    // ByteArray fields break the data-class default equals/hashCode (reference
+    // equality, which churns list diffs on every reload), so we do NOT compare
+    // the raw chip blobs. We DO compare the id plus the mutable status fields
+    // that change in place (passive-auth, sanctions, nickname): a StateFlow
+    // dedups by equals, so excluding these made an in-place update (e.g. setting
+    // the passive-auth result) look unchanged and never reach the UI until a
+    // process restart reloaded from disk.
     override fun equals(other: Any?): Boolean =
-        this === other || (other is IDDocument && other.id == id)
+        this === other || (
+            other is IDDocument &&
+                other.id == id &&
+                other.passiveAuthResult == passiveAuthResult &&
+                other.sanctionsResult == sanctionsResult &&
+                other.nickname == nickname
+            )
 
-    override fun hashCode(): Int = id.hashCode()
+    override fun hashCode(): Int {
+        var h = id.hashCode()
+        h = 31 * h + (passiveAuthResult?.hashCode() ?: 0)
+        h = 31 * h + (sanctionsResult?.hashCode() ?: 0)
+        h = 31 * h + (nickname?.hashCode() ?: 0)
+        return h
+    }
 
     companion object {
         /** Which field the YY two-digit year belongs to. */

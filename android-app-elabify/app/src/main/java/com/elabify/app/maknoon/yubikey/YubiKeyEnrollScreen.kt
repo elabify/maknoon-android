@@ -31,6 +31,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
+import com.elabify.app.maknoon.ui.wallet.common.PassphraseField
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
@@ -328,16 +329,14 @@ internal fun YubiKeyEnrollScreen(
                         singleLine = true,
                         modifier = Modifier.fillMaxWidth(),
                     )
-                    OutlinedTextField(
+                    PassphraseField(
                         value = pin,
                         onValueChange = { pin = it },
-                        label = { Text("FIDO2 PIN") },
+                        label = "FIDO2 PIN",
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.NumberPassword),
                         supportingText = {
                             Text("Most security keys have a FIDO2 PIN. Enter it here. Leave blank only if your key has no PIN.")
                         },
-                        singleLine = true,
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.NumberPassword),
-                        modifier = Modifier.fillMaxWidth(),
                     )
                     Button(onClick = enroll, modifier = Modifier.fillMaxWidth()) {
                         Text("Tap key to enroll")

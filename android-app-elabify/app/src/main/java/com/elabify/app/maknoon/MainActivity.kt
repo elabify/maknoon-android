@@ -30,6 +30,7 @@ class MainActivity : FragmentActivity() {
         DisplayPreferences.init(applicationContext)
         com.elabify.app.maknoon.ui.settings.FiatPreferences.init(applicationContext)
         com.elabify.app.maknoon.ui.settings.RelaySettings.init(applicationContext)
+        com.elabify.app.maknoon.ui.settings.TestnetAnchorSettings.init(applicationContext)
         // Shared multi-asset price cache (persists its snapshot to "UserDefaults").
         com.elabify.musnad.wallet.pricing.AssetPriceCache.init(applicationContext)
         setContent {

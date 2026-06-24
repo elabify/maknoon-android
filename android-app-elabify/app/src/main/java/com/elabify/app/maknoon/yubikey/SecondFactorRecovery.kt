@@ -30,6 +30,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.text.KeyboardOptions
+import com.elabify.app.maknoon.ui.wallet.common.PassphraseField
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
@@ -205,14 +206,12 @@ private fun YubiKeyRecoverCekDialog(
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 Text(message, style = MaterialTheme.typography.bodyMedium)
-                OutlinedTextField(
+                PassphraseField(
                     value = pin,
                     onValueChange = { pin = it },
-                    label = { Text("Security key PIN") },
-                    singleLine = true,
+                    label = "Security key PIN",
                     enabled = !busy,
                     keyboardOptions = KeyboardOptions(keyboardType = androidx.compose.ui.text.input.KeyboardType.NumberPassword),
-                    modifier = Modifier.fillMaxWidth(),
                 )
                 if (busy) {
                     Text(

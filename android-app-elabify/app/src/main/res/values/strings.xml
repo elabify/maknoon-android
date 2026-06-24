@@ -158,13 +158,18 @@
     <string name="settings_reset_done_body">Everything has been wiped. You\'ll land on the onboarding screen on the next render and can set up a fresh identity from there.</string>
     <string name="settings_reset_footer">Wipes everything on this device: your identity, every wallet on every chain, every label, every paired hardware device, the address book, ID documents, Lightning accounts, installed apps, and every setting. Equivalent to deleting and reinstalling the app. The only way to restore is using your encrypted backup file and password.</string>
     <string name="settings_on_device_authorization">On-device authorization</string>
-    <string name="settings_secure_enclave_signing">Secure Enclave Signing</string>
-    <string name="settings_secure_enclave_signing_body">Required for every sensitive operation. Authorized by your preferred configured biometric, passcode, or second factor.</string>
+    <string name="settings_secure_enclave_signing">Mobile Phone Signing</string>
+    <string name="settings_secure_enclave_signing_body">Authorized by your preferred configured biometric, phone passcode, or optional hardware second factor.</string>
     <string name="settings_always_on_cannot_disable">Always on. Cannot be disabled.</string>
+    <string name="settings_advanced">Advanced</string>
+    <string name="settings_advanced_show">Show</string>
+    <string name="settings_advanced_hide">Hide</string>
+    <string name="settings_show_testnet_anchors">Show testnet anchors</string>
+    <string name="settings_show_testnet_anchors_footer">Show ledger-anchor badges for testnets (Sepolia, Base Sepolia) on credential cards. Off by default; the credential itself always shows.</string>
     <string name="settings_hardware_second_factor">Hardware second factor</string>
     <string name="settings_no_identity_devices">No identity-capable devices registered yet.</string>
     <string name="settings_register_device_hint">Register a YubiKey or a Ledger Nano X from Settings &gt; Devices, then return here to enable it as a second factor.</string>
-    <string name="settings_hardware_second_factor_footer">Enabling a hardware device adds extra protection for your identity and asset transactions. The device is then required to unlock; if you lose it, restore from your 24-word recovery phrase.</string>
+    <string name="settings_hardware_second_factor_footer">Enabling a hardware device adds extra protection for your identity and asset transactions. The device is then required to unlock.</string>
     <string name="settings_device_kind_serial">%1$s - %2$s</string>
     <string name="settings_enabled">Enabled</string>
     <string name="settings_known_issuers">Known issuers</string>
@@ -182,7 +187,7 @@
     <string name="settings_use_network_relay">Use network relay</string>
     <string name="settings_relay_host_url">Relay host URL</string>
     <string name="settings_reset_to_default">Reset to default</string>
-    <string name="settings_presentation_relay_footer">When on, you can share a verified credential over the internet using a private one-time link. Turn it off to share only by QR code.</string>
+    <string name="settings_presentation_relay_footer">When on, you can share a verified credential over the internet using a private one-time link. Turn it off to share only by offline QR code.</string>
     <string name="settings_no_saved_contacts">No saved %1$s contacts. Add one in Settings &gt; Address book.</string>
     <string name="settings_your_wallets">Your wallets</string>
     <string name="settings_contacts">Contacts</string>
@@ -281,8 +286,8 @@
     <string name="devices_badge_ethereum">Ethereum</string>
     <string name="devices_badge_solana">Solana</string>
     <string name="devices_badge_tron">Tron</string>
-    <string name="devices_vendor_yubikey_desc">NFC FIDO2 identity key. A security key you tap to unlock, as a second factor.</string>
-    <string name="devices_vendor_wallet_desc">Bluetooth hardware wallet for Bitcoin, Ethereum, Solana, and Tron.</string>
+    <string name="devices_vendor_yubikey_desc">Security key for hardware second factor.</string>
+    <string name="devices_vendor_wallet_desc">Bluetooth hardware wallets</string>
     <string name="devices_vendor_picker_footer">Connect a supported transport so Maknoon can read the device\'s serial. Adding it to a network wallet is a separate step from the device\'s detail screen.</string>
     <string name="devices_register_kind">Register %1$s</string>
     <string name="devices_register_card_body">Maknoon will connect over Bluetooth, read the device\'s stable serial, and record it. The device does not need to be promoted into Identity or any network yet.</string>
@@ -424,7 +429,7 @@
 
     <!-- iddocument -->
     <string name="id_anchoring_blurb">Your credential has been minted server-side and is being anchored. You can close this screen and continue using the app: the credential appears on the Identity tab as soon as the issuer\'s batch flushes. The pending pickup also shows at the top of the Identity tab with a cancel option.</string>
-    <string name="id_anchoring_blurb_short">Your verified credential is being anchored. It appears on the Identity tab as soon as the issuer\'s batch flushes; a pending row at the top of that tab lets you cancel.</string>
+    <string name="id_anchoring_blurb_short">Your verified credential is being anchored.</string>
     <string name="id_cancel_scan">Cancel scan</string>
     <string name="id_change_document_type">Change document type</string>
     <string name="id_check_opensanctions">Check against OpenSanctions</string>
@@ -439,8 +444,8 @@
     <string name="id_credential_value">Credential: %1$s</string>
     <string name="id_dataset">Dataset</string>
     <string name="id_date_of_birth">Date of birth</string>
-    <string name="id_date_of_birth_field">Date of birth (YY/MM/DD)</string>
-    <string name="id_date_of_expiry_field">Date of expiry (YY/MM/DD)</string>
+    <string name="id_date_of_birth_field">Date of birth (YYYY-MM-DD)</string>
+    <string name="id_date_of_expiry_field">Date of expiry (YYYY-MM-DD)</string>
     <string name="id_delete_document">Delete document</string>
     <string name="id_delete_document_blurb">This only removes the document from Maknoon on this phone. Your physical document is unaffected.</string>
     <string name="id_details">Details</string>
@@ -448,7 +453,7 @@
     <string name="id_document_details">Document details</string>
     <string name="id_document_number">Document number</string>
     <string name="id_document_portrait">Document portrait</string>
-    <string name="id_document_saved_blurb">Document saved. It appears as a single card on the Identity tab; present it as a self-signed QR offline, or get a verified credential from an issuer below.</string>
+    <string name="id_document_saved_blurb">Document verified and saved locally</string>
     <string name="id_document_type">Document type</string>
     <string name="id_done_keep_local_only">Done, keep the local credential only</string>
     <string name="id_edit_details">Edit details</string>
@@ -461,12 +466,12 @@
     <string name="id_form_accuracy_note">The passport can only be read if the passport number, date of birth, and expiration are entered correctly.</string>
     <string name="id_form_intro_other">Type the details from the data page of your ID, then tap your phone to it when the NFC prompt appears.</string>
     <string name="id_form_intro_passport">Type your details from inside of your passport, then place your phone over the passport.</string>
-    <string name="id_get_verified_credential">Get a verified credential from an issuer</string>
+    <string name="id_get_verified_credential">Get verified credential</string>
     <string name="id_given_name">Given name</string>
     <string name="id_hold_phone_over_passport">Hold your phone over the NFC enabled passport</string>
     <string name="id_identity_verified_credential">Identity Verified Credential</string>
     <string name="id_issue_detail_blurb">Upload the document\'s chip-signed fields to an issuer service for verification and sanctions screening, then issue a post-quantum credential anchored privately on ledger. You will receive an identity verified credential in your wallet that any Elabify-compatible verifier can check.</string>
-    <string name="id_issue_idle_blurb">Send the document\'s chip-signed fields to an issuer for verification and sanctions screening. You get back a post-quantum credential, anchored privately on ledger, that any compatible verifier can check.</string>
+    <string name="id_issue_idle_blurb">Send the document to an issuer for verification, sanctions screening, and anchoring on ledger that any compatible verifier can check.</string>
     <string name="id_issue_optional_hint">Optional, takes a moment. Pick an issuer in Settings (Identity, Known issuers) before submitting.</string>
     <string name="id_issue_verified_credential">Issue verified credential</string>
     <string name="id_issued_by">Issued by</string>
@@ -1258,6 +1263,7 @@
     <string name="passport_seal_genuine">Genuine</string>
     <string name="passport_seal_failed">Authenticity failed</string>
     <string name="passport_seal_unverified">Not verified</string>
+    <string name="passport_seal_checking">Checking authenticity…</string>
     <string name="passport_pinned_registry">Musnad Registry</string>
     <string name="present_build_online_qr">Build Online QR</string>
     <string name="present_advanced">Advanced</string>

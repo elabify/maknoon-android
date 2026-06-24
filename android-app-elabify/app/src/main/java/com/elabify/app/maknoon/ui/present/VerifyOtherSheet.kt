@@ -28,7 +28,9 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -61,6 +63,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.elabify.app.maknoon.R
+import com.elabify.app.maknoon.ui.iddocument.isProductionChain
 import com.elabify.app.maknoon.ui.components.Banner
 import com.elabify.app.maknoon.ui.components.BannerVariant
 import com.elabify.app.maknoon.ui.components.SectionHeader
@@ -220,24 +223,29 @@ fun VerifyOtherSheet(
         )
     }
 
-    when (val p = phase) {
-        is VerifyPhase.Scanning -> ScanningView(onCode = { handle(it) }, onClose = onClose)
-        is VerifyPhase.Collecting -> ScanningView(
-            onCode = { handle(it) },
-            onClose = { resetFrames(); onClose() },
-            status = stringResource(R.string.present_offline_frame, p.received, p.total),
-        )
-        is VerifyPhase.Fetching -> VerifyProgress(stringResource(R.string.present_fetching_presentation))
-        is VerifyPhase.Badge -> BadgeViewBody(p.badge, onScanAnother = { resetFrames(); phase = VerifyPhase.Scanning })
-        is VerifyPhase.Verdict -> VerdictBody(
-            presentation = p.presentation,
-            bundle = p.bundle,
-            onScanAnother = { resetFrames(); phase = VerifyPhase.Scanning },
-        )
-        is VerifyPhase.Rejected -> VerifyRejected(
-            reason = p.reason,
-            onScanAgain = { resetFrames(); phase = VerifyPhase.Scanning },
-        )
+    // Edge-to-edge (Android 15 / SDK 35): full-screen route with no Scaffold, so
+    // inset the top past the status bar / cutout. The bottom nav inset is already
+    // consumed by MainTabs, so apply status bars only.
+    Box(modifier = Modifier.fillMaxSize().statusBarsPadding()) {
+        when (val p = phase) {
+            is VerifyPhase.Scanning -> ScanningView(onCode = { handle(it) }, onClose = onClose)
+            is VerifyPhase.Collecting -> ScanningView(
+                onCode = { handle(it) },
+                onClose = { resetFrames(); onClose() },
+                status = stringResource(R.string.present_offline_frame, p.received, p.total),
+            )
+            is VerifyPhase.Fetching -> VerifyProgress(stringResource(R.string.present_fetching_presentation))
+            is VerifyPhase.Badge -> BadgeViewBody(p.badge, onScanAnother = { resetFrames(); phase = VerifyPhase.Scanning })
+            is VerifyPhase.Verdict -> VerdictBody(
+                presentation = p.presentation,
+                bundle = p.bundle,
+                onScanAnother = { resetFrames(); phase = VerifyPhase.Scanning },
+            )
+            is VerifyPhase.Rejected -> VerifyRejected(
+                reason = p.reason,
+                onScanAgain = { resetFrames(); phase = VerifyPhase.Scanning },
+            )
+        }
     }
 }
 
@@ -334,7 +342,8 @@ private fun BadgeViewBody(b: BadgeView, onScanAnother: () -> Unit) {
         Kv(stringResource(R.string.present_type), schemaLabel(b.schema))
         Kv(stringResource(R.string.present_issued), formatDate(b.iat))
         b.exp?.let { Kv(stringResource(R.string.present_expires), formatDate(it)) }
-        b.anchors.forEach { a ->
+        // Production chains only; testnet anchors are hidden in the client (ADR-0040).
+        b.anchors.filter { isProductionChain(it.chain) }.forEach { a ->
             Kv(stringResource(R.string.present_anchor_dash, caip2Label(a.chain)), shortHex(a.batchTxHash))
         }
         HorizontalDivider()

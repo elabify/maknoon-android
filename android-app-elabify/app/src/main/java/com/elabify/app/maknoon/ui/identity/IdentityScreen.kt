@@ -676,6 +676,44 @@ fun IdentityScreen(
             }
             var passiveAuthRunning by remember(doc.id) { mutableStateOf(false) }
             var presentError by remember(doc.id) { mutableStateOf<String?>(null) }
+            // Chip-authenticity (passive auth / CSCA chain) check, hoisted so it
+            // runs from BOTH the passport card and Advanced. Without the route
+            // LaunchedEffect below, the card showed "Not verified" until the user
+            // opened Advanced (which had its own on-appear run).
+            val runPassiveAuth: suspend (Boolean) -> Unit = runPa@{ force ->
+                if (passiveAuthRunning) return@runPa
+                passiveAuthRunning = true
+                try {
+                    val result = withContext(Dispatchers.IO) {
+                        val csca = if (issuerBaseUrl != null) CSCATrustStore(context, issuerBaseUrl) else CSCATrustStore(context)
+                        if (issuerBaseUrl != null) runCatching { csca.refresh(force) }
+                        val trusted = csca.trustedCertificates()
+                        val dgs = buildMap<String, ByteArray> {
+                            doc.dg1?.let { put("dg1", it) }
+                            doc.dg2?.let { put("dg2", it) }
+                            doc.dg11?.let { put("dg11", it) }
+                            doc.dg12?.let { put("dg12", it) }
+                            doc.dg15?.let { put("dg15", it) }
+                        }
+                        PassportPassiveAuthVerifier.verify(
+                            sod = doc.sod,
+                            dataGroups = dgs,
+                            issuingAlpha3 = doc.issuingAuthority,
+                            trustedCscas = trusted,
+                            bundleVersion = csca.version,
+                        )
+                    }
+                    idDocumentStore.setPassiveAuthResult(result, doc.id)
+                } catch (e: Throwable) {
+                    android.util.Log.w("CSCA", "passiveAuth: verify threw", e)
+                } finally {
+                    passiveAuthRunning = false
+                }
+            }
+            // Resolve authenticity as soon as the passport opens (card or
+            // Advanced), so the badge is correct on first view, not only after
+            // visiting Advanced.
+            LaunchedEffect(doc.id) { if (doc.passiveAuthResult == null) runPassiveAuth(false) }
             // A self-signed credential's header is master-signed (needs the root
             // entropy). With the second factor ON, present must recover the
             // entropy via an enrolled key before minting; this drives that dialog.
@@ -760,6 +798,7 @@ fun IdentityScreen(
                     photo = photo,
                     anchors = matched?.anchors ?: emptyList(),
                     passiveAuth = doc.passiveAuthResult,
+                    passiveAuthRunning = passiveAuthRunning,
                     canShowQr = remember(doc.id) { LocalCredentialFactory.isPresentable(doc) || matched != null },
                     onShowQr = {
                         presentInitialMode = PresentMode.ATTRIBUTES
@@ -869,47 +908,7 @@ fun IdentityScreen(
                 // and route to the present QR sheet. No hardware second factor:
                 // the present flow only needs the loaded sandwich.
                 onPresentQr = { presentInitialMode = PresentMode.BADGE; presentPassportMode = false; doPresentQr() },
-                runPassiveAuth = { force ->
-                    if (!passiveAuthRunning) {
-                        passiveAuthRunning = true
-                        try {
-                            // All of this (loading ~hundreds of CSCA certs, optional
-                            // bundle refresh, and the chip signature verification) is
-                            // heavy; run it entirely off the main thread so opening
-                            // Advanced / tapping Re-check never freezes the UI.
-                            val result = withContext(Dispatchers.IO) {
-                                val csca = if (issuerBaseUrl != null) {
-                                    CSCATrustStore(context, issuerBaseUrl)
-                                } else {
-                                    CSCATrustStore(context)
-                                }
-                                if (issuerBaseUrl != null) runCatching { csca.refresh(force) }
-                                val trusted = csca.trustedCertificates()
-                                android.util.Log.d("CSCA", "passiveAuth: issuer=$issuerBaseUrl trustedCerts=${trusted.size} sod=${doc.sod?.size}")
-                                val dgs = buildMap<String, ByteArray> {
-                                    doc.dg1?.let { put("dg1", it) }
-                                    doc.dg2?.let { put("dg2", it) }
-                                    doc.dg11?.let { put("dg11", it) }
-                                    doc.dg12?.let { put("dg12", it) }
-                                    doc.dg15?.let { put("dg15", it) }
-                                }
-                                PassportPassiveAuthVerifier.verify(
-                                    sod = doc.sod,
-                                    dataGroups = dgs,
-                                    issuingAlpha3 = doc.issuingAuthority,
-                                    trustedCscas = trusted,
-                                    bundleVersion = csca.version,
-                                )
-                            }
-                            android.util.Log.d("CSCA", "passiveAuth: result status=${result.status} reason=${result.reason} csca=${result.cscaCountry}")
-                            idDocumentStore.setPassiveAuthResult(result, doc.id)
-                        } catch (e: Throwable) {
-                            android.util.Log.w("CSCA", "passiveAuth: verify threw", e)
-                        } finally {
-                            passiveAuthRunning = false
-                        }
-                    }
-                },
+                runPassiveAuth = runPassiveAuth,
                 submitIssuance = {
                     val sandwich = withContext(Dispatchers.IO) { IdentitySandwich.load(store) }
                         ?: throw IllegalStateException("Identity is locked. Unlock and retry.")

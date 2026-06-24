@@ -48,6 +48,7 @@ import com.elabify.app.maknoon.ui.identity.IdentityScreen
 import com.elabify.app.maknoon.ui.miniapp.AppsScreen
 import com.elabify.app.maknoon.ui.onboarding.OnboardingScreen
 import com.elabify.app.maknoon.ui.theme.MaknoonBrand
+import com.elabify.app.maknoon.ui.theme.MaknoonTheme
 import com.elabify.app.maknoon.ui.theme.Spacing
 import com.elabify.app.maknoon.ui.wallet.WalletScreen
 import com.elabify.musnad.identity.IdentitySession
@@ -98,7 +99,14 @@ fun MaknoonRoot() {
         null -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
             CircularProgressIndicator()
         }
-        false -> OnboardingScreen(onComplete = { reloadKey++ })
+        // Onboarding is always dark, mirroring iOS (preferredColorScheme(.dark)):
+        // crisp light text on a dark ground, regardless of the system theme, so
+        // the welcome / setup copy is never the washed-out grey of light mode.
+        false -> MaknoonTheme(darkTheme = true) {
+            Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
+                OnboardingScreen(onComplete = { reloadKey++ })
+            }
+        }
         true -> MainTabs()
     }
 }

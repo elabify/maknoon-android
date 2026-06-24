@@ -79,6 +79,7 @@ import com.elabify.musnad.hardware.HardwareWalletFactory
 import com.elabify.musnad.hardware.trezor.TrezorCredentialStore
 import com.elabify.musnad.hardware.trezor.TrezorHardwareWallet
 import com.elabify.musnad.hardware.trezor.TrezorPairingCoordinator
+import com.elabify.app.maknoon.ui.wallet.common.PassphraseField
 import com.elabify.app.maknoon.yubikey.YubiKeyEnrollScreen
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -152,7 +153,8 @@ private fun VendorPicker(
         },
     ) { padding ->
         Column(Modifier.fillMaxSize().padding(padding)) {
-            registrableHardwareKinds.forEach { kind ->
+            // Listed alphabetically by vendor name (Ledger, Trezor, YubiKey).
+            registrableHardwareKinds.sortedBy { it.displayName }.forEach { kind ->
                 Row(
                     Modifier
                         .fillMaxWidth()
@@ -457,13 +459,11 @@ private fun TrezorCodeEntryDialog(
                     stringResource(R.string.devices_pair_trezor_message),
                     style = MaterialTheme.typography.bodyMedium,
                 )
-                OutlinedTextField(
+                PassphraseField(
                     value = code,
                     onValueChange = { code = it.filter { c -> c.isDigit() }.take(6) },
-                    singleLine = true,
+                    label = stringResource(R.string.devices_pair_code_placeholder),
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.NumberPassword),
-                    label = { Text(stringResource(R.string.devices_pair_code_placeholder)) },
-                    modifier = Modifier.fillMaxWidth(),
                 )
             }
         },

@@ -5,6 +5,7 @@ plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
+    alias(libs.plugins.play.publisher)
 }
 
 // WalletCore (via the SDK) pulls full guava; androidx pulls the empty
@@ -23,16 +24,47 @@ val keystoreProps = Properties().apply {
     if (keystorePropsFile.exists()) FileInputStream(keystorePropsFile).use { load(it) }
 }
 
+// Short git commit of the Android source this APK/AAB was built from, surfaced
+// in Settings > About (replaces the old hardcoded "dev"). Falls back to "dev"
+// when git is unavailable (e.g. a source archive without a .git dir).
+fun gitShortSha(): String = try {
+    ProcessBuilder("git", "rev-parse", "--short", "HEAD")
+        .directory(rootProject.projectDir)
+        .redirectErrorStream(true)
+        .start()
+        .inputStream.bufferedReader().readText().trim()
+        .ifEmpty { "dev" }
+} catch (_: Exception) {
+    "dev"
+}
+
 android {
     namespace = "com.elabify.app.maknoon"
     compileSdk = 36
+    // Pin the NDK so AGP's release strip + native-debug-symbol tasks can find
+    // the toolchain. Without it AGP silently skips stripping the prebuilt
+    // jniLibs .so (shipping ~4.5 MB of debug info per core) and produces no
+    // native symbol file for Play.
+    ndkVersion = "30.0.14904198"
 
     defaultConfig {
         applicationId = "com.elabify.app.maknoon" // matches the iOS bundle id
         minSdk = 33
         targetSdk = 35
-        versionCode = 6
-        versionName = "0.6.0"
+        versionCode = 8
+        versionName = "0.6.1"
+        buildConfigField("String", "GIT_COMMIT", "\"${gitShortSha()}\"")
+
+        // Ship arm64-v8a only. It is the only ABI used by real 16 KB-page
+        // devices (Pixel etc.) and the only 64-bit target the in-house Rust
+        // cores build; every arm64-v8a .so is 16 KB-aligned. This drops the
+        // x86_64 build of two third-party libs (JNA, WalletCore) that are still
+        // 4 KB-aligned and would fail Google Play's 16 KB requirement, plus the
+        // incidental armeabi/x86/mips ABIs that the cores never built for.
+        ndk {
+            abiFilters.clear()
+            abiFilters.add("arm64-v8a")
+        }
     }
 
     signingConfigs {
@@ -50,6 +82,10 @@ android {
         release {
             isMinifyEnabled = false
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
+            // Embed a native symbol file in the AAB so Play can symbolicate
+            // crashes/ANRs in the Rust + WalletCore .so libs. SYMBOL_TABLE gives
+            // function names (readable stacks) without the size of FULL.
+            ndk { debugSymbolLevel = "SYMBOL_TABLE" }
             // Real release key when keystore.properties is present, else the
             // debug key (keeps fresh clones / CI building, but unshippable).
             signingConfig = if (keystorePropsFile.exists()) {
@@ -80,6 +116,38 @@ android {
             excludes += "/META-INF/{AL2.0,LGPL2.1}"
         }
     }
+}
+
+// Gradle Play Publisher (ADR-0044 release automation). `./gradlew
+// :app:publishReleaseBundle` builds the signed AAB and uploads it to the
+// Internal testing track. Promote internal -> production in the Play Console.
+//
+// Auth (two supported paths; only the publish* tasks need it, so normal
+// assemble/bundle builds work without either):
+//   1. A gitignored service-account JSON at play-service-account.json (used if
+//      present).
+//   2. Application Default Credentials when no JSON is present (org policy
+//      iam.disableServiceAccountKeyCreation blocks downloadable keys, so this
+//      is the keyless path). Authenticate by impersonating the publisher SA:
+//        gcloud auth application-default login \
+//          --impersonate-service-account=play-publisher@PROJECT.iam.gserviceaccount.com
+//      ADC then mints short-lived tokens as the SA (no key file on disk).
+play {
+    // Credential resolution (org policy blocks downloadable SA keys, so the
+    // default is keyless impersonation):
+    //   1. play-service-account.json (a real SA key) if present, else
+    //   2. the gcloud Application Default Credentials file produced by
+    //      `gcloud auth application-default login --impersonate-service-account=...`.
+    //      It contains an impersonation config (no private key); GPP loads it via
+    //      GoogleCredentials.fromStream, which understands that ADC type.
+    val saFile = file("play-service-account.json")
+    val adcFile = file(System.getProperty("user.home") + "/.config/gcloud/application_default_credentials.json")
+    when {
+        saFile.exists() -> serviceAccountCredentials.set(saFile)
+        adcFile.exists() -> serviceAccountCredentials.set(adcFile)
+    }
+    track.set("internal")
+    defaultToAppBundles.set(true)
 }
 
 dependencies {

@@ -82,6 +82,7 @@ import androidx.fragment.app.FragmentActivity
 import com.elabify.app.maknoon.R
 import com.elabify.app.maknoon.iddocument.IDDocumentStore
 import com.elabify.app.maknoon.ui.BiometricGate
+import com.elabify.app.maknoon.ui.components.AdvancedSection
 import com.elabify.app.maknoon.ui.components.Banner
 import com.elabify.app.maknoon.ui.components.BannerVariant
 import com.elabify.app.maknoon.ui.components.RecoveryPhraseGrid
@@ -354,21 +355,11 @@ fun LocalKeySettingsScreen(onBack: () -> Unit) {
                 }
             }
 
-            // iOS "Recovery" section.
+            // iOS "Recovery" section. Verify encrypted backup is the only
+            // recovery action shown to normal users; the seed-phrase tools and
+            // Lockdown live under Advanced (0.6.1 friendliness pass).
             SectionHeader(title = stringResource(R.string.settings_recovery))
             SectionCardGroup {
-                if (!lockdownEnabled) {
-                    ActionRow(
-                        label = stringResource(R.string.settings_show_seed_phrase),
-                        icon = Icons.Filled.DocumentScanner,
-                        onClick = { revealPhrase() },
-                    )
-                    ActionRow(
-                        label = stringResource(R.string.settings_verify_seed_phrase),
-                        icon = Icons.Filled.Shield,
-                        onClick = { sheet = LocalKeySheet.VerifyPhrase },
-                    )
-                }
                 // Verifying an encrypted backup only needs the file + passphrase,
                 // so it stays available even under Lockdown.
                 ActionRow(
@@ -398,30 +389,35 @@ fun LocalKeySettingsScreen(onBack: () -> Unit) {
                     }
                 }
             }
-            Text(
-                stringResource(R.string.settings_recovery_footer),
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.padding(horizontal = Spacing.xs),
-            )
 
-            // iOS inline "Lockdown" section, only when not already locked.
+            // Advanced: seed-phrase tools + Lockdown (only when not already locked).
             if (!lockdownEnabled) {
-                SectionHeader(title = stringResource(R.string.settings_lockdown))
-                SectionCardGroup {
-                    ActionRow(
-                        label = stringResource(R.string.settings_lockdown_wallet),
-                        icon = Icons.Filled.LockReset,
-                        tint = MaknoonColors.error,
-                        onClick = { sheet = LocalKeySheet.Lockdown },
+                AdvancedSection {
+                    SectionCardGroup {
+                        ActionRow(
+                            label = stringResource(R.string.settings_show_seed_phrase),
+                            icon = Icons.Filled.DocumentScanner,
+                            onClick = { revealPhrase() },
+                        )
+                        ActionRow(
+                            label = stringResource(R.string.settings_verify_seed_phrase),
+                            icon = Icons.Filled.Shield,
+                            onClick = { sheet = LocalKeySheet.VerifyPhrase },
+                        )
+                        ActionRow(
+                            label = stringResource(R.string.settings_lockdown_wallet),
+                            icon = Icons.Filled.LockReset,
+                            tint = MaknoonColors.error,
+                            onClick = { sheet = LocalKeySheet.Lockdown },
+                        )
+                    }
+                    Text(
+                        stringResource(R.string.settings_lockdown_footer),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(horizontal = Spacing.xs),
                     )
                 }
-                Text(
-                    stringResource(R.string.settings_lockdown_footer),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.padding(horizontal = Spacing.xs),
-                )
             }
         }
     }

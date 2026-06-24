@@ -420,8 +420,8 @@
     <string name="id_credential_value">凭证：%1$s</string>
     <string name="id_dataset">数据集</string>
     <string name="id_date_of_birth">出生日期</string>
-    <string name="id_date_of_birth_field">出生日期 (YY/MM/DD)</string>
-    <string name="id_date_of_expiry_field">到期日期 (YY/MM/DD)</string>
+    <string name="id_date_of_birth_field">出生日期 (YYYY-MM-DD)</string>
+    <string name="id_date_of_expiry_field">到期日期 (YYYY-MM-DD)</string>
     <string name="id_delete_document">删除文件</string>
     <string name="id_delete_document_blurb">这只会从此手机上的 Maknoon 中移除该文件。你的实体文件不受影响。</string>
     <string name="id_details">详情</string>

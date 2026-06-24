@@ -1,0 +1,10 @@
+<!-- Official Base mark (Simple Icons), filled with the Base brand color. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+    <path
+        android:fillColor="#0052FF"
+        android:pathData="M11.9991 24C18.6266 24 24 18.6274 24 12C24 5.37258 18.6266 0 11.9991 0C5.71246 0 0.554362 4.83456 0.0359397 10.9889H15.8908V13.0111H0.0359397C0.554362 19.1654 5.71246 24 11.9991 24Z" />
+</vector>

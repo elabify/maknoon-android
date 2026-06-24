@@ -97,6 +97,7 @@ import androidx.compose.ui.unit.dp
 import com.elabify.app.maknoon.R
 import com.elabify.app.maknoon.iddocument.CSCATrustStore
 import com.elabify.app.maknoon.iddocument.KnownIssuersProvider
+import com.elabify.app.maknoon.ui.components.AdvancedSection
 import com.elabify.app.maknoon.ui.components.SectionHeader
 import com.elabify.app.maknoon.ui.theme.MaknoonBrand
 import com.elabify.app.maknoon.ui.theme.MaknoonColors
@@ -179,40 +180,45 @@ fun IdentitySettingsScreen(onBack: () -> Unit) {
             verticalArrangement = Arrangement.spacedBy(Spacing.xl),
         ) {
             BiometricSection()
-            RegisteredSection(identityDevices)
-            KnownIssuersSection(
-                hosts = hosts,
-                health = health,
-                newIssuerDraft = newIssuerDraft,
-                onDraftChange = { newIssuerDraft = it },
-                onAdd = {
-                    val raw = newIssuerDraft
-                    newIssuerDraft = ""
-                    knownIssuers.add(raw)
-                    hosts.clear()
-                    hosts.addAll(knownIssuers.hosts)
-                },
-                onRemove = { host ->
-                    knownIssuers.remove(host)
-                    health.remove(host)
-                    hosts.clear()
-                    hosts.addAll(knownIssuers.hosts)
-                },
-            )
-            CscaSection(
-                count = cscaCount,
-                version = cscaVersion,
-                refreshedAt = cscaRefreshedAt,
-                updating = cscaUpdating,
-                firstHost = hosts.firstOrNull(),
-                onUpdate = {
-                    cscaUpdating = true
-                    csca.refresh(force = true)
-                    loadCscaState()
-                    cscaUpdating = false
-                },
-            )
-            PresentationRelaySection()
+            // Advanced: the technical controls a normal user rarely touches live
+            // here (0.6.1 friendliness pass), collapsed by default.
+            AdvancedSection {
+                ShowTestnetAnchorsSection()
+                RegisteredSection(identityDevices)
+                KnownIssuersSection(
+                    hosts = hosts,
+                    health = health,
+                    newIssuerDraft = newIssuerDraft,
+                    onDraftChange = { newIssuerDraft = it },
+                    onAdd = {
+                        val raw = newIssuerDraft
+                        newIssuerDraft = ""
+                        knownIssuers.add(raw)
+                        hosts.clear()
+                        hosts.addAll(knownIssuers.hosts)
+                    },
+                    onRemove = { host ->
+                        knownIssuers.remove(host)
+                        health.remove(host)
+                        hosts.clear()
+                        hosts.addAll(knownIssuers.hosts)
+                    },
+                )
+                CscaSection(
+                    count = cscaCount,
+                    version = cscaVersion,
+                    refreshedAt = cscaRefreshedAt,
+                    updating = cscaUpdating,
+                    firstHost = hosts.firstOrNull(),
+                    onUpdate = {
+                        cscaUpdating = true
+                        csca.refresh(force = true)
+                        loadCscaState()
+                        cscaUpdating = false
+                    },
+                )
+                PresentationRelaySection()
+            }
         }
     }
 }
@@ -244,7 +250,28 @@ private fun BiometricSection() {
                 }
             }
         }
-        FooterCaption(stringResource(R.string.settings_always_on_cannot_disable))
+    }
+}
+
+// MARK: -- show testnet anchors (advanced opt-in)
+
+@Composable
+private fun ShowTestnetAnchorsSection() {
+    var enabled by remember { mutableStateOf(TestnetAnchorSettings.showTestnetAnchors) }
+    Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+        SectionCardGroup {
+            Row(
+                modifier = Modifier.fillMaxWidth().padding(Spacing.md),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text(stringResource(R.string.settings_show_testnet_anchors), modifier = Modifier.weight(1f))
+                Switch(
+                    checked = enabled,
+                    onCheckedChange = { enabled = it; TestnetAnchorSettings.showTestnetAnchors = it },
+                )
+            }
+        }
+        FooterCaption(stringResource(R.string.settings_show_testnet_anchors_footer))
     }
 }
 

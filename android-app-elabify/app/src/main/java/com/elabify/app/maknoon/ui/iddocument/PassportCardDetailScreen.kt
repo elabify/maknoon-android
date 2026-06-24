@@ -43,6 +43,7 @@ import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.filled.Tune
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -95,6 +96,7 @@ fun PassportCardDetailScreen(
     onShare: () -> Unit,
     onAdvanced: () -> Unit,
     onBack: () -> Unit,
+    passiveAuthRunning: Boolean = false,
 ) {
     Scaffold(
         topBar = {
@@ -115,7 +117,7 @@ fun PassportCardDetailScreen(
                 .padding(horizontal = 16.dp, vertical = 10.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
-            HeroCard(document, photo, anchors, passiveAuth)
+            HeroCard(document, photo, anchors, passiveAuth, passiveAuthRunning)
 
             Button(
                 onClick = onShowQr,
@@ -148,6 +150,7 @@ private fun HeroCard(
     photo: ImageBitmap?,
     anchors: List<AnchorEntry>,
     passiveAuth: PassiveAuthResult?,
+    passiveAuthRunning: Boolean = false,
 ) {
     val palette = CardPalette.forSchema("elabify://schema/global/passport/v1")
     val fg = palette.foreground
@@ -245,11 +248,16 @@ private fun HeroCard(
 
         Box(Modifier.fillMaxWidth().padding(vertical = 9.dp).height(1.dp).background(fg.copy(alpha = 0.16f)))
 
-        GenuineSeal(passiveAuth, fg)
+        GenuineSeal(passiveAuth, fg, passiveAuthRunning)
 
-        if (anchors.isNotEmpty()) {
+        // Production chains always; testnet pins (Sepolia, Base Sepolia) only when
+        // the holder opted in (Settings, Identity, Advanced, "Show testnet
+        // anchors"). The credential itself always shows (ADR-0040 / ADR-0043).
+        val showTestnet = com.elabify.app.maknoon.ui.settings.TestnetAnchorSettings.showTestnetAnchors
+        val shownAnchors = anchors.filter { isProductionChain(it.chain) || (showTestnet && chainIsTestnet(it.chain)) }
+        if (shownAnchors.isNotEmpty()) {
             Spacer(Modifier.height(9.dp))
-            PinnedStrip(anchors, fg)
+            PinnedStrip(shownAnchors, fg)
         }
     }
 }
@@ -288,7 +296,16 @@ private fun Field(label: String, value: String, fg: Color) {
 }
 
 @Composable
-private fun GenuineSeal(r: PassiveAuthResult?, fg: Color) {
+private fun GenuineSeal(r: PassiveAuthResult?, fg: Color, running: Boolean = false) {
+    // While the check is in flight on first open and no result exists yet, show
+    // a neutral "Checking…" state instead of a premature "Not verified".
+    if (running && r == null) {
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(7.dp)) {
+            CircularProgressIndicator(modifier = Modifier.size(18.dp), strokeWidth = 2.dp, color = fg)
+            Text(stringResource(R.string.passport_seal_checking), fontSize = 15.sp, fontWeight = FontWeight.SemiBold, color = fg)
+        }
+        return
+    }
     // Green "Verified" for a full CSCA-verified chip; blue "Genuine" for a
     // genuine chip whose signer isn't in the on-device trust list; red on a
     // real failure; grey when not yet run. Mirrors iOS genuineState.
@@ -388,12 +405,11 @@ private fun ChainChip(chain: String, pinned: Boolean, fg: Color) {
             }
         }
         if (chainIsTestnet(chain)) {
-            // Clearly-visible red "TEST" pill so a testnet anchor (Sepolia) never
-            // reads as production trust.
-            // A small red rounded-rect label (not a circle): mirrors the iOS TEST
-            // pill so a testnet anchor never reads as production trust.
+            // A small red rounded-rect label naming the testnet (e.g. "Sepolia"),
+            // mirroring the iOS pill so a testnet anchor never reads as production
+            // trust.
             Text(
-                "TEST",
+                chainTestnetLabel(chain),
                 fontSize = 8.sp,
                 fontWeight = FontWeight.Black,
                 color = Color.White,
@@ -435,8 +451,13 @@ private fun issueDate(dg12: ByteArray?): String? {
     var i = 0
     while (i + 2 < b.size) {
         if (b[i] == 0x5F.toByte() && b[i + 1] == 0x26.toByte()) {
-            val len = b[i + 2].toInt() and 0xFF
-            val start = i + 3
+            // BER-TLV length: short form (0x08) OR long form one-byte (0x81 0x08).
+            // Some issuers encode DG12 0x5F26 long-form, which the old short-form
+            // -only scan missed (the date then never appeared).
+            var p = i + 2
+            var len = b[p].toInt() and 0xFF
+            if (len == 0x81 && p + 1 < b.size) { p += 1; len = b[p].toInt() and 0xFF }
+            val start = p + 1
             if (len == 8 && start + len <= b.size) {
                 val s = String(b, start, len, Charsets.US_ASCII)
                 if (s.length == 8 && s.all { it.isDigit() }) {
@@ -482,11 +503,20 @@ private fun monogram(doc: IDDocument): String {
     return m.ifEmpty { "ID" }
 }
 
-/** True for a testnet anchor (drives the red TEST pill). */
+/** Chains shown to end users. Testnets (Sepolia eip155:11155111, Base Sepolia
+ *  eip155:84532, anvil, devnets) are anchored for testing but never rendered in
+ *  the clients - they are admin-only in the issuer console (ADR-0040). Explicit
+ *  production allowlist, not a testnet heuristic (CAIP-2 84532 has no "sepolia"
+ *  substring). Mirrors iOS ChainMark.isProduction. */
+private val PRODUCTION_CHAINS = setOf("eip155:1", "eip155:8453")
+
+fun isProductionChain(chain: String): Boolean = chain.lowercase() in PRODUCTION_CHAINS
+
+/** True for a testnet anchor (drives the red testnet pill). */
 private fun chainIsTestnet(chain: String): Boolean {
     val c = chain.lowercase()
-    return c == "eip155:11155111" || c.contains("sepolia") || c.contains("testnet") ||
-        c.contains("devnet") || c.contains("goerli")
+    return c == "eip155:11155111" || c == "eip155:84532" || c.contains("sepolia") ||
+        c.contains("testnet") || c.contains("devnet") || c.contains("goerli")
 }
 
 /** Block-explorer URL for the registry contract address on a chain; null when
@@ -512,11 +542,24 @@ private fun explorerUrl(chain: String, address: String): String? {
 private fun chainDrawable(chain: String): Int? {
     val c = chain.lowercase()
     return when {
+        // Base mainnet (8453) + Base Sepolia (84532) carry the Base mark.
+        c == "eip155:8453" || c == "eip155:84532" || c.contains("base") -> R.drawable.ic_chain_base
         c.contains("eip155") || c.contains("eth") -> R.drawable.ic_chain_ethereum
         c.contains("solana") || c.contains("sol") -> R.drawable.ic_chain_solana
         c.contains("bip122") || c.contains("bitcoin") || c.contains("btc") -> R.drawable.ic_chain_bitcoin
         c.contains("tron") || c.contains("trx") -> R.drawable.ic_chain_tron
         c.contains("light") -> R.drawable.ic_chain_lightning
         else -> null
+    }
+}
+
+/** Short red caption for a testnet anchor chip (e.g. "Sepolia", "Devnet"). */
+private fun chainTestnetLabel(chain: String): String {
+    val c = chain.lowercase()
+    return when {
+        c.contains("sepolia") || c == "eip155:11155111" || c == "eip155:84532" -> "Sepolia"
+        c.contains("devnet") -> "Devnet"
+        c.contains("goerli") -> "Goerli"
+        else -> "TEST"
     }
 }

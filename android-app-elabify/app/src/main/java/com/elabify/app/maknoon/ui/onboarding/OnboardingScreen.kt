@@ -1,18 +1,21 @@
-// First-run onboarding, mirroring the shipped iOS simplified flow:
-//   Welcome -> { Create new identity -> set passphrase -> reveal + back up the
-//   24 words -> mandatory encrypted backup } or { Restore encrypted backup ->
-//   passphrase }.
-// The passphrase feeds the master derivation AND the backup KDF (so a restore
+// First-run onboarding, mirroring the shipped iOS OnboardingView flow:
+//   Welcome -> { Create new identity -> set password -> encrypted backup
+//   (skippable) -> scan passport (skippable) -> first wallet (skippable) } or
+//   { Restore encrypted backup -> password }.
+// The password feeds the master derivation AND the backup KDF (so a restore
 // rebuilds the same identity). Backup export / restore use the Storage Access
 // Framework (no Google Drive dependency; GrapheneOS-friendly).
 //
-// Visual parity with iOS OnboardingView / RecoveryView / VerifyPhraseView:
-//   - Welcome: branded logo header, centered heading + tagline, three
+// The 24-word seed phrase is NOT shown or verified during onboarding (it stays
+// viewable later in Settings, Local Key); the encrypted backup is the primary
+// recovery path and can be skipped (not recommended).
+//
+// Visual parity with iOS OnboardingView:
+//   - Welcome: the real Maknoon logo, centered heading + tagline, three
 //     checkmark-seal bullet rows in the brand purple, a prominent primary
 //     action and a bordered secondary action.
-//   - Backup words: the freshly generated 24 words via RecoveryPhraseGrid
-//     (masked until tapped to reveal), a WARNING Banner about offline-only
-//     storage, and a confirm-saved gate before the encrypted-backup step.
+//   - Post-identity: optionally scan a passport to mint a credential, then
+//     recommend a first wallet (hardware or Bitcoin software).
 //   - Banners and the shared spacing / shape tokens carry the rest of the
 //     polish.
 
@@ -21,7 +24,6 @@ package com.elabify.app.maknoon.ui.onboarding
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -35,21 +37,15 @@ import androidx.compose.foundation.layout.systemBarsPadding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Lock
-import androidx.compose.material.icons.outlined.Visibility
-import androidx.compose.material.icons.outlined.VisibilityOff
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Switch
-import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -61,33 +57,44 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import com.elabify.app.maknoon.ui.components.Banner
 import com.elabify.app.maknoon.ui.components.BannerVariant
-import com.elabify.app.maknoon.ui.components.RecoveryPhraseGrid
 import com.elabify.app.maknoon.ui.theme.Elevation
 import com.elabify.app.maknoon.ui.theme.MaknoonBrand
 import com.elabify.app.maknoon.ui.theme.Radii
 import com.elabify.app.maknoon.ui.theme.Spacing
+import androidx.compose.foundation.Image
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.painterResource
+import com.elabify.app.maknoon.R
+import com.elabify.app.maknoon.ui.devices.AddHardwareDeviceFlow
+import com.elabify.app.maknoon.ui.iddocument.TapIDDocumentFlow
+import com.elabify.app.maknoon.ui.wallet.bitcoin.BitcoinWalletEnv
+import com.elabify.app.maknoon.ui.wallet.common.PassphraseField
+import com.elabify.musnad.devices.DeviceRegistry
 import com.elabify.musnad.identity.IdentitySandwich
 import com.elabify.musnad.identity.IdentityStore
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
-private enum class Step { WELCOME, CREATE_PASSPHRASE, BACKUP_WORDS, BACKUP, RESTORE, RESTORE_DONE }
+private enum class Step {
+    WELCOME, CREATE_PASSPHRASE, BACKUP,
+    PASSPORT_SCAN, PASSPORT_SCAN_TAP,
+    RECOMMEND_WALLET, RECOMMEND_WALLET_HW,
+    RESTORE, RESTORE_DONE,
+}
 
 @Composable
 fun OnboardingScreen(onComplete: () -> Unit) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     val store = remember { IdentityStore(context) }
+    val deviceRegistry = remember { DeviceRegistry(context) }
 
     var step by remember { mutableStateOf(Step.WELCOME) }
     var passphrase by remember { mutableStateOf("") }
@@ -99,11 +106,6 @@ fun OnboardingScreen(onComplete: () -> Unit) {
     var restoreReport by remember {
         mutableStateOf<com.elabify.app.maknoon.backup.MaknoonBackupV4.RestoreReport?>(null)
     }
-
-    // Backup-words step state (mirrors iOS reveal: tap to reveal, gate before
-    // continuing).
-    var wordsRevealed by remember { mutableStateOf(false) }
-    var confirmedSavedOffline by remember { mutableStateOf(false) }
 
     fun now() = System.currentTimeMillis() / 1000
 
@@ -123,7 +125,7 @@ fun OnboardingScreen(onComplete: () -> Unit) {
                 withContext(Dispatchers.IO) {
                     context.contentResolver.openOutputStream(uri)!!.use { it.write(blob) }
                 }
-                onComplete()
+                step = Step.PASSPORT_SCAN
             } catch (e: Exception) {
                 error = e.message ?: e.toString()
             } finally {
@@ -151,7 +153,21 @@ fun OnboardingScreen(onComplete: () -> Unit) {
         }
     }
 
-    Column(
+    // The passport-scan and add-hardware sub-flows are full-screen Scaffolds; they
+    // must NOT live inside a verticalScroll Column, so render them edge-to-edge.
+    // Every other step is a section inside the scrolling Column below.
+    when (step) {
+        Step.PASSPORT_SCAN_TAP -> TapIDDocumentFlow(
+            onDone = { step = Step.RECOMMEND_WALLET },
+            onClose = { step = Step.PASSPORT_SCAN },
+            skipKindPicker = true,
+        )
+        Step.RECOMMEND_WALLET_HW -> AddHardwareDeviceFlow(
+            registry = deviceRegistry,
+            onFinished = { _ -> onComplete() },
+            onCancel = { step = Step.RECOMMEND_WALLET },
+        )
+        else -> Column(
         modifier = Modifier
             .fillMaxSize()
             // Onboarding is the full-screen root (no Scaffold / tab bar to
@@ -174,24 +190,15 @@ fun OnboardingScreen(onComplete: () -> Unit) {
                     "A password is used to back up your identity and any local assets using " +
                         "post-quantum encryption.",
                     style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    color = MaterialTheme.colorScheme.onSurface,
                 )
-                OutlinedTextField(
+                PassphraseField(
                     value = passphrase, onValueChange = { passphrase = it },
-                    label = { Text("Password") },
-                    visualTransformation = PasswordVisualTransformation(),
-                    keyboardOptions = KeyboardOptions.Default,
-                    singleLine = true,
-                    shape = RoundedCornerShape(Radii.sm),
-                    modifier = Modifier.fillMaxWidth(),
+                    label = "Password",
                 )
-                OutlinedTextField(
+                PassphraseField(
                     value = confirm, onValueChange = { confirm = it },
-                    label = { Text("Confirm password") },
-                    visualTransformation = PasswordVisualTransformation(),
-                    singleLine = true,
-                    shape = RoundedCornerShape(Radii.sm),
-                    modifier = Modifier.fillMaxWidth(),
+                    label = "Confirm password",
                 )
                 val mismatch = confirm.isNotEmpty() && passphrase != confirm
                 if (mismatch) {
@@ -222,9 +229,7 @@ fun OnboardingScreen(onComplete: () -> Unit) {
                                     IdentitySandwich.generateFresh(passphrase, now(), store)
                                 }
                                 sandwich = s
-                                wordsRevealed = false
-                                confirmedSavedOffline = false
-                                step = Step.BACKUP_WORDS
+                                step = Step.BACKUP
                             } catch (e: Exception) {
                                 error = e.message ?: e.toString()
                             } finally {
@@ -235,27 +240,17 @@ fun OnboardingScreen(onComplete: () -> Unit) {
                 ) { Text("Continue") }
             }
 
-            Step.BACKUP_WORDS -> BackupWordsStep(
-                words = sandwich?.recoveryWords().orEmpty(),
-                revealed = wordsRevealed,
-                onToggleReveal = { wordsRevealed = !wordsRevealed },
-                confirmedSaved = confirmedSavedOffline,
-                onConfirmChange = { confirmedSavedOffline = it },
-                busy = busy,
-                onContinue = { step = Step.BACKUP },
-            )
-
             Step.BACKUP -> {
-                Text("Save your encrypted backup", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+                Text("Encrypted backup", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
                 Text(
                     "Maknoon stores an encrypted backup wherever you choose, locked by your " +
                         "password. Without the password the post-quantum backup is useless to " +
                         "anyone.",
                     style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    color = MaterialTheme.colorScheme.onSurface,
                 )
                 Banner(
-                    title = "This step is required",
+                    title = "Strongly recommended",
                     body = "Your verified credentials and local wallet data are recoverable only " +
                         "from this encrypted backup plus your password.",
                     variant = BannerVariant.INFO,
@@ -266,6 +261,77 @@ fun OnboardingScreen(onComplete: () -> Unit) {
                     shape = RoundedCornerShape(Radii.md),
                     onClick = { saveBackup.launch(com.elabify.app.maknoon.backup.MaknoonBackupV4.defaultBackupFilename()) },
                 ) { Text(if (busy) "Preparing..." else "Save encrypted backup") }
+                OutlinedButton(
+                    enabled = !busy,
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(Radii.md),
+                    onClick = { step = Step.PASSPORT_SCAN },
+                ) { Text("Skip, not recommended") }
+                Text(
+                    "Without a backup, losing this phone means losing your identity and any " +
+                        "software wallet keys. You can still create one later in Settings.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+
+            Step.PASSPORT_SCAN -> {
+                Text("Scan your passport", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+                Text(
+                    "Tap your passport and Maknoon reads its chip on-device and mints an identity " +
+                        "credential signed by your post-quantum key, that you can present from your " +
+                        "phone. Nothing is uploaded unless you then choose an Elabify-verified " +
+                        "credential.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurface,
+                )
+                Button(
+                    enabled = !busy,
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(Radii.md),
+                    onClick = { step = Step.PASSPORT_SCAN_TAP },
+                ) { Text("Scan passport") }
+                OutlinedButton(
+                    enabled = !busy,
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(Radii.md),
+                    onClick = { step = Step.RECOMMEND_WALLET },
+                ) { Text("Skip for now") }
+            }
+
+            Step.RECOMMEND_WALLET -> {
+                Text("Create your first wallet", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+                Text(
+                    "Maknoon supports many digital asset networks. For holding value, we only " +
+                        "recommend Bitcoin: it is the only cryptocurrency proven as a long-term " +
+                        "store of value. The safest option is a hardware wallet, but a software " +
+                        "Bitcoin wallet is convenient for small amounts.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurface,
+                )
+                Button(
+                    enabled = !busy,
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(Radii.md),
+                    onClick = { step = Step.RECOMMEND_WALLET_HW },
+                ) { Text("Add a hardware wallet") }
+                OutlinedButton(
+                    enabled = !busy,
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(Radii.md),
+                    onClick = {
+                        // Explicit user choice seeds the default Bitcoin software
+                        // wallet (no longer auto-seeded behind the Wallet tab).
+                        BitcoinWalletEnv.create(context).store.seedDefaultIfNeeded()
+                        onComplete()
+                    },
+                ) { Text("Create Bitcoin software wallet") }
+                OutlinedButton(
+                    enabled = !busy,
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(Radii.md),
+                    onClick = { onComplete() },
+                ) { Text("Skip for now") }
             }
 
             Step.RESTORE -> {
@@ -274,7 +340,7 @@ fun OnboardingScreen(onComplete: () -> Unit) {
                     "Pick the encrypted backup file you saved earlier. Decryption and verification " +
                         "happen entirely on this phone.",
                     style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    color = MaterialTheme.colorScheme.onSurface,
                 )
                 OutlinedButton(
                     enabled = !busy,
@@ -284,13 +350,9 @@ fun OnboardingScreen(onComplete: () -> Unit) {
                 ) { Text(if (restoreBytes == null) "Choose backup file" else "Backup file selected") }
 
                 if (restoreBytes != null) {
-                    OutlinedTextField(
+                    PassphraseField(
                         value = passphrase, onValueChange = { passphrase = it },
-                        label = { Text("Password") },
-                        visualTransformation = PasswordVisualTransformation(),
-                        singleLine = true,
-                        shape = RoundedCornerShape(Radii.sm),
-                        modifier = Modifier.fillMaxWidth(),
+                        label = "Password",
                     )
                     Button(
                         enabled = passphrase.isNotEmpty() && !busy,
@@ -347,7 +409,7 @@ fun OnboardingScreen(onComplete: () -> Unit) {
                         "Everything in your backup was restored to this phone."
                     },
                     style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    color = MaterialTheme.colorScheme.onSurface,
                 )
                 report?.restored?.takeIf { it.isNotEmpty() }?.let { items ->
                     Text("Restored", style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.SemiBold)
@@ -366,6 +428,9 @@ fun OnboardingScreen(onComplete: () -> Unit) {
                     onClick = { onComplete() },
                 ) { Text("Continue") }
             }
+
+            // Full-screen sub-flows handled by the outer `when`; never reached here.
+            Step.PASSPORT_SCAN_TAP, Step.RECOMMEND_WALLET_HW -> Unit
         }
 
         if (busy) {
@@ -377,6 +442,7 @@ fun OnboardingScreen(onComplete: () -> Unit) {
                 body = it,
                 variant = BannerVariant.ERROR,
             )
+        }
         }
     }
 }
@@ -403,7 +469,7 @@ private fun WelcomeStep(
         Text(
             "Own your Identity, Assets, and Privacy",
             style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            color = MaterialTheme.colorScheme.onSurface,
             textAlign = TextAlign.Center,
         )
     }
@@ -416,7 +482,7 @@ private fun WelcomeStep(
             .padding(horizontal = Spacing.sm),
         verticalArrangement = Arrangement.spacedBy(Spacing.md),
     ) {
-        CheckmarkBullet("Scan a passport into your phone with post-quantum encryption")
+        CheckmarkBullet("Verify and share your passport as a digital identity")
         CheckmarkBullet("Manage digital assets with a secure hardware wallet")
         CheckmarkBullet("Privately use your identity and assets with those you verify and trust")
     }
@@ -440,15 +506,14 @@ private fun WelcomeStep(
     }
 }
 
-// Branded launcher-style logo tile: the deep-purple ground (#3A1259) the iOS
-// app icon uses, with a soft drop shadow and the brand accent monogram, since
-// the Android project does not ship a dedicated logo drawable yet.
+// The real Maknoon logo (same 1024px artwork as the iOS app icon), rounded with
+// a soft drop shadow to match the iOS welcome screen.
 @Composable
 private fun BrandLogo() {
-    val deepPurple = MaknoonBrand.deepPurple
-    val accent = MaknoonBrand.accent
-    val accentLight = MaknoonBrand.accentLight
-    Box(
+    Image(
+        painter = painterResource(R.drawable.maknoon_logo),
+        contentDescription = null,
+        contentScale = ContentScale.Fit,
         modifier = Modifier
             .size(120.dp)
             .shadow(
@@ -456,19 +521,8 @@ private fun BrandLogo() {
                 shape = RoundedCornerShape(Radii.xl),
                 clip = false,
             )
-            .clip(RoundedCornerShape(Radii.xl))
-            .background(
-                Brush.linearGradient(listOf(deepPurple, accent)),
-            ),
-        contentAlignment = Alignment.Center,
-    ) {
-        Text(
-            "M",
-            color = accentLight,
-            fontWeight = FontWeight.Bold,
-            fontSize = 64.sp,
-        )
-    }
+            .clip(RoundedCornerShape(Radii.xl)),
+    )
 }
 
 @Composable
@@ -494,92 +548,3 @@ private fun CheckmarkBullet(text: String) {
     }
 }
 
-// MARK: -- backup words (reveal + confirm gate)
-
-@Composable
-private fun BackupWordsStep(
-    words: List<String>,
-    revealed: Boolean,
-    onToggleReveal: () -> Unit,
-    confirmedSaved: Boolean,
-    onConfirmChange: (Boolean) -> Unit,
-    busy: Boolean,
-    onContinue: () -> Unit,
-) {
-    Text(
-        "Your recovery phrase",
-        style = MaterialTheme.typography.titleMedium,
-        fontWeight = FontWeight.SemiBold,
-    )
-
-    Banner(
-        title = "Store this OFFLINE",
-        body = "The only safe place for these 24 words without encryption is paper or stamped " +
-            "metal, stored OFFLINE, in a locked safe. Never type them into any computer or phone. " +
-            "Never take a photo or screenshot. Anyone with this recovery phrase AND your password " +
-            "can recreate your identity.",
-        variant = BannerVariant.WARNING,
-    )
-
-    // The grid is tappable to toggle masking, mirroring the iOS reveal gesture.
-    Box(modifier = Modifier.clickable(onClick = onToggleReveal)) {
-        RecoveryPhraseGrid(
-            words = words,
-            masked = !revealed,
-            modifier = Modifier.fillMaxWidth(),
-        )
-    }
-
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(Radii.sm))
-            .clickable(onClick = onToggleReveal)
-            .padding(vertical = Spacing.xs),
-        horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Icon(
-            imageVector = if (revealed) Icons.Outlined.VisibilityOff else Icons.Outlined.Visibility,
-            contentDescription = null,
-            tint = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.size(18.dp),
-        )
-        Text(
-            text = if (revealed) {
-                "Hide before screen-sharing or putting the phone down."
-            } else {
-                "Tap to reveal. Tap again to hide before walking away or screen-sharing."
-            },
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
-    }
-
-    // Confirm-saved gate, switch styled to the brand accent.
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(Spacing.md),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Text(
-            "I have written this on paper or metal and stored it OFFLINE. I understand losing it " +
-                "means losing access.",
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurface,
-            modifier = Modifier.weight(1f),
-        )
-        Switch(
-            checked = confirmedSaved,
-            onCheckedChange = onConfirmChange,
-            colors = SwitchDefaults.colors(checkedTrackColor = MaknoonBrand.accent),
-        )
-    }
-
-    Button(
-        enabled = confirmedSaved && words.isNotEmpty() && !busy,
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(Radii.md),
-        onClick = onContinue,
-    ) { Text("Continue") }
-}

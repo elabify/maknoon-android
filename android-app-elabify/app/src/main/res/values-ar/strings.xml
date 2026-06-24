@@ -420,8 +420,8 @@
     <string name="id_credential_value">بيانات الاعتماد: %1$s</string>
     <string name="id_dataset">مجموعة البيانات</string>
     <string name="id_date_of_birth">تاريخ الميلاد</string>
-    <string name="id_date_of_birth_field">تاريخ الميلاد (سس/شش/يي)</string>
-    <string name="id_date_of_expiry_field">تاريخ الانتهاء (سس/شش/يي)</string>
+    <string name="id_date_of_birth_field">تاريخ الميلاد (سسسس-شش-يي)</string>
+    <string name="id_date_of_expiry_field">تاريخ الانتهاء (سسسس-شش-يي)</string>
     <string name="id_delete_document">حذف المستند</string>
     <string name="id_delete_document_blurb">هذا يزيل المستند فقط من Maknoon على هذا الهاتف. مستندك المادي لا يتأثر.</string>
     <string name="id_details">التفاصيل</string>

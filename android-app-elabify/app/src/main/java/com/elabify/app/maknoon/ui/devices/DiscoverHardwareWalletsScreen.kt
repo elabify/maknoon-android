@@ -73,6 +73,7 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.dp
 import android.content.Context
 import com.elabify.app.maknoon.R
+import com.elabify.app.maknoon.ui.wallet.common.PassphraseField
 import android.util.Log
 import com.elabify.app.maknoon.ui.wallet.common.HardwareStage
 import com.elabify.app.maknoon.ui.wallet.common.HardwareStageLine
@@ -310,7 +311,6 @@ internal fun DiscoverHardwareWalletsScreen(
     val isTrezor = device.kind == DeviceKind.TREZOR
     var passphraseMode by remember { mutableStateOf("standard") } // standard | ondevice | host
     var hostPassphrase by remember { mutableStateOf("") }
-    var showHostPassphrase by remember { mutableStateOf(false) }
     fun passphraseChoice(): PassphraseChoice? = if (!isTrezor) {
         null
     } else when (passphraseMode) {
@@ -402,22 +402,11 @@ internal fun DiscoverHardwareWalletsScreen(
                     FilterChip(selected = passphraseMode == "host", onClick = { if (!scanning) passphraseMode = "host" }, label = { Text(stringResource(R.string.devices_passphrase_type_on_phone)) })
                 }
                 if (passphraseMode == "host") {
-                    OutlinedTextField(
+                    PassphraseField(
                         value = hostPassphrase,
                         onValueChange = { hostPassphrase = it },
-                        label = { Text(stringResource(R.string.devices_passphrase)) },
-                        singleLine = true,
-                        visualTransformation = if (showHostPassphrase) VisualTransformation.None else PasswordVisualTransformation(),
-                        trailingIcon = {
-                            IconButton(onClick = { showHostPassphrase = !showHostPassphrase }) {
-                                Icon(
-                                    if (showHostPassphrase) Icons.Filled.VisibilityOff else Icons.Filled.Visibility,
-                                    contentDescription = if (showHostPassphrase) stringResource(R.string.devices_hide_passphrase) else stringResource(R.string.devices_show_passphrase),
-                                )
-                            }
-                        },
+                        label = stringResource(R.string.devices_passphrase),
                         enabled = !scanning,
-                        modifier = Modifier.fillMaxWidth(),
                     )
                 }
                 Text(

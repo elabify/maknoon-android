@@ -119,6 +119,7 @@ import com.elabify.app.maknoon.ui.theme.DisplayPreferences
 import com.elabify.app.maknoon.ui.theme.MaknoonBrand
 import com.elabify.app.maknoon.ui.theme.MaknoonColors
 import com.elabify.app.maknoon.ui.theme.Radii
+import com.elabify.app.maknoon.ui.components.AdvancedSection
 import com.elabify.app.maknoon.ui.theme.Spacing
 import java.io.File
 import java.util.Currency
@@ -605,7 +606,21 @@ fun CurrencySettingsScreen(onBack: () -> Unit) {
                     )
                 }
 
-                // Section 3: overridable price-data sources (third-party hosts).
+                // Section 4: preview.
+                Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+                    MiscHeader(stringResource(R.string.settings_preview))
+                    MiscSectionCard {
+                        Column(modifier = Modifier.padding(Spacing.md), verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+                            previewRow(stringResource(R.string.settings_preview_1_btc), code)
+                            previewRow(stringResource(R.string.settings_preview_0001_btc), code)
+                            previewRow(stringResource(R.string.settings_preview_1_eth), code)
+                        }
+                    }
+                }
+
+                // Advanced: overridable price-data sources, pinned to the very
+                // bottom (0.6.1 friendliness pass).
+                AdvancedSection {
                 Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
                     MiscHeader(stringResource(R.string.settings_price_data_sources))
                     MiscSectionCard {
@@ -636,17 +651,6 @@ fun CurrencySettingsScreen(onBack: () -> Unit) {
                         stringResource(R.string.settings_price_sources_footer),
                     )
                 }
-
-                // Section 4: preview.
-                Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-                    MiscHeader(stringResource(R.string.settings_preview))
-                    MiscSectionCard {
-                        Column(modifier = Modifier.padding(Spacing.md), verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-                            previewRow(stringResource(R.string.settings_preview_1_btc), code)
-                            previewRow(stringResource(R.string.settings_preview_0001_btc), code)
-                            previewRow(stringResource(R.string.settings_preview_1_eth), code)
-                        }
-                    }
                 }
             }
         }
@@ -838,7 +842,7 @@ fun AboutScreen(onBack: () -> Unit) {
 
     val marketingVersion = BuildConfig.VERSION_NAME
     val bundleVersion = BuildConfig.VERSION_CODE.toString()
-    val buildCommit = "dev"
+    val buildCommit = BuildConfig.GIT_COMMIT
 
     Scaffold(
         topBar = {
@@ -872,7 +876,6 @@ fun AboutScreen(onBack: () -> Unit) {
                         AboutKeyValueRow(stringResource(R.string.settings_commit), buildCommit)
                     }
                 }
-                MiscFooter(stringResource(R.string.settings_commit_footer))
             }
 
             // Elabify.
@@ -884,7 +887,6 @@ fun AboutScreen(onBack: () -> Unit) {
                     LinkRow(Icons.Filled.Description, stringResource(R.string.settings_license_link), "https://github.com/elabify/maknoon-android/blob/main/LICENSE.md", context)
                     LinkRow(Icons.Filled.PanTool, stringResource(R.string.settings_privacy_policy_link), "https://musnad.elabify.com/privacy", context)
                 }
-                MiscFooter(stringResource(R.string.settings_elabify_footer))
             }
 
             // Default services.
@@ -1104,8 +1106,7 @@ private val SERVICES: List<CreditEntry> = listOf(
     CreditEntry("mempool.space", "Bitcoin fee estimates, block explorer, and the Electrum endpoint Maknoon uses by default", "https://mempool.space"),
     CreditEntry("Blockstream", "Public Electrum servers and esplora APIs that Bitcoin wallets fall back on", "https://blockstream.info"),
     CreditEntry("CoinGecko", "Fiat price feeds for Bitcoin display", "https://www.coingecko.com"),
-    CreditEntry("Cloudflare", "Ethereum mainnet JSON-RPC endpoint", "https://cloudflare-eth.com"),
-    CreditEntry("PublicNode", "Sepolia testnet JSON-RPC endpoint", "https://www.publicnode.com"),
+    CreditEntry("PublicNode", "Default JSON-RPC for Ethereum mainnet + Sepolia, Polygon, and BNB Chain", "https://www.publicnode.com"),
     CreditEntry("Arbitrum Foundation", "Arbitrum One + Sepolia RPC", "https://arbitrum.foundation"),
     CreditEntry("Optimism", "OP Mainnet + Sepolia RPC", "https://www.optimism.io"),
     CreditEntry("Base", "Base Mainnet + Sepolia RPC", "https://base.org"),

@@ -137,8 +137,11 @@ fun TapIDDocumentScreen(
     submittingHost: String,
     onSaved: (savedId: String?) -> Unit,
     onClose: () -> Unit,
+    skipKindPicker: Boolean = false,
 ) {
-    var step by remember { mutableStateOf(TapStep.KindPicker) }
+    // Onboarding's "Scan your passport" is passport-specific, so it skips the
+    // document-kind picker and opens the passport form directly.
+    var step by remember { mutableStateOf(if (skipKindPicker) TapStep.Form else TapStep.KindPicker) }
     var parameters by remember {
         mutableStateOf(
             IDDocumentReadParameters(
@@ -190,6 +193,7 @@ fun TapIDDocumentScreen(
                     onParametersChange = { parameters = it },
                     onContinue = { step = TapStep.Scanning },
                     onChangeKind = { step = TapStep.KindPicker },
+                    showChangeKind = !skipKindPicker,
                 )
 
                 TapStep.Scanning -> {
@@ -306,13 +310,20 @@ private fun FormStep(
     onParametersChange: (IDDocumentReadParameters) -> Unit,
     onContinue: () -> Unit,
     onChangeKind: () -> Unit,
+    showChangeKind: Boolean = true,
 ) {
+    // Full 4-digit-year date entry (YYYYMMDD digits). The chip's BAC key only
+    // needs the 2-digit-year YYMMDD, so `parameters` stays MRZ-shaped; these
+    // local fields drive the YYYY-MM-DD display. Seeded from any value already
+    // in `parameters` so navigating back to this step keeps what was typed.
+    var dobDigits by remember { mutableStateOf(expandToYYYYMMDD(parameters.dateOfBirth, isExpiry = false)) }
+    var expDigits by remember { mutableStateOf(expandToYYYYMMDD(parameters.dateOfExpiry, isExpiry = true)) }
+
     // Track that the user deliberately set both dates. The chip only
     // unlocks to the exact printed values, so we gate Continue on the
     // user having actually typed both rather than leaving placeholders.
-    val birthSet = parameters.dateOfBirth.length == 6
-    val expirySet = parameters.dateOfExpiry.length == 6
-    val canContinue = parameters.documentNumber.trim().isNotEmpty() && birthSet && expirySet
+    val canContinue = parameters.documentNumber.trim().isNotEmpty() &&
+        dobDigits.length == 8 && expDigits.length == 8
 
     val formIntro = when (parameters.declaredKind) {
         IDDocumentKind.PASSPORT ->
@@ -368,27 +379,33 @@ private fun FormStep(
             modifier = Modifier.fillMaxWidth(),
         )
 
-        // Dates are entered as the chip-native YYMMDD form (no date-picker
-        // dependency; matches what the MRZ key derivation expects). A YY/MM/DD
-        // visual mask shows slashes as the user types while the stored value
-        // stays the raw 6 digits (ADR-0037; iOS uses the same masked entry).
+        // Dates are entered as YYYY-MM-DD: the user types the full 4-digit year
+        // and the dashes appear automatically after the year and the month. The
+        // stored value stays the chip-native 2-digit-year YYMMDD the MRZ key
+        // derivation expects (the century is dropped on the way in; ADR-0037).
         OutlinedTextField(
-            value = parameters.dateOfBirth,
-            onValueChange = { onParametersChange(parameters.copy(dateOfBirth = it.filter(Char::isDigit).take(6))) },
+            value = dobDigits,
+            onValueChange = {
+                dobDigits = it.filter(Char::isDigit).take(8)
+                onParametersChange(parameters.copy(dateOfBirth = yymmddFromYYYYMMDD(dobDigits)))
+            },
             label = { Text(stringResource(R.string.id_date_of_birth_field)) },
             singleLine = true,
-            visualTransformation = YymmddSlashTransformation,
+            visualTransformation = YyyymmddDashTransformation,
             keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(
                 keyboardType = androidx.compose.ui.text.input.KeyboardType.Number,
             ),
             modifier = Modifier.fillMaxWidth(),
         )
         OutlinedTextField(
-            value = parameters.dateOfExpiry,
-            onValueChange = { onParametersChange(parameters.copy(dateOfExpiry = it.filter(Char::isDigit).take(6))) },
+            value = expDigits,
+            onValueChange = {
+                expDigits = it.filter(Char::isDigit).take(8)
+                onParametersChange(parameters.copy(dateOfExpiry = yymmddFromYYYYMMDD(expDigits)))
+            },
             label = { Text(stringResource(R.string.id_date_of_expiry_field)) },
             singleLine = true,
-            visualTransformation = YymmddSlashTransformation,
+            visualTransformation = YyyymmddDashTransformation,
             keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(
                 keyboardType = androidx.compose.ui.text.input.KeyboardType.Number,
             ),
@@ -404,7 +421,7 @@ private fun FormStep(
         Button(onClick = onContinue, enabled = canContinue, modifier = Modifier.fillMaxWidth()) {
             Text(stringResource(R.string.common_continue))
         }
-        OutlinedButton(onClick = onChangeKind, modifier = Modifier.fillMaxWidth()) {
+        if (showChangeKind) OutlinedButton(onClick = onChangeKind, modifier = Modifier.fillMaxWidth()) {
             Text(stringResource(R.string.id_change_document_type))
         }
 
@@ -620,11 +637,6 @@ private fun MintedStep(
                 issuanceDisabledHint?.let {
                     Text(it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.tertiary)
                 }
-                Text(
-                    stringResource(R.string.id_issue_optional_hint),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
                 OutlinedButton(onClick = onDone, modifier = Modifier.fillMaxWidth()) {
                     Text(stringResource(R.string.id_done_keep_local_only))
                 }
@@ -645,7 +657,6 @@ private fun MintedStep(
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
-                MonoCaption(stringResource(R.string.id_credential_value, issuance.credentialId))
                 Button(onClick = onDone, modifier = Modifier.fillMaxWidth()) { Text(stringResource(R.string.common_done)) }
             }
 
@@ -756,28 +767,50 @@ private fun rememberPortraitBitmap(bytes: ByteArray?): ImageBitmap? =
         }
     }
 
-/** Visual mask that renders a stored 6-digit YYMMDD value as "YY/MM/DD" while the
- *  field's underlying value stays the raw digits (ADR-0037). Slashes appear only
- *  once their group's digits exist, so the cursor maps correctly mid-entry. */
-private val YymmddSlashTransformation = VisualTransformation { text ->
-    val digits = text.text.filter { it.isDigit() }.take(6)
-    val slash1 = digits.length > 2
-    val slash2 = digits.length > 4
+/** Visual mask that renders a typed 8-digit YYYYMMDD value as "YYYY-MM-DD" while
+ *  the field's underlying value stays the raw digits (so the cursor maps
+ *  correctly and backspace deletes a digit). The separator is EAGER: the moment
+ *  a group is complete it shows a trailing dash ("2017-" the instant the 4th
+ *  digit is typed), so the next dash never lags behind the year/month. */
+private val YyyymmddDashTransformation = VisualTransformation { text ->
+    val digits = text.text.filter { it.isDigit() }.take(8)
+    // Eager: a dash exists as soon as a group is complete (>= 4 / >= 6).
+    val dash1 = digits.length >= 4
+    val dash2 = digits.length >= 6
     val sb = StringBuilder()
     digits.forEachIndexed { i, c ->
-        if (i == 2 || i == 4) sb.append('/')
+        if (i == 4 || i == 6) sb.append('-')
         sb.append(c)
     }
+    if (digits.length == 4 || digits.length == 6) sb.append('-')
     val mapping = object : OffsetMapping {
         override fun originalToTransformed(offset: Int): Int =
-            offset + (if (offset >= 2 && slash1) 1 else 0) + (if (offset >= 4 && slash2) 1 else 0)
+            offset + (if (offset >= 4 && dash1) 1 else 0) + (if (offset >= 6 && dash2) 1 else 0)
 
         override fun transformedToOriginal(offset: Int): Int {
             var o = offset
-            if (slash1 && offset > 2) o -= 1
-            if (slash2 && offset > 5) o -= 1
+            if (dash1 && offset > 4) o -= 1
+            if (dash2 && offset > 7) o -= 1
             return o.coerceIn(0, digits.length)
         }
     }
     TransformedText(AnnotatedString(sb.toString()), mapping)
+}
+
+/** Drop the century from a complete YYYYMMDD to the MRZ-shaped YYMMDD the chip's
+ *  BAC key needs; returns "" until all 8 digits are present. */
+private fun yymmddFromYYYYMMDD(digits: String): String {
+    val d = digits.filter { it.isDigit() }
+    return if (d.length == 8) d.substring(2) else ""
+}
+
+/** Expand a stored 2-digit-year YYMMDD back to the 4-digit-year YYYYMMDD the UI
+ *  edits. A passport expiry is always in the 2000s; a birth date with a 2-digit
+ *  year above 30 is treated as 19xx (matches the on-chip MRZ convention). */
+private fun expandToYYYYMMDD(yymmdd: String, isExpiry: Boolean): String {
+    val d = yymmdd.filter { it.isDigit() }
+    if (d.length != 6) return ""
+    val yy = d.substring(0, 2).toInt()
+    val year = if (isExpiry) 2000 + yy else if (yy > 30) 1900 + yy else 2000 + yy
+    return "%04d%s".format(year, d.substring(2))
 }

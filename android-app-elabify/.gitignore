@@ -12,3 +12,7 @@ keystore.properties
 *.jks
 *.keystore
 /keystore/
+
+# Google Play service-account credentials (Gradle Play Publisher). Never commit.
+play-service-account.json
+*-service-account.json

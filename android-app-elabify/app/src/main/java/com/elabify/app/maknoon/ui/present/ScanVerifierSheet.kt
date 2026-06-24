@@ -30,7 +30,9 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -217,36 +219,42 @@ fun ScanVerifierSheet(
         }
     }
 
-    when (val p = phase) {
-        is ScanPhase.Scanning -> ScannerView(
-            prompt = stringResource(R.string.present_scan_verifier_prompt),
-            onCode = { handleScanned(it) },
-            onClose = onClose,
-        )
-        is ScanPhase.Validating -> ProgressView(stringResource(R.string.present_validating_signature))
-        is ScanPhase.Rejected -> RejectedView(
-            reason = p.reason,
-            onScanAgain = { phase = ScanPhase.Scanning },
-        )
-        is ScanPhase.NoMatch -> NoMatchView(
-            decision = p.decision,
-            verifierName = p.decision.request.verifierName ?: stringResource(R.string.present_verifier),
-            onScanAgain = { phase = ScanPhase.Scanning },
-        )
-        is ScanPhase.Confirm -> {
-            val selected = p.matches.firstOrNull { it.cid == selectedCredId } ?: p.matches.first()
-            ConfirmView(
-                decision = p.decision,
-                matches = p.matches,
-                selected = selected,
-                sending = sending,
-                sendError = sendError,
-                onSelect = { selectedCredId = it },
-                onApprove = { approve(p.decision, selected) },
-                onReject = onClose,
+    // Edge-to-edge (Android 15 / SDK 35): this is a full-screen route with no
+    // Scaffold, so inset the top past the status bar / cutout. The bottom nav
+    // inset is already consumed by MainTabs, so apply status bars only (full
+    // systemBars would double-pad the bottom).
+    Box(modifier = Modifier.fillMaxSize().statusBarsPadding()) {
+        when (val p = phase) {
+            is ScanPhase.Scanning -> ScannerView(
+                prompt = stringResource(R.string.present_scan_verifier_prompt),
+                onCode = { handleScanned(it) },
+                onClose = onClose,
             )
+            is ScanPhase.Validating -> ProgressView(stringResource(R.string.present_validating_signature))
+            is ScanPhase.Rejected -> RejectedView(
+                reason = p.reason,
+                onScanAgain = { phase = ScanPhase.Scanning },
+            )
+            is ScanPhase.NoMatch -> NoMatchView(
+                decision = p.decision,
+                verifierName = p.decision.request.verifierName ?: stringResource(R.string.present_verifier),
+                onScanAgain = { phase = ScanPhase.Scanning },
+            )
+            is ScanPhase.Confirm -> {
+                val selected = p.matches.firstOrNull { it.cid == selectedCredId } ?: p.matches.first()
+                ConfirmView(
+                    decision = p.decision,
+                    matches = p.matches,
+                    selected = selected,
+                    sending = sending,
+                    sendError = sendError,
+                    onSelect = { selectedCredId = it },
+                    onApprove = { approve(p.decision, selected) },
+                    onReject = onClose,
+                )
+            }
+            is ScanPhase.Sent -> SentView(verifierName = p.verifierName, onClose = onClose)
         }
-        is ScanPhase.Sent -> SentView(verifierName = p.verifierName, onClose = onClose)
     }
 }
 

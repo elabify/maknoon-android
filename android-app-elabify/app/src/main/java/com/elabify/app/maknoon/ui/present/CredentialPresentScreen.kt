@@ -75,6 +75,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.elabify.app.maknoon.ui.components.QrCode
+import com.elabify.app.maknoon.ui.iddocument.isProductionChain
 import com.elabify.app.maknoon.ui.theme.Elevation
 import com.elabify.app.maknoon.ui.theme.Radii
 import com.elabify.app.maknoon.ui.theme.Spacing
@@ -266,7 +267,9 @@ fun CredentialPresentScreen(
 @Composable
 private fun BadgeMode(credential: ParsedCredential) {
     val payload = remember(credential.cid) { badgePayloadJson(credential) }
-    val anchors = credential.anchor?.anchors ?: emptyList()
+    // Production chains only; testnet anchors (Sepolia) are admin-only in the
+    // issuer console, never shown in the client (ADR-0040).
+    val anchors = (credential.anchor?.anchors ?: emptyList()).filter { isProductionChain(it.chain) }
 
     SoftCard {
         Column(Modifier.padding(Spacing.lg), verticalArrangement = Arrangement.spacedBy(Spacing.md)) {
@@ -340,7 +343,9 @@ private fun TechnicalDetails(credential: ParsedCredential, modifier: Modifier = 
         MonoKv("headerSig", credential.headerSig)
         val sigHex = credential.headerSig.removePrefix("0x")
         MonoKv("sigBytes", (sigHex.length / 2).toString())
-        val anchors = credential.anchor?.anchors ?: emptyList()
+        // Production chains only; testnet anchors (Sepolia) are admin-only in the
+    // issuer console, never shown in the client (ADR-0040).
+    val anchors = (credential.anchor?.anchors ?: emptyList()).filter { isProductionChain(it.chain) }
         anchors.forEachIndexed { idx, a ->
             val n = if (anchors.size > 1) " #${idx + 1}" else ""
             MonoKv("anchor$n chain", "${caip2Label(a.chain)} (${a.chain})")
