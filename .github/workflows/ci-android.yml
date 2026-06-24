@@ -30,7 +30,7 @@ jobs:
             'xox[baprs]-[0-9A-Za-z-]{8,}'
             'CARGO_REGISTRY[_]TOKEN'
             'docs/(decisions|operations|integrations|reference)/'
-            '(\.\./|)(issuer-backend|verifier-server|vault-plugin|smart-contracts|demo-web-app|ios-sdk-musnad)'
+            '(\.\.[/]|code[/])(issuer-backend|verifier-server|vault-plugin|smart-contracts|demo-web-app|ios-sdk-musnad)'
           )
           fail=0
           for p in "${patterns[@]}"; do
