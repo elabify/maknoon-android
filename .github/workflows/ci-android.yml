@@ -207,7 +207,11 @@ jobs:
           for f in "$tmp"/c*.pem; do
             [ -s "$f" ] || continue
             count=$((count+1))
-            keytool -importcert -noprompt -trustcacerts \
+            # cacerts is root-owned, so import as root (passwordless sudo on
+            # GitHub runners). Full keytool path because sudo resets PATH;
+            # $JAVA_HOME is expanded by this shell before sudo runs. The gradle
+            # JVM (and GPP's forked worker) read this same JAVA_HOME cacerts.
+            sudo "$JAVA_HOME/bin/keytool" -importcert -noprompt -trustcacerts \
               -alias "gh-oidc-$count" -file "$f" \
               -keystore "$JAVA_HOME/lib/security/cacerts" -storepass changeit
           done
