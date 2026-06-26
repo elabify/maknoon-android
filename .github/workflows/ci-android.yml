@@ -223,4 +223,12 @@ jobs:
 
       - name: Build signed AAB + upload to Play internal
         working-directory: android-app-elabify
-        run: ./gradlew :app:publishReleaseBundle --no-daemon --stacktrace
+        # The previous step imported the GitHub OIDC CA into $JAVA_HOME's cacerts, but
+        # gradle-play-publisher does the Workload-Identity token fetch in a FORKED
+        # gradle worker JVM that didn't pick up that truststore (rc5 still PKIX-failed).
+        # JAVA_TOOL_OPTIONS is inherited by every child JVM (incl. forked workers), so
+        # force the trust store onto the cacerts we just imported into. Set it in the
+        # shell so $JAVA_HOME expands (env: block values are not shell-expanded).
+        run: |
+          export JAVA_TOOL_OPTIONS="-Djavax.net.ssl.trustStore=$JAVA_HOME/lib/security/cacerts -Djavax.net.ssl.trustStorePassword=changeit"
+          ./gradlew :app:publishReleaseBundle --no-daemon --stacktrace
