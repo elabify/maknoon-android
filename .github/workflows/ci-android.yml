@@ -179,6 +179,44 @@ jobs:
         # Writes a keyless external_account ADC file and exports
         # GOOGLE_APPLICATION_CREDENTIALS, which the play{} block consumes.
 
+      - name: Trust the GitHub OIDC token endpoint CA in the JDK truststore
+        # gradle-play-publisher does the Workload Identity *subject-token* fetch
+        # in-JVM, GET-ing $ACTIONS_ID_TOKEN_REQUEST_URL (GitHub's OIDC endpoint on
+        # *.actions.githubusercontent.com). That endpoint's TLS cert chains to a CA
+        # (Microsoft RSA Root CA 2017) that is NOT in the Temurin cacerts shipped by
+        # setup-java, so the fetch dies with:
+        #   IdentityPoolCredentials.getSubjectTokenFromMetadataServer
+        #   -> SSLHandshakeException: PKIX path building failed.
+        # The Node `auth` step above succeeds because it uses the OS trust store, not
+        # the JVM. Import the endpoint's live chain (leaf + intermediates) into the
+        # active JDK truststore so the in-JVM fetch validates. Re-fetched each run, so
+        # it tracks cert rotation. Keeps the keyless WIF design intact (no SA key).
+        run: |
+          set -euo pipefail
+          host="$(printf '%s' "${ACTIONS_ID_TOKEN_REQUEST_URL:-}" | sed -E 's#^https?://([^/:]+).*#\1#')"
+          if [ -z "$host" ]; then
+            echo "::error::ACTIONS_ID_TOKEN_REQUEST_URL is empty (need permissions: id-token: write)"
+            exit 1
+          fi
+          echo "Importing TLS chain for $host into $JAVA_HOME/lib/security/cacerts"
+          tmp="$(mktemp -d)"
+          openssl s_client -showcerts -servername "$host" -connect "$host:443" </dev/null 2>/dev/null \
+            | awk -v d="$tmp" '/BEGIN CERTIFICATE/{n++} n{print > (d"/c"n".pem")}'
+          shopt -s nullglob
+          count=0
+          for f in "$tmp"/c*.pem; do
+            [ -s "$f" ] || continue
+            count=$((count+1))
+            keytool -importcert -noprompt -trustcacerts \
+              -alias "gh-oidc-$count" -file "$f" \
+              -keystore "$JAVA_HOME/lib/security/cacerts" -storepass changeit
+          done
+          if [ "$count" -eq 0 ]; then
+            echo "::error::no certificates captured from $host"
+            exit 1
+          fi
+          echo "imported $count certificate(s) for $host"
+
       - name: Build signed AAB + upload to Play internal
         working-directory: android-app-elabify
         run: ./gradlew :app:publishReleaseBundle --no-daemon --stacktrace
