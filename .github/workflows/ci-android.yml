@@ -137,13 +137,20 @@ jobs:
           bash pq-crypto-rs/android/build-aar.sh
           echo "::endgroup::"
           # 2. The five hardware-wallet core AARs -> android-sdk-musnad/hwlibs
-          #    under distinct names (flatDir needs unique artifact names).
+          #    under the exact names the SDK's flatDir deps resolve
+          #    (musnad-sdk/build.gradle.kts): the four ledger cores carry a
+          #    "-core" suffix (:ledger-btc-core@aar ...), trezor-core does not.
+          #    Crate dir "ledger-btc-rs" -> artifact "ledger-btc-core.aar".
           mkdir -p android-sdk-musnad/hwlibs
           for c in ledger-btc-rs ledger-eth-rs ledger-sol-rs ledger-tron-rs trezor-core-rs; do
             echo "::group::build-aar ($c)"
             bash "$c/android/build-aar.sh"
+            case "$c" in
+              trezor-core-rs) dest="trezor-core" ;;
+              *)              dest="${c%-rs}-core" ;;   # ledger-btc-rs -> ledger-btc-core
+            esac
             cp "$c/android/library/build/outputs/aar/library-release.aar" \
-               "android-sdk-musnad/hwlibs/${c%-rs}.aar"
+               "android-sdk-musnad/hwlibs/${dest}.aar"
             echo "::endgroup::"
           done
 
