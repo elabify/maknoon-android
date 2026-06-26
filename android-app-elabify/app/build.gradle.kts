@@ -51,7 +51,7 @@ android {
         applicationId = "com.elabify.app.maknoon" // matches the iOS bundle id
         minSdk = 33
         targetSdk = 35
-        versionCode = 10
+        versionCode = 11
         versionName = "0.6.2"
         buildConfigField("String", "GIT_COMMIT", "\"${gitShortSha()}\"")
 
