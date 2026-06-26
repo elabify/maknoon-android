@@ -119,6 +119,8 @@ private sealed interface TronRoute {
     data object AddWallet : TronRoute
     data object RegisterDevice : TronRoute
     data object Settings : TronRoute
+    data object SignMessage : TronRoute
+    data object VerifyMessage : TronRoute
     data class AddToken(val prefilledContract: String?) : TronRoute
     data class TokenDetail(val walletId: UUID, val tokenId: String) : TronRoute
     data class TxList(val walletId: UUID, val ownerAddress: String) : TronRoute
@@ -142,6 +144,8 @@ fun TronWalletScreen(onBack: () -> Unit) {
             onWallets = { route = TronRoute.Wallets },
             onAddWallet = { pendingHwDeviceId = null; route = TronRoute.AddWallet },
             onSettings = { route = TronRoute.Settings },
+            onSignMessage = { route = TronRoute.SignMessage },
+            onVerifyMessage = { route = TronRoute.VerifyMessage },
             onAddToken = { prefill -> route = TronRoute.AddToken(prefill) },
             onTokenDetail = { id, tokenId -> route = TronRoute.TokenDetail(id, tokenId) },
             onTxList = { id, addr -> route = TronRoute.TxList(id, addr) },
@@ -157,8 +161,14 @@ fun TronWalletScreen(onBack: () -> Unit) {
         )
         is TronRoute.Wallets -> TronWalletsScreen(
             onAddWallet = { pendingHwDeviceId = null; route = TronRoute.AddWallet },
+            onOpenSettings = { route = TronRoute.Settings },
             onDone = { route = TronRoute.Dashboard },
         )
+        is TronRoute.SignMessage -> TronSignMessageScreen(
+            active = TronStores.walletStore(context).activeWallet,
+            onClose = { route = TronRoute.Dashboard },
+        )
+        is TronRoute.VerifyMessage -> TronVerifyMessageScreen(onClose = { route = TronRoute.Dashboard })
         is TronRoute.AddWallet -> AddTronWalletScreen(
             initialDeviceId = pendingHwDeviceId,
             onRegisterDevice = { route = TronRoute.RegisterDevice },
@@ -208,6 +218,8 @@ private fun TronDashboard(
     onWallets: () -> Unit,
     onAddWallet: () -> Unit,
     onSettings: () -> Unit,
+    onSignMessage: () -> Unit,
+    onVerifyMessage: () -> Unit,
     onAddToken: (String?) -> Unit,
     onTokenDetail: (UUID, String) -> Unit,
     onTxList: (UUID, String) -> Unit,
@@ -309,7 +321,14 @@ private fun TronDashboard(
         title = stringResource(R.string.trx_tron),
         onBack = onBack,
         actions = {
-            WalletActionsMenu(onManage = onWallets, onSettings = onSettings)
+            // Settings lives behind a gear on Manage Wallets (matching iOS / BTC /
+            // ETH); canonical order Add / Manage / divider / Sign / Verify (ADR-0033).
+            WalletActionsMenu(
+                onManage = onWallets,
+                onAddWallet = onAddWallet,
+                onSignMessage = onSignMessage,
+                onVerifyMessage = onVerifyMessage,
+            )
         },
         isRefreshing = syncing,
         onRefresh = { refresh() },

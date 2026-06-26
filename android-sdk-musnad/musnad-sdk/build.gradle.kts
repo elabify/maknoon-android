@@ -39,6 +39,14 @@ android {
         jvmTarget = "17"
     }
 
+    // mockwebserver / okhttp test deps bundle a duplicate OSGI manifest under
+    // META-INF/versions/9; drop it so the androidTest APK packages cleanly.
+    packaging {
+        resources {
+            excludes += "/META-INF/versions/9/OSGI-INF/MANIFEST.MF"
+        }
+    }
+
     // Instrumented tests read the ML-DSA-65 KAT corpus straight from the
     // pq-crypto-rs source of truth (no copy), to assert the native .so on a
     // real device produces the same bytes as Apple CryptoKit.

@@ -24,6 +24,7 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.systemBarsPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.filled.Close
@@ -740,6 +741,10 @@ private fun QrSheet(title: String, onDone: () -> Unit, content: @Composable () -
             Column(
                 modifier = Modifier
                     .fillMaxSize()
+                    // Edge-to-edge: inset content from the status + nav bars
+                    // (this Dialog sits outside the tab Scaffold). Surface
+                    // background stays full-bleed.
+                    .systemBarsPadding()
                     .verticalScroll(rememberScrollState())
                     .padding(Spacing.lg),
                 verticalArrangement = Arrangement.spacedBy(Spacing.md),

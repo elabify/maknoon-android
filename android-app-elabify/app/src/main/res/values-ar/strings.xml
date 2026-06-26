@@ -441,10 +441,10 @@
     <string name="id_folders_blurb">توجد المجلدات في الجذر وتجمع البطاقات في علامة تبويب الهوية.</string>
     <string name="id_form_accuracy_note">لا يمكن قراءة جواز السفر إلا إذا تم إدخال رقم جواز السفر وتاريخ الميلاد وتاريخ الانتهاء بشكل صحيح.</string>
     <string name="id_form_intro_other">اكتب التفاصيل من صفحة بيانات هويتك، ثم اطرق هاتفك عليها عند ظهور مطالبة NFC.</string>
-    <string name="id_form_intro_passport">اكتب تفاصيلك من داخل جواز سفرك، ثم ضع هاتفك فوق جواز السفر.</string>
+    <string name="id_form_intro_passport">يمكن إضافة جوازات السفر التي تحمل هذا الشعار على الغلاف. لكي تتصل بجواز سفرك بأمان، يجب أن تكتب تفاصيلك من داخل جواز السفر بدقة.</string>
     <string name="id_get_verified_credential">احصل على بيانات اعتماد مُتحقق منها من جهة إصدار</string>
     <string name="id_given_name">الاسم الأول</string>
-    <string name="id_hold_phone_over_passport">امسك هاتفك فوق جواز السفر المزوّد بـ NFC</string>
+    <string name="id_hold_phone_over_passport">المس جواز السفر</string>
     <string name="id_identity_verified_credential">بيانات اعتماد الهوية المُتحقق منها</string>
     <string name="id_issue_detail_blurb">ارفع الحقول الموقّعة بشريحة المستند إلى خدمة جهة إصدار للتحقق وفحص العقوبات، ثم أصدر بيانات اعتماد ما بعد الكمومية مثبّتة بشكل خاص على الدفتر. ستتلقى بيانات اعتماد هوية مُتحقق منها في محفظتك يمكن لأي جهة تحقق متوافقة مع Elabify فحصها.</string>
     <string name="id_issue_idle_blurb">أرسل الحقول الموقّعة بشريحة المستند إلى جهة إصدار للتحقق وفحص العقوبات. تستعيد بيانات اعتماد ما بعد الكمومية، مثبّتة بشكل خاص على الدفتر، يمكن لأي جهة تحقق متوافقة فحصها.</string>
@@ -454,7 +454,7 @@
     <string name="id_kind_picker_prompt">ما نوع المستند الذي توشك على طرقه؟</string>
     <string name="id_kind_summary">%1$s · %2$s</string>
     <string name="id_last_screened">آخر فحص</string>
-    <string name="id_move_slowly_find_chip">حرّك الهاتف ببطء حتى يعثر على الشريحة. الجزء العلوي الخلفي من معظم هواتف Android يقرأ بشكل أفضل.</string>
+    <string name="id_move_slowly_find_chip">تختلف جوازات السفر. جرّب وضع الهاتف على منتصف الغلاف الخلفي الداخلي لجواز السفر، أو على صفحة الصورة، أو على الغلاف الأمامي.</string>
     <string name="id_move_to_folder">نقل إلى مجلد</string>
     <string name="id_nationality">الجنسية</string>
     <string name="id_native_name">الاسم بالأحرف الأصلية</string>
@@ -1174,6 +1174,12 @@
     <string name="wallet_discover_wallets">اكتشاف المحافظ</string>
     <string name="wallet_device_kind_serial">%1$s · %2$s</string>
     <string name="wallet_wake_device_hint">أيقظ جهاز %1$s ووافق على الطلب عند ظهوره، ثم اضغط متابعة. تفتح عبارة مرور المحفظة المخفية محفظة مختلفة، لذا تنطبق على كل من الإضافة والاكتشاف.</string>
+    <string name="wallet_messages">الرسائل</string>
+    <string name="wallet_sign_message">توقيع رسالة</string>
+    <string name="wallet_signing_address">عنوان التوقيع</string>
+    <string name="wallet_add_wallet_ellipsis">إضافة محفظة…</string>
+    <string name="wallet_manage_wallets_ellipsis">إدارة المحافظ…</string>
+    <string name="wallet_verify_message">التحقق من رسالة</string>
     <string name="wallet_prepare_device">تجهيز الجهاز</string>
     <string name="wallet_hidden_wallet">محفظة مخفية</string>
     <string name="wallet_hidden_wallet_passphrase">عبارة مرور المحفظة المخفية</string>

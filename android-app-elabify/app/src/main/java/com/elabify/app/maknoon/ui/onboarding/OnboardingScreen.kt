@@ -48,6 +48,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -95,6 +96,26 @@ fun OnboardingScreen(onComplete: () -> Unit) {
     val scope = rememberCoroutineScope()
     val store = remember { IdentityStore(context) }
     val deviceRegistry = remember { DeviceRegistry(context) }
+
+    // Lock the welcome / onboarding flow to portrait (the welcome screens are
+    // designed portrait-first); restore the activity's default rotation when
+    // onboarding finishes and this composable leaves composition.
+    val onboardingActivity = remember(context) {
+        var c: android.content.Context = context
+        while (c is android.content.ContextWrapper) {
+            if (c is android.app.Activity) return@remember c
+            c = c.baseContext
+        }
+        null
+    }
+    DisposableEffect(onboardingActivity) {
+        onboardingActivity?.requestedOrientation =
+            android.content.pm.ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
+        onDispose {
+            onboardingActivity?.requestedOrientation =
+                android.content.pm.ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED
+        }
+    }
 
     var step by remember { mutableStateOf(Step.WELCOME) }
     var passphrase by remember { mutableStateOf("") }
@@ -187,8 +208,8 @@ fun OnboardingScreen(onComplete: () -> Unit) {
             Step.CREATE_PASSPHRASE -> {
                 Text("Set a password", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
                 Text(
-                    "A password is used to back up your identity and any local assets using " +
-                        "post-quantum encryption.",
+                    "A username is not required because all your data is owned on your phone. " +
+                        "A password is used to encrypt the backup of your identity and any local assets.",
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurface,
                 )
@@ -244,8 +265,7 @@ fun OnboardingScreen(onComplete: () -> Unit) {
                 Text("Encrypted backup", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
                 Text(
                     "Maknoon stores an encrypted backup wherever you choose, locked by your " +
-                        "password. Without the password the post-quantum backup is useless to " +
-                        "anyone.",
+                        "password. Without the password the backup is useless to anyone.",
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurface,
                 )
@@ -276,12 +296,10 @@ fun OnboardingScreen(onComplete: () -> Unit) {
             }
 
             Step.PASSPORT_SCAN -> {
-                Text("Scan your passport", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+                Text("Tap your Passport", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
                 Text(
                     "Tap your passport and Maknoon reads its chip on-device and mints an identity " +
-                        "credential signed by your post-quantum key, that you can present from your " +
-                        "phone. Nothing is uploaded unless you then choose an Elabify-verified " +
-                        "credential.",
+                        "credential that you can present from your phone.",
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurface,
                 )
@@ -290,7 +308,7 @@ fun OnboardingScreen(onComplete: () -> Unit) {
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(Radii.md),
                     onClick = { step = Step.PASSPORT_SCAN_TAP },
-                ) { Text("Scan passport") }
+                ) { Text("Add Passport") }
                 OutlinedButton(
                     enabled = !busy,
                     modifier = Modifier.fillMaxWidth(),

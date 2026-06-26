@@ -465,10 +465,10 @@
     <string name="id_folders_blurb">Folders live at the root and group cards on the Identity tab.</string>
     <string name="id_form_accuracy_note">The passport can only be read if the passport number, date of birth, and expiration are entered correctly.</string>
     <string name="id_form_intro_other">Type the details from the data page of your ID, then tap your phone to it when the NFC prompt appears.</string>
-    <string name="id_form_intro_passport">Type your details from inside of your passport, then place your phone over the passport.</string>
+    <string name="id_form_intro_passport">Passports with this logo on the front can be added. In order to connect to your passport securely, you must type your details from inside of your passport accurately.</string>
     <string name="id_get_verified_credential">Get verified credential</string>
     <string name="id_given_name">Given name</string>
-    <string name="id_hold_phone_over_passport">Hold your phone over the NFC enabled passport</string>
+    <string name="id_hold_phone_over_passport">Tap Passport</string>
     <string name="id_identity_verified_credential">Identity Verified Credential</string>
     <string name="id_issue_detail_blurb">Upload the document\'s chip-signed fields to an issuer service for verification and sanctions screening, then issue a post-quantum credential anchored privately on ledger. You will receive an identity verified credential in your wallet that any Elabify-compatible verifier can check.</string>
     <string name="id_issue_idle_blurb">Send the document to an issuer for verification, sanctions screening, and anchoring on ledger that any compatible verifier can check.</string>
@@ -478,7 +478,7 @@
     <string name="id_kind_picker_prompt">What kind of document are you about to tap?</string>
     <string name="id_kind_summary">%1$s · %2$s</string>
     <string name="id_last_screened">Last screened</string>
-    <string name="id_move_slowly_find_chip">Move slowly until the phone finds the chip. The top back of most Android phones reads best.</string>
+    <string name="id_move_slowly_find_chip">Passports vary. Try to place the phone on the center of the inside back cover of the passport, or on the photo page, or the front cover.</string>
     <string name="id_move_to_folder">Move to folder</string>
     <string name="id_nationality">Nationality</string>
     <string name="id_native_name">Native name</string>
@@ -1214,6 +1214,12 @@
 <string name="wallet_discover_wallets">Discover wallets</string>
 <string name="wallet_device_kind_serial">%1$s · %2$s</string>
 <string name="wallet_wake_device_hint">Wake your %1$s and approve the prompt when it appears, then tap Continue. A hidden-wallet passphrase opens a different wallet, so it applies to both adding and discovering.</string>
+<string name="wallet_messages">Messages</string>
+<string name="wallet_sign_message">Sign message</string>
+<string name="wallet_signing_address">Signing address</string>
+<string name="wallet_add_wallet_ellipsis">Add wallet…</string>
+<string name="wallet_manage_wallets_ellipsis">Manage wallets…</string>
+<string name="wallet_verify_message">Verify message</string>
 <string name="wallet_prepare_device">Prepare Device</string>
 <string name="wallet_hidden_wallet">Hidden wallet</string>
 <string name="wallet_hidden_wallet_passphrase">Hidden wallet passphrase</string>

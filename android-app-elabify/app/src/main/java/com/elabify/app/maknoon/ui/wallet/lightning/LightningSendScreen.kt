@@ -54,6 +54,7 @@ import com.elabify.app.maknoon.ui.settings.ContactsPickerSheet
 import com.elabify.app.maknoon.ui.theme.Spacing
 import androidx.compose.runtime.LaunchedEffect
 import com.elabify.app.maknoon.ui.wallet.common.AmountField
+import com.elabify.app.maknoon.ui.wallet.common.authorizeSend
 import com.elabify.app.maknoon.ui.wallet.common.FiatReference
 import com.elabify.app.maknoon.ui.wallet.common.FormSection
 import com.elabify.app.maknoon.ui.wallet.common.PrimaryActionButton
@@ -100,8 +101,11 @@ internal fun LightningSendScreen(
     // Pay a resolved BOLT11 string.
     fun payBolt11(invoice: String) {
         val account = env.activeAccount ?: return fail("No active Lightning account.")
-        phase = SendPhase.Sending
         scope.launch {
+            // Fresh biometric / device-credential before sending funds (ADR-0045
+            // Authorization invariant). Lightning is custodial (LNDHub), no seed.
+            if (!authorizeSend(context, "Lightning")) return@launch
+            phase = SendPhase.Sending
             val result = withContext(Dispatchers.IO) {
                 runCatching {
                     val client = env.clientFor(account) ?: error("Password missing. Re-import this account.")
@@ -135,8 +139,10 @@ internal fun LightningSendScreen(
         val account = env.activeAccount ?: return fail("No active Lightning account.")
         val sat = lnurlAmountSat.trim().toLongOrNull() ?: return
         if (sat <= 0) return
-        phase = SendPhase.Sending
         scope.launch {
+            // Fresh biometric / device-credential before sending funds (ADR-0045).
+            if (!authorizeSend(context, "Lightning")) return@launch
+            phase = SendPhase.Sending
             val result = withContext(Dispatchers.IO) {
                 runCatching {
                     val invoice = LNURL.fetchInvoice(

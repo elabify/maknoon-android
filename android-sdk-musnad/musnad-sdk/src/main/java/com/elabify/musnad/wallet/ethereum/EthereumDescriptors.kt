@@ -22,6 +22,7 @@ import wallet.core.jni.Curve
 import wallet.core.jni.HDWallet
 import wallet.core.jni.Hash
 import wallet.core.jni.PrivateKey
+import wallet.core.jni.PublicKey
 
 class EthereumDescriptorException(message: String) : Exception(message)
 
@@ -186,6 +187,48 @@ object EthereumDescriptors {
         // recid (0/1) -> web3 v (27/28).
         sig[64] = (sig[64] + 27).toByte()
         return "0x" + sig.toHex()
+    }
+
+    /**
+     * Recover the EIP-55 address that produced an EIP-191 `personal_sign`
+     * signature over [message], or null if the signature is malformed.
+     * Keyless: mirrors EthereumMessageSigning.recoverAddress on iOS.
+     */
+    fun recoverAddress(message: ByteArray, signature: String): String? {
+        MultiChainNative.ensure()
+        val trimmed = signature.trim()
+        val hex = if (trimmed.startsWith("0x") || trimmed.startsWith("0X")) trimmed.substring(2) else trimmed
+        val raw = hexToBytesOrNull(hex) ?: return null
+        if (raw.size != 65) return null
+        // web3 encodes v as 27/28; TWC's recover wants the recovery id (0/1).
+        if ((raw[64].toInt() and 0xff) >= 27) raw[64] = ((raw[64].toInt() and 0xff) - 27).toByte()
+        val prefix = "Ethereum Signed Message:\n${message.size}".toByteArray(Charsets.UTF_8)
+        val digest = Hash.keccak256(prefix + message)
+        val pub = PublicKey.recover(raw, digest) ?: return null
+        return CoinType.ETHEREUM.deriveAddressFromPublicKey(pub)
+    }
+
+    /**
+     * Verify an EIP-191 `personal_sign` signature: recover the signer address
+     * and compare (case-insensitively) to [address]. Keyless.
+     */
+    fun verifyMessage(address: String, message: ByteArray, signature: String): Boolean {
+        val recovered = recoverAddress(message, signature) ?: return false
+        return recovered.equals(address.trim(), ignoreCase = true)
+    }
+
+    private fun hexToBytesOrNull(hex: String): ByteArray? {
+        if (hex.length % 2 != 0) return null
+        val out = ByteArray(hex.length / 2)
+        var i = 0
+        while (i < hex.length) {
+            val hi = Character.digit(hex[i], 16)
+            val lo = Character.digit(hex[i + 1], 16)
+            if (hi < 0 || lo < 0) return null
+            out[i / 2] = ((hi shl 4) or lo).toByte()
+            i += 2
+        }
+        return out
     }
 
     private fun deriveKey(wallet: HDWallet, account: Long, derivationPath: String?): PrivateKey {

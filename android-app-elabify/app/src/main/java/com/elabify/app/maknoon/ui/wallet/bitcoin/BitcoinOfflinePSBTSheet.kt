@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.systemBarsPadding
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -97,7 +98,8 @@ internal fun BitcoinOfflinePSBTSheet(
     Dialog(onDismissRequest = onDismiss, properties = DialogProperties(usePlatformDefaultWidth = false)) {
         Surface(modifier = Modifier.fillMaxSize()) {
             Column(
-                Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp),
+                // Edge-to-edge: inset from system bars (Dialog is outside the tab Scaffold).
+                Modifier.fillMaxSize().systemBarsPadding().verticalScroll(rememberScrollState()).padding(16.dp),
                 verticalArrangement = Arrangement.spacedBy(14.dp),
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically) {

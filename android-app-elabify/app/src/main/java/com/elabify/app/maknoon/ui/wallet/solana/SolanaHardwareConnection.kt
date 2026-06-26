@@ -37,3 +37,43 @@ class SolanaDeviceSigner(
         }
     }
 }
+
+/**
+ * Sign [message] (Solana OCMS off-chain message) on the device bound to
+ * [device] at [account]. Works on BOTH Ledger and Trezor: the wrapper fetches
+ * the device pubkey, builds the SIMD-0048 envelope (ledger-sol-core), has the
+ * device sign it raw, and returns (base58 address, base58 64-byte signature) so
+ * software + Ledger + Trezor are byte-identical. Suspend; call off the main
+ * thread. Re-applies the wallet's hidden (Trezor passphrase) mode + custom
+ * derivation path so the device derives the SAME wallet that was added.
+ */
+suspend fun signSolanaHardwareMessage(
+    device: RegisteredDevice,
+    account: Long,
+    message: String,
+    hidden: org.json.JSONObject?,
+    derivationPath: String?,
+    hostEnteredPassphrase: String?,
+): Pair<String, String> {
+    val choice = HardwarePassphraseRef.resolveChoice(
+        HardwarePassphraseRef.fromJson(hidden),
+        hostEnteredPassphrase,
+    )
+    return try {
+        withHardwareDevice(device, choice, derivationPath) { wallet ->
+            val signed = wallet.signSolanaMessage(message, account)
+            signed.address to signed.signature
+        }
+    } catch (e: Throwable) {
+        // Trezor firmware predating Solana OCMS support (trezor-firmware PR #6759)
+        // has no SolanaSignMessage (906) handler and returns Failure_UnexpectedMessage.
+        // Surface an update-firmware hint instead of the raw protocol error.
+        if ((e.message ?: "").contains("unexpected message", ignoreCase = true)) {
+            throw IllegalStateException(
+                "Your Trezor's firmware doesn't support Solana message signing yet. " +
+                    "Update it in Trezor Suite, then try again.",
+            )
+        }
+        throw e
+    }
+}

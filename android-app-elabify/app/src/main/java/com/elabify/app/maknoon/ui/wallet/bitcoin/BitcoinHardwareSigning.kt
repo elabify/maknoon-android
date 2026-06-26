@@ -36,11 +36,13 @@
 
 package com.elabify.app.maknoon.ui.wallet.bitcoin
 
+import android.util.Base64
 import com.elabify.app.maknoon.ui.wallet.common.withHardwareDevice
 import com.elabify.musnad.devices.RegisteredDevice
 import com.elabify.musnad.hardware.ledger.LedgerHardwareWallet
 import com.elabify.musnad.hardware.trezor.HardwarePassphraseRef
 import com.elabify.musnad.hardware.trezor.TrezorHardwareWallet
+import com.elabify.musnad.wallet.bitcoin.Bip32Path
 import com.elabify.musnad.wallet.bitcoin.BitcoinNetwork
 import com.elabify.musnad.wallet.bitcoin.BitcoinWalletException
 
@@ -82,6 +84,46 @@ suspend fun signBitcoinHardwarePsbt(
             )
             else -> throw BitcoinWalletException.SendFailed(
                 "${device.kind.displayName} does not support BLE Bitcoin signing.",
+            )
+        }
+    }
+}
+
+/**
+ * Sign [message] with the hardware wallet bound to [device] using the key at
+ * [path] (a full BIP32 address path), in the standard "Bitcoin Signed Message"
+ * (Electrum) format. Returns the bound address + the base64 signature, the same
+ * shape the software path produces, so verification is identical across sources.
+ * Both vendors take the explicit address path, so no derivation-path override is
+ * applied; the Trezor passphrase mode ([hidden] + [hostEnteredPassphrase]) still
+ * threads through so a hidden (passphrase) wallet signs with the right session.
+ * Suspend; call off the main thread.
+ */
+suspend fun signBitcoinHardwareMessage(
+    device: RegisteredDevice,
+    path: String,
+    message: ByteArray,
+    network: BitcoinNetwork,
+    hidden: org.json.JSONObject?,
+    hostEnteredPassphrase: String?,
+): Pair<String, String> {
+    val hiddenRef = HardwarePassphraseRef.fromJson(hidden)
+    val choice = HardwarePassphraseRef.resolveChoice(hiddenRef, hostEnteredPassphrase)
+    return withHardwareDevice(device, choice, derivationPath = null) { wallet ->
+        when (wallet) {
+            is LedgerHardwareWallet -> {
+                val signed = wallet.signBitcoinMessage(path, message, network)
+                signed.address to signed.signature
+            }
+            is TrezorHardwareWallet -> {
+                // Full address path as the device's hardened-component array; its
+                // purpose selects the script type on-device.
+                val addressN = Bip32Path.parse(path).map { it.toUInt() }
+                val signed = wallet.signBitcoinMessage(addressN, message, network.coinType)
+                signed.address to Base64.encodeToString(signed.signature, Base64.NO_WRAP)
+            }
+            else -> throw BitcoinWalletException.SendFailed(
+                "${device.kind.displayName} does not support BLE Bitcoin message signing.",
             )
         }
     }

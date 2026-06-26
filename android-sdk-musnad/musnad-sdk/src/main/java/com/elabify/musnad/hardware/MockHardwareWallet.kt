@@ -142,6 +142,21 @@ class MockHardwareWallet : HardwareWallet {
         return sha256(DEMO_PUBKEY + input) + sha256(input + DEMO_PUBKEY)
     }
 
+    /** Deterministic OCMS-shaped result for the simulator: the mock address +
+     *  a stable 64-byte "signature". Not a real ed25519 signature (the mock
+     *  pubkey isn't a real key), so it won't verify; it only lets the
+     *  simulator exercise the sign-message UI end-to-end. */
+    override suspend fun signSolanaMessage(
+        message: String,
+        account: Long,
+    ): uniffi.ledger_sol_core.SolanaSignedMessage {
+        delay(600)
+        val address = base58(sha256(DEMO_PUBKEY + accountBytes(account)))
+        val input = message.toByteArray(Charsets.UTF_8) + accountBytes(account)
+        val sig = sha256(DEMO_PUBKEY + input) + sha256(input + DEMO_PUBKEY)
+        return uniffi.ledger_sol_core.SolanaSignedMessage(address = address, signature = base58(sig))
+    }
+
     // -- Tron --
 
     /** Deterministic base58check `T...` address per account. The mock hashes

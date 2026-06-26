@@ -26,10 +26,13 @@
 package com.elabify.app.maknoon.ui.wallet.ethereum
 
 import com.elabify.app.maknoon.ui.wallet.common.withHardwareDevice
+import com.elabify.musnad.crypto.toHex
 import com.elabify.musnad.devices.RegisteredDevice
 import com.elabify.musnad.hardware.HardwareWallet
+import com.elabify.musnad.hardware.ledger.LedgerHardwareWallet
 import com.elabify.musnad.hardware.trezor.HardwarePassphraseRef
 import com.elabify.musnad.hardware.trezor.PassphraseChoice
+import com.elabify.musnad.hardware.trezor.TrezorHardwareWallet
 import com.elabify.musnad.wallet.ethereum.EthereumHardwareSigner
 import com.elabify.musnad.wallet.ethereum.EthereumTxPlan
 import com.elabify.musnad.wallet.ethereum.EthereumWalletDescriptor
@@ -118,6 +121,46 @@ class EthereumDeviceSigner(
             )
             // Reassemble r(32) || s(32) || v(1). v is the EIP-1559 parity bit.
             leftPad32(sig.r) + leftPad32(sig.s) + byteArrayOf((sig.v and 0x01).toByte())
+        }
+    }
+}
+
+/**
+ * Sign [message] with the EVM hardware wallet bound to [device] using EIP-191
+ * `personal_sign` for [account], returning the 0x-hex r||s||v signature with v
+ * normalized to {27,28} (what MetaMask / Etherscan verify). [hidden] /
+ * [derivationPath] / [hostPassphrase] select a hidden (Trezor passphrase) or
+ * custom-path wallet so the signature derives from the same wallet the
+ * descriptor recorded. Suspend; call off the main thread.
+ */
+suspend fun signEthereumHardwareMessage(
+    device: RegisteredDevice,
+    account: Long,
+    message: ByteArray,
+    hidden: String?,
+    derivationPath: String? = null,
+    hostPassphrase: String? = null,
+): String {
+    val hiddenRef = HardwarePassphraseRef.fromWireId(hidden)
+    val choice = HardwarePassphraseRef.resolveChoice(hiddenRef, hostPassphrase)
+    return withEthereumDevice(device, choice, derivationPath) { wallet ->
+        when (wallet) {
+            is LedgerHardwareWallet -> {
+                val sig = wallet.signEthereumPersonalMessage(account, message)
+                val v = (sig.v and 0xff).let { if (it < 27) it + 27 else it }
+                "0x" + (leftPad32(sig.r) + leftPad32(sig.s) + byteArrayOf(v.toByte())).toHex()
+            }
+            is TrezorHardwareWallet -> {
+                // Rust returns the full 65-byte R||S||V; normalize V to 27/28.
+                val raw = wallet.signEthereumMessage(account, message)
+                require(raw.size == 65) { "Trezor personal_sign must be 65 bytes (r||s||v)" }
+                val v = (raw[64].toInt() and 0xff).let { if (it < 27) it + 27 else it }
+                raw[64] = v.toByte()
+                "0x" + raw.toHex()
+            }
+            else -> throw IllegalStateException(
+                "${device.kind.displayName} does not support EVM message signing.",
+            )
         }
     }
 }

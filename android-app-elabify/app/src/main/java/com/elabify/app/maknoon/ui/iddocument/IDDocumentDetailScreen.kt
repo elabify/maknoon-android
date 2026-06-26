@@ -134,7 +134,6 @@ fun IDDocumentDetailScreen(
     canIssue: Boolean,
     sodMissing: Boolean,
     submittingHost: String,
-    savedString: String,
     onPresentQr: () -> Unit,
     runPassiveAuth: suspend (force: Boolean) -> Unit,
     submitIssuance: suspend () -> IDDocumentIssuanceOutcome,
@@ -209,7 +208,8 @@ fun IDDocumentDetailScreen(
             verticalArrangement = Arrangement.spacedBy(Spacing.lg),
         ) {
             SectionCard { PhotoSection(document, photo) }
-            SectionCard { DetailsSection(document, savedString) }
+            // The field-by-field details table was removed from Advanced (0.6.2):
+            // the hero card already shows the key fields.
             // Present moved to the passport card's Build QR flow (ADR-0039);
             // Advanced no longer carries a Present section.
             SectionCard {
@@ -343,40 +343,6 @@ private fun PhotoSection(doc: IDDocument, photo: ImageBitmap?) {
             )
         }
     }
-}
-
-@Composable
-private fun DetailsSection(doc: IDDocument, savedString: String) {
-    Text(stringResource(R.string.id_details), style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold)
-    val docLabel = doc.userDeclaredKind?.documentNumberLabel ?: stringResource(R.string.id_document_number)
-    Row1(docLabel, doc.documentNumber, monospaced = true)
-    doc.personalNumber?.takeIf { it.isNotEmpty() }?.let {
-        Row1(doc.userDeclaredKind?.personalNumberLabel ?: stringResource(R.string.id_personal_number), it, monospaced = true)
-    }
-    // Prefer the Latin MRZ form (what foreign verifiers see), fall back to
-    // the library-reported name for legacy saved docs.
-    val given = (doc.latinGivenNames ?: doc.givenNames).trim()
-    val family = (doc.latinSurname ?: doc.surname).trim()
-    if (given.isNotEmpty()) Row1(stringResource(R.string.id_given_name), given)
-    if (family.isNotEmpty()) Row1(stringResource(R.string.id_family_name), family)
-    // Native-script name as its own row when distinct from the Latin form.
-    doc.nativeFullName?.trim()?.takeIf {
-        it.isNotEmpty() && !it.equals("$given $family".trim(), ignoreCase = true)
-    }?.let { Row1(stringResource(R.string.id_native_name), it) }
-    doc.formattedDateOfBirth?.let { Row1(stringResource(R.string.id_date_of_birth), it) }
-    doc.formattedDateOfExpiry?.let { Row1(stringResource(R.string.id_expires), it) }
-    doc.sex?.takeIf { it.isNotEmpty() }?.let { Row1(stringResource(R.string.id_sex), it) }
-    // countryName returns null for codes the platform doesn't recognise: fall
-    // back to the raw alpha-3 so an exotic passport still shows something.
-    doc.nationality.takeIf { it.isNotEmpty() }?.let {
-        Row1(stringResource(R.string.id_nationality), IDDocument.countryName(it) ?: it)
-    }
-    doc.issuingAuthority.takeIf { it.isNotEmpty() }?.let {
-        Row1(stringResource(R.string.id_issued_by), IDDocument.countryName(it) ?: it)
-    }
-    doc.formattedPlaceOfBirth?.takeIf { it.isNotEmpty() }?.let { Row1(stringResource(R.string.id_place_of_birth), it) }
-    doc.documentType.takeIf { it.isNotEmpty() }?.let { Row1(stringResource(R.string.id_document_type), it, monospaced = true) }
-    Row1(stringResource(R.string.id_saved), savedString)
 }
 
 // MARK: -- present (self-signed QR)

@@ -441,10 +441,10 @@
     <string name="id_folders_blurb">文件夹位于根目录，并在身份标签页中对卡片进行分组。</string>
     <string name="id_form_accuracy_note">只有正确输入护照号码、出生日期和到期日期，才能读取护照。</string>
     <string name="id_form_intro_other">输入你证件数据页上的信息，然后在出现 NFC 提示时用手机贴近它。</string>
-    <string name="id_form_intro_passport">输入你护照内页的信息，然后将手机置于护照上方。</string>
+    <string name="id_form_intro_passport">封面带有此标志的护照可以添加。为了安全地连接到你的护照，你必须准确输入护照内页的信息。</string>
     <string name="id_get_verified_credential">从发行方获取已验证凭证</string>
     <string name="id_given_name">名</string>
-    <string name="id_hold_phone_over_passport">将手机置于支持 NFC 的护照上方</string>
+    <string name="id_hold_phone_over_passport">轻触护照</string>
     <string name="id_identity_verified_credential">身份已验证凭证</string>
     <string name="id_issue_detail_blurb">将文件经芯片签名的字段上传到发行方服务以进行验证和制裁筛查，然后签发一份私密锚定在账本上的后量子凭证。你将在钱包中收到一份身份已验证凭证，任何兼容 Elabify 的验证方都可检查。</string>
     <string name="id_issue_idle_blurb">将文件经芯片签名的字段发送给发行方以进行验证和制裁筛查。你将取回一份私密锚定在账本上的后量子凭证，任何兼容的验证方都可检查。</string>
@@ -454,7 +454,7 @@
     <string name="id_kind_picker_prompt">你即将贴近的是哪种文件？</string>
     <string name="id_kind_summary">%1$s · %2$s</string>
     <string name="id_last_screened">上次筛查</string>
-    <string name="id_move_slowly_find_chip">缓慢移动手机直到它找到芯片。大多数 Android 手机的背面顶部读取效果最佳。</string>
+    <string name="id_move_slowly_find_chip">护照各不相同。请尝试将手机放在护照内封底的中央、照片页，或封面上。</string>
     <string name="id_move_to_folder">移动到文件夹</string>
     <string name="id_nationality">国籍</string>
     <string name="id_native_name">本地语言姓名</string>
@@ -1174,6 +1174,12 @@
     <string name="wallet_discover_wallets">发现钱包</string>
     <string name="wallet_device_kind_serial">%1$s · %2$s</string>
     <string name="wallet_wake_device_hint">唤醒您的 %1$s 并在提示出现时批准，然后点按继续。隐藏钱包密码短语会打开一个不同的钱包，因此它同时适用于添加和发现。</string>
+    <string name="wallet_messages">消息</string>
+    <string name="wallet_sign_message">签名消息</string>
+    <string name="wallet_signing_address">签名地址</string>
+    <string name="wallet_add_wallet_ellipsis">添加钱包…</string>
+    <string name="wallet_manage_wallets_ellipsis">管理钱包…</string>
+    <string name="wallet_verify_message">验证消息</string>
     <string name="wallet_prepare_device">准备设备</string>
     <string name="wallet_hidden_wallet">隐藏钱包</string>
     <string name="wallet_hidden_wallet_passphrase">隐藏钱包密码短语</string>

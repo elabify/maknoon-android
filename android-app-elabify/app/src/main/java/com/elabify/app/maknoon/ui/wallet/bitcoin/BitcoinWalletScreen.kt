@@ -101,6 +101,14 @@ private sealed interface BtcRoute {
     data object ADD_WALLET : BtcRoute
     data object SETTINGS : BtcRoute
 
+    /** Full-screen sign-message screen. [target] is a specific address picked
+     *  from the Addresses screen's row menu, or null to sign with the wallet's
+     *  first receive address (from the wallet "+" menu). */
+    data class SIGN_MESSAGE(val target: BitcoinSignAddressTarget?) : BtcRoute
+
+    /** Full-screen verify-message screen. */
+    data object VERIFY_MESSAGE : BtcRoute
+
     /** Device-registration flow (pick vendor -> pair -> confirm -> register),
      *  launched from the Add screen's "Register a device" button so a user with
      *  no Ledger / security key registered can pair one without leaving Bitcoin.
@@ -140,16 +148,29 @@ fun BitcoinWalletScreen(onBack: () -> Unit) {
             onOpenAddresses = { route = BtcRoute.ADDRESSES },
             onOpenTxs = { route = BtcRoute.TXS },
             onOpenWallets = { route = BtcRoute.WALLETS },
-            onOpenSettings = { route = BtcRoute.SETTINGS },
+            onAddWallet = { pendingHwDeviceId = null; route = BtcRoute.ADD_WALLET },
+            onOpenSignMessage = { route = BtcRoute.SIGN_MESSAGE(null) },
+            onOpenVerifyMessage = { route = BtcRoute.VERIFY_MESSAGE },
         )
         BtcRoute.SEND -> BitcoinSendScreen(env, active, onClose = { route = BtcRoute.DASHBOARD })
         BtcRoute.RECEIVE -> BitcoinReceiveScreen(env, active, onClose = { route = BtcRoute.DASHBOARD })
-        BtcRoute.ADDRESSES -> BitcoinAddressesScreen(env, active, onClose = { route = BtcRoute.DASHBOARD })
+        BtcRoute.ADDRESSES -> BitcoinAddressesScreen(
+            env, active,
+            onSignAddress = { target -> route = BtcRoute.SIGN_MESSAGE(target) },
+            onClose = { route = BtcRoute.DASHBOARD },
+        )
         BtcRoute.TXS -> BitcoinTransactionListScreen(env, active, onClose = { route = BtcRoute.DASHBOARD })
+        is BtcRoute.SIGN_MESSAGE -> BitcoinSignMessageScreen(
+            active = active,
+            target = (route as BtcRoute.SIGN_MESSAGE).target,
+            onClose = { route = BtcRoute.DASHBOARD },
+        )
+        BtcRoute.VERIFY_MESSAGE -> BitcoinVerifyMessageScreen(onClose = { route = BtcRoute.DASHBOARD })
         BtcRoute.WALLETS -> BitcoinWalletsScreen(
             env = env,
             onAddWallet = { pendingHwDeviceId = null; route = BtcRoute.ADD_WALLET },
             onStoreChanged = { storeVersion++ },
+            onOpenSettings = { route = BtcRoute.SETTINGS },
             onClose = { route = BtcRoute.DASHBOARD },
         )
         BtcRoute.ADD_WALLET -> AddBitcoinWalletScreen(
@@ -207,7 +228,9 @@ private fun BitcoinDashboard(
     onOpenAddresses: () -> Unit,
     onOpenTxs: () -> Unit,
     onOpenWallets: () -> Unit,
-    onOpenSettings: () -> Unit,
+    onAddWallet: () -> Unit,
+    onOpenSignMessage: () -> Unit,
+    onOpenVerifyMessage: () -> Unit,
 ) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
@@ -301,7 +324,15 @@ private fun BitcoinDashboard(
         title = stringResource(com.elabify.app.maknoon.R.string.btc_bitcoin),
         onBack = onBack,
         actions = {
-            WalletActionsMenu(onManage = onOpenWallets, onSettings = onOpenSettings)
+            // Settings lives behind a gear on Manage Wallets (matching iOS), so it
+            // is not in this menu. Canonical order: Add / Manage / divider / Sign /
+            // Verify (ADR-0033).
+            WalletActionsMenu(
+                onManage = onOpenWallets,
+                onAddWallet = onAddWallet,
+                onSignMessage = onOpenSignMessage,
+                onVerifyMessage = onOpenVerifyMessage,
+            )
         },
         isRefreshing = syncing,
         onRefresh = doRefresh,

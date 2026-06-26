@@ -21,6 +21,7 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
@@ -50,6 +51,7 @@ internal fun BitcoinWalletsScreen(
     env: BitcoinWalletEnv,
     onAddWallet: () -> Unit,
     onStoreChanged: () -> Unit,
+    onOpenSettings: () -> Unit,
     onClose: () -> Unit,
 ) {
     var version by remember { mutableStateOf(0) }
@@ -67,6 +69,9 @@ internal fun BitcoinWalletsScreen(
                     }
                 },
                 actions = {
+                    IconButton(onClick = onOpenSettings) {
+                        Icon(Icons.Filled.Settings, contentDescription = stringResource(R.string.common_settings))
+                    }
                     IconButton(onClick = onAddWallet) {
                         Icon(Icons.Filled.Add, contentDescription = stringResource(R.string.btc_add_wallet))
                     }

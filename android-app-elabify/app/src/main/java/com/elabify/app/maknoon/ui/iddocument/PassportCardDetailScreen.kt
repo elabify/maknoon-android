@@ -527,6 +527,7 @@ private fun explorerUrl(chain: String, address: String): String? {
         id == "eip155:1" -> "https://etherscan.io/address/"
         id == "eip155:11155111" -> "https://sepolia.etherscan.io/address/"
         id == "eip155:8453" -> "https://basescan.org/address/"
+        id == "eip155:84532" -> "https://sepolia.basescan.org/address/"
         id == "eip155:42161" -> "https://arbiscan.io/address/"
         id == "eip155:137" -> "https://polygonscan.com/address/"
         id.startsWith("solana:") -> "https://explorer.solana.com/address/"

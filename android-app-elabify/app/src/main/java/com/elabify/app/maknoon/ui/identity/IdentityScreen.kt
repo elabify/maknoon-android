@@ -901,7 +901,6 @@ fun IdentityScreen(
                 canIssue = issuerBaseUrl != null && doc.sod != null,
                 sodMissing = doc.sod == null,
                 submittingHost = issuerHostLabel(issuerBaseUrl),
-                savedString = stringResource(R.string.identity_saved_on_this_phone),
                 // Mint + present the self-signed passport credential. If the
                 // identity auto-locked, re-unlock via biometric (loads the
                 // sandwich); then sign the credential header with the master key

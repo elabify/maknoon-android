@@ -1,11 +1,21 @@
-# Maknoon Android public-tree guard. A fast, self-contained scan that fails if
-# anything that must stay private slipped into a manual edit. The full debug
-# build (native AARs + Gradle) is heavy and documented in README.md; run it
-# locally before tagging a release.
+# Maknoon Android CI. Two jobs:
+#   leak-scan  - fast guard on every push/PR: fails if anything that must stay
+#                private slipped into a manual edit.
+#   release    - on a vX.Y.Z tag only, behind the `play-internal` Environment
+#                (required-reviewer gate): builds the signed AAB and uploads it
+#                to the Play *internal* track. Promote internal -> production
+#                manually in the Play Console.
+#
+# Play auth is KEYLESS (the org blocks downloadable SA keys): GitHub OIDC ->
+# Workload Identity Federation impersonates the publisher service account. The
+# one-time WIF + secrets + Environment setup lives in the maintainer release
+# runbook.
 name: ci-android
 
 on:
   push:
+    branches: ['**']
+    tags: ['v*']
   pull_request:
   workflow_dispatch:
 
@@ -42,3 +52,96 @@ jobs:
             fi
           done
           [ "$fail" -eq 0 ] && echo "leak scan clean" || exit 1
+
+  release:
+    name: release to Play internal
+    needs: leak-scan
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    # Required-reviewer gate: the upload pauses here until you approve the
+    # `play-internal` Environment in the run's UI.
+    environment: play-internal
+    permissions:
+      contents: read
+      id-token: write          # mint the OIDC token for Workload Identity Federation
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          submodules: recursive
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - uses: android-actions/setup-android@v3
+
+      - name: Install Android NDK (matches build.gradle ndkVersion)
+        run: sdkmanager --install "ndk;30.0.14904198"
+
+      - name: Install Rust toolchain + Android targets
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: aarch64-linux-android,armv7-linux-androideabi,x86_64-linux-android,i686-linux-android
+
+      - name: Install cargo-ndk
+        run: cargo install cargo-ndk --locked
+
+      - name: Cache cargo registry + build
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: |
+            pq-crypto-rs
+            ledger-btc-rs
+            ledger-eth-rs
+            ledger-sol-rs
+            ledger-tron-rs
+            trezor-core-rs
+
+      - name: Build core AARs (pq-crypto + 5 hardware-wallet cores)
+        run: |
+          set -euo pipefail
+          export ANDROID_NDK_HOME="$ANDROID_HOME/ndk/30.0.14904198"
+          # 1. pq-crypto AAR (consumed in place from build/outputs/aar).
+          echo "::group::build-aar (pq-crypto-rs)"
+          bash pq-crypto-rs/android/build-aar.sh
+          echo "::endgroup::"
+          # 2. The five hardware-wallet core AARs -> android-sdk-musnad/hwlibs
+          #    under distinct names (flatDir needs unique artifact names).
+          mkdir -p android-sdk-musnad/hwlibs
+          for c in ledger-btc-rs ledger-eth-rs ledger-sol-rs ledger-tron-rs trezor-core-rs; do
+            echo "::group::build-aar ($c)"
+            bash "$c/android/build-aar.sh"
+            cp "$c/android/library/build/outputs/aar/library-release.aar" \
+               "android-sdk-musnad/hwlibs/${c%-rs}.aar"
+            echo "::endgroup::"
+          done
+
+      - name: Decode release keystore
+        env:
+          KEYSTORE_B64: ${{ secrets.ANDROID_KEYSTORE_B64 }}
+          STORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: |
+          set -euo pipefail
+          echo "$KEYSTORE_B64" | base64 --decode > "$RUNNER_TEMP/release.jks"
+          # build.gradle.kts reads keystore.properties at the Gradle root.
+          cat > android-app-elabify/keystore.properties <<EOF
+          storeFile=$RUNNER_TEMP/release.jks
+          storePassword=$STORE_PASSWORD
+          keyAlias=$KEY_ALIAS
+          keyPassword=$KEY_PASSWORD
+          EOF
+
+      - name: Authenticate to Google Play (Workload Identity Federation, keyless)
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ secrets.GCP_WIF_PROVIDER }}
+          service_account: ${{ secrets.GCP_PUBLISHER_SA }}
+        # Writes a keyless external_account ADC file and exports
+        # GOOGLE_APPLICATION_CREDENTIALS, which the play{} block consumes.
+
+      - name: Build signed AAB + upload to Play internal
+        working-directory: android-app-elabify
+        run: ./gradlew :app:publishReleaseBundle --no-daemon --stacktrace

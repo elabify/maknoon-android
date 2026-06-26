@@ -73,6 +73,15 @@ interface HardwareWallet {
     suspend fun getSolanaAddress(account: Long): String
     suspend fun signSolanaTransaction(unsignedTx: ByteArray, account: Long): ByteArray
 
+    /** Sign an off-chain message (OCMS) at [account]. The wrapper fetches the
+     *  device pubkey, builds the SIMD-0048 envelope via ledger-sol-core, asks
+     *  the device to sign it, and returns the base58 address + base58 64-byte
+     *  ed25519 signature. Supported on both Ledger and Trezor. */
+    suspend fun signSolanaMessage(
+        message: String,
+        account: Long,
+    ): uniffi.ledger_sol_core.SolanaSignedMessage
+
     // -- Tron (Ledger + Trezor) --
     suspend fun getTronAddress(account: Long): String
     suspend fun getTronPubkey(account: Long): ByteArray

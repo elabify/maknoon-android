@@ -29,6 +29,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
@@ -71,6 +72,7 @@ internal fun SolanaWalletsScreen(
     onBack: () -> Unit,
     onSelect: (UUID) -> Unit,
     onAddWallet: () -> Unit,
+    onOpenSettings: () -> Unit,
 ) {
     val context = LocalContext.current
     val env = remember { SolanaEnv.get(context) }
@@ -90,6 +92,9 @@ internal fun SolanaWalletsScreen(
                 actions = {
                     IconButton(onClick = onAddWallet) {
                         Icon(Icons.Filled.Add, contentDescription = stringResource(R.string.sol_add_wallet))
+                    }
+                    IconButton(onClick = onOpenSettings) {
+                        Icon(Icons.Filled.Settings, contentDescription = stringResource(R.string.common_settings))
                     }
                 },
             )

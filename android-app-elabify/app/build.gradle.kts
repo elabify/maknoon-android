@@ -51,8 +51,8 @@ android {
         applicationId = "com.elabify.app.maknoon" // matches the iOS bundle id
         minSdk = 33
         targetSdk = 35
-        versionCode = 8
-        versionName = "0.6.1"
+        versionCode = 10
+        versionName = "0.6.2"
         buildConfigField("String", "GIT_COMMIT", "\"${gitShortSha()}\"")
 
         // Ship arm64-v8a only. It is the only ABI used by real 16 KB-page
@@ -140,10 +140,16 @@ play {
     //      `gcloud auth application-default login --impersonate-service-account=...`.
     //      It contains an impersonation config (no private key); GPP loads it via
     //      GoogleCredentials.fromStream, which understands that ADC type.
+    //   3. GOOGLE_APPLICATION_CREDENTIALS (CI): GitHub Actions Workload Identity
+    //      Federation (google-github-actions/auth) writes a keyless external_account
+    //      ADC file and exports this env var. GoogleCredentials.fromStream loads it
+    //      and impersonates the publisher SA, same as the local gcloud ADC.
     val saFile = file("play-service-account.json")
+    val gac = System.getenv("GOOGLE_APPLICATION_CREDENTIALS")
     val adcFile = file(System.getProperty("user.home") + "/.config/gcloud/application_default_credentials.json")
     when {
         saFile.exists() -> serviceAccountCredentials.set(saFile)
+        !gac.isNullOrBlank() && file(gac).exists() -> serviceAccountCredentials.set(file(gac))
         adcFile.exists() -> serviceAccountCredentials.set(adcFile)
     }
     track.set("internal")

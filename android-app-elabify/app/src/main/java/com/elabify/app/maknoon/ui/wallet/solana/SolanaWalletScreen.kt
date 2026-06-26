@@ -86,7 +86,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.util.UUID
 
-private enum class SolRoute { DASHBOARD, RECEIVE, SEND, TOKEN_DETAIL, HISTORY, SETTINGS, WALLETS, ADD_WALLET, REGISTER_DEVICE, ADD_TOKEN }
+private enum class SolRoute { DASHBOARD, RECEIVE, SEND, TOKEN_DETAIL, HISTORY, SETTINGS, WALLETS, ADD_WALLET, REGISTER_DEVICE, ADD_TOKEN, SIGN_MESSAGE, VERIFY_MESSAGE }
 
 @Composable
 fun SolanaWalletScreen(onBack: () -> Unit) {
@@ -115,6 +115,9 @@ fun SolanaWalletScreen(onBack: () -> Unit) {
             onHistory = { route = SolRoute.HISTORY },
             onSettings = { route = SolRoute.SETTINGS },
             onWallets = { route = SolRoute.WALLETS },
+            onAddWallet = { pendingHwDeviceId = null; route = SolRoute.ADD_WALLET },
+            onSignMessage = { route = SolRoute.SIGN_MESSAGE },
+            onVerifyMessage = { route = SolRoute.VERIFY_MESSAGE },
             onAddToken = { route = SolRoute.ADD_TOKEN },
             onChanged = { reloadKey++ },
         )
@@ -158,7 +161,15 @@ fun SolanaWalletScreen(onBack: () -> Unit) {
             onBack = { reloadKey++; route = SolRoute.DASHBOARD },
             onSelect = { _: UUID -> reloadKey++; route = SolRoute.DASHBOARD },
             onAddWallet = { pendingHwDeviceId = null; route = SolRoute.ADD_WALLET },
+            onOpenSettings = { route = SolRoute.SETTINGS },
         )
+
+        SolRoute.SIGN_MESSAGE -> SolanaSignMessageScreen(
+            active = active,
+            onClose = { route = SolRoute.DASHBOARD },
+        )
+
+        SolRoute.VERIFY_MESSAGE -> SolanaVerifyMessageScreen(onClose = { route = SolRoute.DASHBOARD })
 
         SolRoute.ADD_WALLET -> AddSolanaWalletScreen(
             initialDeviceId = pendingHwDeviceId,
@@ -207,6 +218,9 @@ private fun SolanaDashboard(
     onHistory: () -> Unit,
     onSettings: () -> Unit,
     onWallets: () -> Unit,
+    onAddWallet: () -> Unit,
+    onSignMessage: () -> Unit,
+    onVerifyMessage: () -> Unit,
     onAddToken: () -> Unit,
     onChanged: () -> Unit,
 ) {
@@ -286,7 +300,13 @@ private fun SolanaDashboard(
         title = stringResource(R.string.sol_solana),
         onBack = onBack,
         actions = {
-            WalletActionsMenu(onManage = onWallets, onSettings = onSettings)
+            WalletActionsMenu(
+                onManage = onWallets,
+                onSettings = onSettings,
+                onAddWallet = onAddWallet,
+                onSignMessage = onSignMessage,
+                onVerifyMessage = onVerifyMessage,
+            )
         },
         isRefreshing = busy,
         onRefresh = onChanged,

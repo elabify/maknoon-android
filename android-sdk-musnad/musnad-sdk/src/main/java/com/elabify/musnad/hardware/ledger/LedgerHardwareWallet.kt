@@ -17,6 +17,9 @@ import com.elabify.musnad.hardware.HardwareWallet
 import com.elabify.musnad.hardware.HardwareWalletException
 import com.elabify.musnad.hardware.HardwareWalletKind
 import com.elabify.musnad.wallet.bitcoin.Bip32Path
+import com.elabify.musnad.wallet.bitcoin.BitcoinNetwork
+import uniffi.ledger_btc_core.BtcMsgNetwork
+import uniffi.ledger_btc_core.BtcSignedMessage
 import uniffi.ledger_btc_core.LedgerBitcoinClient
 import uniffi.ledger_btc_core.LedgerException as BtcLedgerException
 import uniffi.ledger_btc_core.WalletPolicy
@@ -26,6 +29,7 @@ import uniffi.ledger_sol_core.LedgerSolException
 import uniffi.ledger_sol_core.LedgerSolanaClient
 import uniffi.ledger_tron_core.LedgerTronClient
 import uniffi.ledger_tron_core.LedgerTronException
+import uniffi.ledger_tron_core.TronSignedMessage
 
 /**
  * Ledger Nano X over BLE.
@@ -243,6 +247,34 @@ class LedgerHardwareWallet(
         }
     }
 
+    /**
+     * Sign an arbitrary message with the key at [path] (a full BIP32 address
+     * path) in the standard "Bitcoin Signed Message" (Electrum) format. The
+     * device app's recoverable signature is reconstructed host-side into the
+     * 65-byte base64 form bound to the [network] address. Mirrors
+     * LedgerBLE.signBitcoinMessage. The script type is taken from the path
+     * purpose by the core; the user confirms the message on the device.
+     */
+    suspend fun signBitcoinMessage(
+        path: String,
+        message: ByteArray,
+        network: BitcoinNetwork,
+    ): BtcSignedMessage {
+        try {
+            return bitcoinSdk().signMessage(path, message, network.toBtcMsgNetwork())
+        } catch (e: Throwable) {
+            throw mapBtcError(e, "SIGN_MESSAGE")
+        } finally {
+            resetSession()
+        }
+    }
+
+    private fun BitcoinNetwork.toBtcMsgNetwork(): BtcMsgNetwork = when (this) {
+        BitcoinNetwork.MAINNET -> BtcMsgNetwork.MAINNET
+        BitcoinNetwork.TESTNET3 -> BtcMsgNetwork.TESTNET
+        BitcoinNetwork.SIGNET -> BtcMsgNetwork.SIGNET
+    }
+
     // ------------------------------------------------------------------
     // Ethereum / EVM
     // ------------------------------------------------------------------
@@ -285,6 +317,26 @@ class LedgerHardwareWallet(
         }
     }
 
+    /**
+     * EIP-191 `personal_sign` for [account] (or the active path override).
+     * Returns the recoverable signature (v / r / s) for the app to assemble
+     * into the 0x-hex r||s||v form web3 verifiers expect. Mirrors
+     * LedgerBLE.signEthereumPersonalMessage; the user confirms on-device.
+     */
+    suspend fun signEthereumPersonalMessage(account: Long, message: ByteArray): EcdsaSignature {
+        try {
+            val sdk = ethereumSdk()
+            val path = pendingDerivationPath
+            val sig = if (path != null) sdk.signPersonalMessageAtPath(path, message)
+            else sdk.signPersonalMessageForAccount(account.toUInt(), message)
+            return EcdsaSignature(v = sig.v.toInt(), r = sig.r, s = sig.s)
+        } catch (e: Throwable) {
+            throw mapEthError(e, "SIGN_PERSONAL_MESSAGE")
+        } finally {
+            resetSession()
+        }
+    }
+
     // ------------------------------------------------------------------
     // Solana
     // ------------------------------------------------------------------
@@ -312,6 +364,30 @@ class LedgerHardwareWallet(
             return sig.bytes
         } catch (e: Throwable) {
             throw mapSolError(e, "SIGN_MESSAGE")
+        } finally {
+            resetSession()
+        }
+    }
+
+    override suspend fun signSolanaMessage(
+        message: String,
+        account: Long,
+    ): uniffi.ledger_sol_core.SolanaSignedMessage {
+        try {
+            val sdk = solanaSdk()
+            // Resolve one path so get-address + sign derive the SAME key. The
+            // account form matches standard_solana_path(account) in the core.
+            val path = pendingDerivationPath ?: "m/44'/501'/${account}'/0'"
+            // 1. Device pubkey for this path (no on-device confirmation).
+            val addr = sdk.getAddressAtPath(path, false)
+            // 2. Build the SIMD-0048 OCMS envelope with that pubkey in signers.
+            val envelope = uniffi.ledger_sol_core.solOffchainEnvelope(message, addr.pubkey)
+            // 3. Device signs the envelope raw (SIGN_OFFCHAIN_MESSAGE, INS 0x07).
+            val sig = sdk.signOffchainMessageAtPath(path, envelope)
+            // 4. Assemble the base58 address + signature (formatting in the core).
+            return uniffi.ledger_sol_core.solHardwareSignedMessage(addr.pubkey, sig.bytes)
+        } catch (e: Throwable) {
+            throw mapSolError(e, "SIGN_OFFCHAIN_MESSAGE")
         } finally {
             resetSession()
         }
@@ -355,6 +431,25 @@ class LedgerHardwareWallet(
             return EcdsaSignature(v = sig.v.toInt(), r = sig.r, s = sig.s)
         } catch (e: Throwable) {
             throw mapTronError(e, "SIGN")
+        } finally {
+            resetSession()
+        }
+    }
+
+    /**
+     * Sign a TIP-191 "TRON Signed Message" for [account] (or the active path
+     * override). The device prefixes + hashes + signs; the bound T-address is
+     * recovered host-side by the Rust core and returned with the 0x-hex r||s||v
+     * signature. Tron-only on Ledger; Trezor firmware has no Tron message op.
+     */
+    suspend fun signTronMessage(account: Long, message: String): TronSignedMessage {
+        try {
+            val sdk = tronSdk()
+            val path = pendingDerivationPath
+            return if (path != null) sdk.signMessageAtPath(path, message)
+            else sdk.signMessageForAccount(account.toUInt(), message)
+        } catch (e: Throwable) {
+            throw mapTronError(e, "SIGN_PERSONAL_MESSAGE")
         } finally {
             resetSession()
         }

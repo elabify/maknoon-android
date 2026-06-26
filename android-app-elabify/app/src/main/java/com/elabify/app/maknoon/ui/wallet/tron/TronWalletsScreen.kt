@@ -23,6 +23,7 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -54,7 +55,7 @@ import com.elabify.musnad.wallet.tron.TronWalletKind
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-internal fun TronWalletsScreen(onAddWallet: () -> Unit, onDone: () -> Unit) {
+internal fun TronWalletsScreen(onAddWallet: () -> Unit, onOpenSettings: () -> Unit, onDone: () -> Unit) {
     val context = LocalContext.current
     val walletStore = remember { TronStores.walletStore(context) }
     var rev by remember { mutableStateOf(0) }
@@ -70,6 +71,9 @@ internal fun TronWalletsScreen(onAddWallet: () -> Unit, onDone: () -> Unit) {
                 title = { Text(stringResource(R.string.trx_tron_wallets)) },
                 navigationIcon = { IconButton(onClick = onDone) { Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.common_back)) } },
                 actions = {
+                    IconButton(onClick = onOpenSettings) {
+                        Icon(Icons.Filled.Settings, contentDescription = stringResource(R.string.common_settings))
+                    }
                     IconButton(onClick = onAddWallet) {
                         Icon(Icons.Filled.Add, contentDescription = stringResource(R.string.trx_add_wallet))
                     }

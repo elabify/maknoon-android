@@ -6,6 +6,7 @@
 
 package com.elabify.app.maknoon.ui.wallet.bitcoin
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -24,7 +25,10 @@ import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.OpenInNew
 import androidx.compose.material.icons.filled.QrCode2
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material.icons.filled.Draw
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.TextButton
@@ -76,6 +80,7 @@ private data class AddressRow(
 internal fun BitcoinAddressesScreen(
     env: BitcoinWalletEnv,
     active: BitcoinWalletDescriptor?,
+    onSignAddress: (BitcoinSignAddressTarget) -> Unit,
     onClose: () -> Unit,
 ) {
     val context = LocalContext.current
@@ -86,6 +91,8 @@ internal fun BitcoinAddressesScreen(
     var copied by remember { mutableStateOf<String?>(null) }
     // Address whose QR is shown full-screen so another person can scan it to pay.
     var qrFor by remember { mutableStateOf<String?>(null) }
+    // Index of the row whose tap-menu (Copy address / Sign message) is open.
+    var menuForIndex by remember { mutableStateOf<Long?>(null) }
 
     LaunchedEffect(active?.id, receiveKeychain) {
         val descriptor = active ?: return@LaunchedEffect
@@ -148,7 +155,42 @@ internal fun BitcoinAddressesScreen(
                     else -> LazyColumn(Modifier.fillMaxSize()) {
                         items(rows, key = { it.index }) { row ->
                             val ticker = active?.network?.ticker ?: "BTC"
-                            Column(Modifier.fillMaxWidth().padding(vertical = 6.dp)) {
+                            Column(
+                                Modifier
+                                    .fillMaxWidth()
+                                    .clickable { menuForIndex = row.index }
+                                    .padding(vertical = 6.dp),
+                            ) {
+                                // Tap-menu: Copy address / Sign message (mirrors the
+                                // iOS row context menu). Anchored to this row.
+                                DropdownMenu(
+                                    expanded = menuForIndex == row.index,
+                                    onDismissRequest = { menuForIndex = null },
+                                ) {
+                                    DropdownMenuItem(
+                                        text = { Text(stringResource(R.string.btc_copy_address)) },
+                                        leadingIcon = { Icon(Icons.Filled.ContentCopy, contentDescription = null) },
+                                        onClick = {
+                                            clipboard.setText(AnnotatedString(row.address))
+                                            copied = row.address
+                                            menuForIndex = null
+                                        },
+                                    )
+                                    DropdownMenuItem(
+                                        text = { Text(stringResource(R.string.wallet_sign_message)) },
+                                        leadingIcon = { Icon(Icons.Filled.Draw, contentDescription = null) },
+                                        onClick = {
+                                            menuForIndex = null
+                                            onSignAddress(
+                                                BitcoinSignAddressTarget(
+                                                    chain = if (receiveKeychain) 0L else 1L,
+                                                    index = row.index,
+                                                    address = row.address,
+                                                ),
+                                            )
+                                        },
+                                    )
+                                }
                                 Row(verticalAlignment = Alignment.CenterVertically) {
                                     Text("#${row.index}", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
                                     Box(Modifier.weight(1f))

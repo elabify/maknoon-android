@@ -19,6 +19,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
@@ -53,7 +54,7 @@ import com.elabify.musnad.wallet.ethereum.EthereumWalletDescriptor
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-internal fun EthereumWalletsScreen(onAddWallet: () -> Unit, onDone: () -> Unit) {
+internal fun EthereumWalletsScreen(onAddWallet: () -> Unit, onOpenSettings: () -> Unit, onDone: () -> Unit) {
     val context = LocalContext.current
     val walletStore = remember { EthereumStores.walletStore(context) }
     var rev by remember { mutableStateOf(0) }
@@ -69,6 +70,9 @@ internal fun EthereumWalletsScreen(onAddWallet: () -> Unit, onDone: () -> Unit) 
                 title = { Text(stringResource(R.string.eth_ethereum_wallets)) },
                 navigationIcon = { IconButton(onClick = onDone) { Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.common_back)) } },
                 actions = {
+                    IconButton(onClick = onOpenSettings) {
+                        Icon(Icons.Filled.Settings, contentDescription = stringResource(R.string.common_settings))
+                    }
                     IconButton(onClick = onAddWallet) {
                         Icon(Icons.Filled.Add, contentDescription = stringResource(R.string.eth_add_wallet))
                     }

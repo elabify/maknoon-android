@@ -24,6 +24,7 @@ import com.elabify.musnad.hardware.HardwareWallet
 import com.elabify.musnad.hardware.HardwareWalletException
 import com.elabify.musnad.hardware.HardwareWalletKind
 import kotlinx.coroutines.delay
+import uniffi.trezor_core.BitcoinMessageSignature
 import uniffi.trezor_core.PairingCodeProvider
 import uniffi.trezor_core.PassphraseSpec
 import uniffi.trezor_core.Secp256k1Signature
@@ -447,6 +448,37 @@ class TrezorHardwareWallet(
         }
     }
 
+    /**
+     * Sign an arbitrary message for the current [pendingPassphrase] wallet in
+     * the standard "Bitcoin Signed Message" (Electrum) format. [addressN] is
+     * the full BIP32 address path as the device's hardened-component array; its
+     * purpose selects the script type. Returns the bound address + the 65-byte
+     * signature. The user confirms the message on-device. Mirrors
+     * TrezorBLE.signBitcoinMessage.
+     */
+    suspend fun signBitcoinMessage(
+        addressN: List<UInt>,
+        message: ByteArray,
+        coinType: Long,
+    ): BitcoinMessageSignature {
+        try {
+            val creds = credentialAndHostKey()
+            val passphrase = pendingPassphrase
+            return withBusyRetry {
+                trezorClient().signBitcoinMessage(
+                    hostStaticPriv = creds.hostKey,
+                    credential = creds.credential,
+                    passphrase = passphrase,
+                    addressN = addressN,
+                    message = message,
+                    coinType = coinType.toUInt(),
+                )
+            }
+        } finally {
+            resetSession()
+        }
+    }
+
     // -- Ethereum / EVM --
 
     /**
@@ -507,6 +539,32 @@ class TrezorHardwareWallet(
         }
     }
 
+    /**
+     * EIP-191 `personal_sign` for BIP44 account [account] (or the active path
+     * override) on the current [pendingPassphrase] wallet. Returns the full
+     * 65-byte R||S||V signature so a verifier can ecrecover off-device. The
+     * user confirms the message on-device. Mirrors TrezorBLE.signEthereumMessage.
+     */
+    suspend fun signEthereumMessage(account: Long, message: ByteArray): ByteArray {
+        try {
+            val creds = credentialAndHostKey()
+            val passphrase = pendingPassphrase
+            val path = pendingDerivationPath
+            return withBusyRetry {
+                trezorClient().signEthereumMessage(
+                    hostStaticPriv = creds.hostKey,
+                    credential = creds.credential,
+                    passphrase = passphrase,
+                    account = account.toUInt(),
+                    message = message,
+                    path = path,
+                )
+            }
+        } finally {
+            resetSession()
+        }
+    }
+
     // -- Solana --
 
     /**
@@ -551,6 +609,43 @@ class TrezorHardwareWallet(
                     account = account.toUInt(),
                     path = path,
                 )
+            }
+        } finally {
+            resetSession()
+        }
+    }
+
+    override suspend fun signSolanaMessage(
+        message: String,
+        account: Long,
+    ): uniffi.ledger_sol_core.SolanaSignedMessage {
+        try {
+            val creds = credentialAndHostKey()
+            val passphrase = pendingPassphrase
+            val path = pendingDerivationPath
+            return withBusyRetry {
+                // 1. Device pubkey for this wallet/path (base58 -> 32 bytes).
+                val base58 = trezorClient().getSolanaAddress(
+                    hostStaticPriv = creds.hostKey,
+                    credential = creds.credential,
+                    passphrase = passphrase,
+                    account = account.toUInt(),
+                    path = path,
+                )
+                val pubkey = com.elabify.musnad.wallet.solana.SolanaPrimitives.pubkeyBytes(base58)
+                // 2. Build the SIMD-0048 OCMS envelope with that pubkey in signers.
+                val envelope = uniffi.ledger_sol_core.solOffchainEnvelope(message, pubkey)
+                // 3. Device parses + signs the envelope raw (SolanaSignMessage 906).
+                val sig = trezorClient().signSolanaMessage(
+                    hostStaticPriv = creds.hostKey,
+                    credential = creds.credential,
+                    passphrase = passphrase,
+                    envelope = envelope,
+                    account = account.toUInt(),
+                    path = path,
+                )
+                // 4. Assemble the base58 address + signature (formatting in the core).
+                uniffi.ledger_sol_core.solHardwareSignedMessage(pubkey, sig)
             }
         } finally {
             resetSession()

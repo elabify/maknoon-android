@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.systemBarsPadding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AccountCircle
 import androidx.compose.material.icons.filled.CreditCard
@@ -245,7 +246,9 @@ private fun LockScreen(onUnlocked: () -> Unit) {
 
     Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
         Column(
-            Modifier.fillMaxSize().padding(Spacing.xl),
+            // Edge-to-edge: this lock overlay renders above the tab Scaffold, so
+            // it must inset itself from the system bars.
+            Modifier.fillMaxSize().systemBarsPadding().padding(Spacing.xl),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center,
         ) {

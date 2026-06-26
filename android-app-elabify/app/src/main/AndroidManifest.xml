@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
-<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
 
     <!-- Posture: NFC (passport) + biometric required; BLE/USB for hardware
          wallets; camera for QR. No GMS / Play Integrity / location. -->
@@ -11,6 +12,14 @@
     <uses-permission
         android:name="android.permission.BLUETOOTH_SCAN"
         android:usesPermissionFlags="neverForLocation" />
+
+    <!-- The hardware-wallet core AARs declare ACCESS_FINE_LOCATION with
+         maxSdkVersion=30 for pre-Android-12 BLE scanning (correct for a general
+         library). This app's minSdk is 33, so it is never needed and we never use
+         location: strip it from the merged manifest so it does not appear in the
+         Play listing. BLE scanning here uses BLUETOOTH_SCAN/neverForLocation. -->
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION"
+        tools:node="remove" />
 
     <uses-feature android:name="android.hardware.nfc" android:required="false" />
     <uses-feature android:name="android.hardware.bluetooth_le" android:required="false" />

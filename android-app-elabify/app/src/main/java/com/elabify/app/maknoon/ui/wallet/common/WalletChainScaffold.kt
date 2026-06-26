@@ -23,10 +23,15 @@ import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.automirrored.filled.ListAlt
+import androidx.compose.material.icons.filled.AddCircleOutline
+import androidx.compose.material.icons.filled.Draw
+import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.Verified
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Scaffold
@@ -98,33 +103,78 @@ fun WalletChainScaffold(
     }
 }
 
-// The single, shared per-network dashboard top-bar action. Every chain
-// dashboard drops exactly this into its WalletChainScaffold [actions] slot, so
-// the chrome is byte-identical across Bitcoin, Ethereum, Solana, and Tron: one
-// "+" IconButton that opens a DropdownMenu with exactly two items, in this
-// order: "Manage Wallets" (the wallets-list screen, which itself holds the
-// Add-wallet action plus rename / remove / reorder) and "Settings" (that
-// network's settings screen). Per ADR-0033. Chain-specific tools must NOT be
-// added to this menu; they live in that network's Settings or a per-wallet
-// overflow, never here, so the two items stay identical everywhere.
+// The single, shared per-network dashboard "+" menu. Every chain dashboard drops
+// this into its WalletChainScaffold [actions] slot, so the menu chrome AND its
+// ORDER are identical across Bitcoin, Ethereum, Solana, Tron, and Lightning.
+//
+// CANONICAL ORDER (ADR-0033, revised 0.6.2) — every item is optional except
+// Manage wallets, and each chain shows the subset it supports, ALWAYS in this
+// order so the layout never reshuffles between chains:
+//
+//   1. Add wallet…      (onAddWallet)     plus.circle           -> AddCircleOutline
+//   2. Manage wallets…  (onManage)        list.bullet.rectangle -> ListAlt
+//   3. Settings         (onSettings)      gearshape             -> Settings
+//   --- divider (only when a message tool follows) ---
+//   4. Sign message     (onSignMessage)   signature             -> Draw
+//   5. Verify message   (onVerifyMessage) checkmark.seal        -> Verified
+//
+// Management / configuration items come first, then a divider, then the
+// message-signing tools, mirroring the iOS BitcoinWalletView / EthereumWalletView
+// toolbar menus. Chains that move Settings to a gear on their Manage-wallets
+// screen (Bitcoin + Ethereum, matching iOS, which keeps Settings out of this
+// menu) pass null for onSettings. A chain without message signing passes null
+// for onSignMessage / onVerifyMessage and those items + the divider are omitted.
+// Any future network that gains sign/verify MUST reuse this menu so the order
+// stays uniform. No OTHER chain-specific tool may be added here.
 @Composable
 fun WalletActionsMenu(
     onManage: () -> Unit,
-    onSettings: () -> Unit,
+    onSettings: (() -> Unit)? = null,
+    onAddWallet: (() -> Unit)? = null,
+    onSignMessage: (() -> Unit)? = null,
+    onVerifyMessage: (() -> Unit)? = null,
 ) {
     var expanded by remember { mutableStateOf(false) }
     IconButton(onClick = { expanded = true }) {
-        Icon(Icons.Filled.Add, contentDescription = stringResource(R.string.wallet_wallet_actions))
+        Icon(Icons.Filled.AddCircleOutline, contentDescription = stringResource(R.string.wallet_wallet_actions))
     }
     DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
+        if (onAddWallet != null) {
+            DropdownMenuItem(
+                text = { Text(stringResource(R.string.wallet_add_wallet_ellipsis)) },
+                leadingIcon = { Icon(Icons.Filled.AddCircleOutline, contentDescription = null) },
+                onClick = { expanded = false; onAddWallet() },
+            )
+        }
         DropdownMenuItem(
-            text = { Text(stringResource(R.string.wallet_manage_wallets_caps)) },
+            text = { Text(stringResource(R.string.wallet_manage_wallets_ellipsis)) },
+            leadingIcon = { Icon(Icons.AutoMirrored.Filled.ListAlt, contentDescription = null) },
             onClick = { expanded = false; onManage() },
         )
-        DropdownMenuItem(
-            text = { Text(stringResource(R.string.common_settings)) },
-            onClick = { expanded = false; onSettings() },
-        )
+        if (onSettings != null) {
+            DropdownMenuItem(
+                text = { Text(stringResource(R.string.common_settings)) },
+                leadingIcon = { Icon(Icons.Filled.Settings, contentDescription = null) },
+                onClick = { expanded = false; onSettings() },
+            )
+        }
+        if (onSignMessage != null || onVerifyMessage != null) {
+            HorizontalDivider()
+        }
+        if (onSignMessage != null) {
+            DropdownMenuItem(
+                text = { Text(stringResource(R.string.wallet_sign_message)) },
+                leadingIcon = { Icon(Icons.Filled.Draw, contentDescription = null) },
+                onClick = { expanded = false; onSignMessage() },
+            )
+        }
+        if (onVerifyMessage != null) {
+            DropdownMenuItem(
+                text = { Text(stringResource(R.string.wallet_verify_message)) },
+                leadingIcon = { Icon(Icons.Filled.Verified, contentDescription = null) },
+                onClick = { expanded = false; onVerifyMessage() },
+            )
+        }
     }
 }
 

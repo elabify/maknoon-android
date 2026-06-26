@@ -118,6 +118,12 @@ private sealed interface EthRoute {
     data class AddToken(val prefilledContract: String?) : EthRoute
     data class TxList(val walletId: UUID, val ownerAddress: String) : EthRoute
     data class TokenDetail(val walletId: UUID, val tokenId: String) : EthRoute
+
+    /** Full-screen sign-message screen for the active wallet. */
+    data object SignMessage : EthRoute
+
+    /** Full-screen verify-message screen. */
+    data object VerifyMessage : EthRoute
 }
 
 /** THE entry composable for the Ethereum chain. The Wallet tab routes here.
@@ -138,11 +144,18 @@ fun EthereumWalletScreen(onBack: () -> Unit) {
             onWallets = { route = EthRoute.Wallets },
             onAddWallet = { pendingHwDeviceId = null; route = EthRoute.AddWallet },
             onSettings = { route = EthRoute.Settings },
+            onSignMessage = { route = EthRoute.SignMessage },
+            onVerifyMessage = { route = EthRoute.VerifyMessage },
             onNetworkPicker = { route = EthRoute.NetworkPicker },
             onAddToken = { prefill -> route = EthRoute.AddToken(prefill) },
             onTxList = { id, addr -> route = EthRoute.TxList(id, addr) },
             onTokenDetail = { id, tokenId -> route = EthRoute.TokenDetail(id, tokenId) },
         )
+        is EthRoute.SignMessage -> EthereumSignMessageScreen(
+            active = EthereumStores.walletStore(LocalContext.current).activeWallet,
+            onClose = { route = EthRoute.Dashboard },
+        )
+        is EthRoute.VerifyMessage -> EthereumVerifyMessageScreen(onClose = { route = EthRoute.Dashboard })
         is EthRoute.Send -> EthereumSendScreen(
             walletId = r.walletId,
             preselectTokenId = r.preselectTokenId,
@@ -154,6 +167,7 @@ fun EthereumWalletScreen(onBack: () -> Unit) {
         )
         is EthRoute.Wallets -> EthereumWalletsScreen(
             onAddWallet = { pendingHwDeviceId = null; route = EthRoute.AddWallet },
+            onOpenSettings = { route = EthRoute.Settings },
             onDone = { route = EthRoute.Dashboard },
         )
         is EthRoute.AddWallet -> AddEthereumWalletScreen(
@@ -208,6 +222,8 @@ private fun EthereumDashboard(
     onWallets: () -> Unit,
     onAddWallet: () -> Unit,
     onSettings: () -> Unit,
+    onSignMessage: () -> Unit,
+    onVerifyMessage: () -> Unit,
     onNetworkPicker: () -> Unit,
     onAddToken: (String?) -> Unit,
     onTxList: (UUID, String) -> Unit,
@@ -286,7 +302,15 @@ private fun EthereumDashboard(
         title = stringResource(R.string.eth_ethereum),
         onBack = onBack,
         actions = {
-            WalletActionsMenu(onManage = onWallets, onSettings = onSettings)
+            // Settings lives behind a gear on Manage Wallets (matching iOS), so it
+            // is not in this menu. Canonical order: Add / Manage / divider / Sign /
+            // Verify (ADR-0033).
+            WalletActionsMenu(
+                onManage = onWallets,
+                onAddWallet = onAddWallet,
+                onSignMessage = if (activeWallet != null) onSignMessage else null,
+                onVerifyMessage = onVerifyMessage,
+            )
         },
         isRefreshing = syncing,
         onRefresh = { refresh() },
