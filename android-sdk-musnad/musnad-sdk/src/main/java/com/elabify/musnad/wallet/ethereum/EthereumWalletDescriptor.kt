@@ -7,6 +7,7 @@
 // is persisted on EthereumWalletStore.
 
 package com.elabify.musnad.wallet.ethereum
+import com.elabify.musnad.util.optStringOrNull
 
 import java.util.UUID
 import org.json.JSONObject
@@ -49,9 +50,9 @@ data class EthereumWalletDescriptor(
             kind = EthereumWalletKind.fromJson(o.getJSONObject("kind")),
             createdAt = o.optLong("createdAt", System.currentTimeMillis()),
             lastSyncAt = if (o.isNull("lastSyncAt")) null else o.optLong("lastSyncAt"),
-            cachedAddress = if (o.isNull("cachedAddress")) null else o.optString("cachedAddress", null),
-            hidden = if (o.isNull("hidden")) null else o.optString("hidden", null),
-            derivationPath = if (o.isNull("derivationPath")) null else o.optString("derivationPath", null),
+            cachedAddress = if (o.isNull("cachedAddress")) null else o.optStringOrNull("cachedAddress"),
+            hidden = if (o.isNull("hidden")) null else o.optStringOrNull("hidden"),
+            derivationPath = if (o.isNull("derivationPath")) null else o.optStringOrNull("derivationPath"),
         )
     }
 }

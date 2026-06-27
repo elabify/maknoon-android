@@ -15,6 +15,14 @@ configurations.configureEach {
     exclude(group = "com.google.guava", module = "listenablefuture")
 }
 
+// Kotlin JVM target via the compilerOptions DSL (the old android.kotlinOptions
+// jvmTarget is deprecated).
+kotlin {
+    compilerOptions {
+        jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17)
+    }
+}
+
 android {
     namespace = "com.elabify.musnad"
     compileSdk = 36
@@ -34,9 +42,6 @@ android {
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
-    }
-    kotlinOptions {
-        jvmTarget = "17"
     }
 
     // mockwebserver / okhttp test deps bundle a duplicate OSGI manifest under

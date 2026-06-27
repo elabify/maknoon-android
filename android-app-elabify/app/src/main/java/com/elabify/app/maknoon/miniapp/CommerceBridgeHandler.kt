@@ -28,7 +28,7 @@ class CommerceBridgeHandler(
 ) : MiniAppNamespaceHandler {
 
     override val namespace = "commerce"
-    override val requiredPermission: String? = "payment"
+    override val requiredPermission: String? = "wallet"
 
     override suspend fun handle(method: String, argsJson: String): String = when (method) {
         "collectAndCharge" -> collectAndCharge(argsJson)

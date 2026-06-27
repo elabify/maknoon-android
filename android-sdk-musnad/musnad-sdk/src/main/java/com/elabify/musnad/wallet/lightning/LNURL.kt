@@ -212,5 +212,5 @@ object LNURL {
         java.net.URLEncoder.encode(s, "UTF-8").replace("+", "%20")
 
     private fun JSONArray.optStringOrNull(index: Int): String? =
-        if (!isNull(index)) optString(index, null)?.takeIf { it.isNotEmpty() } else null
+        if (!isNull(index)) getString(index).takeIf { it.isNotEmpty() } else null
 }

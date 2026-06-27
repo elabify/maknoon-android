@@ -58,7 +58,10 @@ object PresentationVerifier {
         //    presentation does not carry the issuer pubkey, so UNVERIFIED.
         val headerSigValid: LocalCheckResult = run {
             val sig = hexFrom0xOrNull(p.headerSig)
-            if (!selfIssued || holderPk == null || sig == null) {
+            // selfIssued already implies holderPk != null (its definition), so the
+            // compiler smart-casts holderPk to non-null in the else branch below; an
+            // explicit holderPk == null term here is always false (KT warning).
+            if (!selfIssued || sig == null) {
                 LocalCheckResult.Unverified(
                     "Issuer pubkey not local; verify online for issuer-bound signature",
                 )

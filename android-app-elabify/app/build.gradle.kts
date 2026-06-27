@@ -38,6 +38,14 @@ fun gitShortSha(): String = try {
     "dev"
 }
 
+// Kotlin JVM target via the compilerOptions DSL (the old android.kotlinOptions
+// jvmTarget is deprecated).
+kotlin {
+    compilerOptions {
+        jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17)
+    }
+}
+
 android {
     namespace = "com.elabify.app.maknoon"
     compileSdk = 36
@@ -51,8 +59,13 @@ android {
         applicationId = "com.elabify.app.maknoon" // matches the iOS bundle id
         minSdk = 33
         targetSdk = 35
-        versionCode = 11
-        versionName = "0.6.2"
+        // Auto-derived in CI from github.run_number (monotonic, survives shallow
+        // checkout) so a Play upload is never rejected for a duplicate code; the
+        // release CI passes ANDROID_VERSION_CODE. Local builds fall back to a static
+        // dev value. versionName/MARKETING stays at the release. Mirrors the iOS
+        // CURRENT_PROJECT_VERSION=run_number approach (ADR-0048 0.6.3 hardening).
+        versionCode = System.getenv("ANDROID_VERSION_CODE")?.toIntOrNull() ?: 11
+        versionName = "0.6.3"
         buildConfigField("String", "GIT_COMMIT", "\"${gitShortSha()}\"")
 
         // Ship arm64-v8a only. It is the only ABI used by real 16 KB-page
@@ -98,9 +111,6 @@ android {
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
-    }
-    kotlinOptions {
-        jvmTarget = "17"
     }
     buildFeatures {
         compose = true

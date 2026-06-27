@@ -65,7 +65,7 @@ jobs:
     # `play-internal` Environment in the run's UI.
     environment: play-internal
     permissions:
-      contents: read
+      contents: write          # create the GitHub Release + attach the sideload APK
       id-token: write          # mint the OIDC token for Workload Identity Federation
     steps:
       - uses: actions/checkout@v5
@@ -132,6 +132,9 @@ jobs:
         run: |
           set -euo pipefail
           export ANDROID_NDK_HOME="$ANDROID_HOME/ndk/30.0.14904198"
+          # Align NDK_ROOT with NDK_HOME so cargo-ndk does not warn about the
+          # runner's default ANDROID_NDK_ROOT pointing at a different NDK version.
+          export ANDROID_NDK_ROOT="$ANDROID_NDK_HOME"
           # 1. pq-crypto AAR (consumed in place from build/outputs/aar).
           echo "::group::build-aar (pq-crypto-rs)"
           bash pq-crypto-rs/android/build-aar.sh
@@ -223,6 +226,12 @@ jobs:
 
       - name: Build signed AAB + upload to Play internal
         working-directory: android-app-elabify
+        # versionCode is auto-derived from the monotonic run number (build.gradle.kts
+        # reads ANDROID_VERSION_CODE) so a Play upload is never rejected for a duplicate
+        # code; versionName stays at the release. Survives the shallow checkout (unlike
+        # git rev-list --count).
+        env:
+          ANDROID_VERSION_CODE: ${{ github.run_number }}
         # The previous step imported the GitHub OIDC CA into $JAVA_HOME's cacerts, but
         # gradle-play-publisher does the Workload-Identity token fetch in a FORKED
         # gradle worker JVM that didn't pick up that truststore (rc5 still PKIX-failed).
@@ -232,3 +241,30 @@ jobs:
         run: |
           export JAVA_TOOL_OPTIONS="-Djavax.net.ssl.trustStore=$JAVA_HOME/lib/security/cacerts -Djavax.net.ssl.trustStorePassword=changeit"
           ./gradlew :app:publishReleaseBundle --no-daemon --stacktrace
+
+      - name: Build signed APK + attach to a GitHub Release (sideload / GrapheneOS / Obtainium)
+        # The Play AAB is re-signed by Play App Signing; this APK is signed with our
+        # upload key (release.jks) and is the GMS-free sideload channel for GrapheneOS
+        # users and Obtainium. arm64-v8a + 16 KB-aligned (build.gradle), so it installs
+        # and updates in place on Pixels as long as every GitHub APK uses this key.
+        # NOTE: a GitHub/sideload install and a Play install have different signatures,
+        # so a user stays on one channel. RC tags publish as a GitHub *pre-release*
+        # (Obtainium's default "latest" tracks finals only).
+        working-directory: android-app-elabify
+        env:
+          GH_TOKEN: ${{ github.token }}
+          ANDROID_VERSION_CODE: ${{ github.run_number }}
+        run: |
+          set -euo pipefail
+          ./gradlew :app:assembleRelease --no-daemon --stacktrace
+          apk="$(ls app/build/outputs/apk/release/*.apk | head -1)"
+          out="$RUNNER_TEMP/maknoon-${{ github.ref_name }}.apk"
+          cp "$apk" "$out"
+          pre=""
+          case "${{ github.ref_name }}" in *-rc*) pre="--prerelease" ;; esac
+          if ! gh release create "${{ github.ref_name }}" "$out" \
+                --repo "${{ github.repository }}" --title "${{ github.ref_name }}" \
+                --notes "GMS-free signed APK for sideload / Obtainium / GrapheneOS (arm64-v8a, 16 KB-aligned). Distinct signature from the Play build; pick one channel." \
+                $pre 2>/dev/null; then
+            gh release upload "${{ github.ref_name }}" "$out" --clobber --repo "${{ github.repository }}"
+          fi

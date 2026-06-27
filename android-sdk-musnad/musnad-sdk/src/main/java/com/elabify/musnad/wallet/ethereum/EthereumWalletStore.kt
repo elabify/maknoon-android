@@ -11,6 +11,7 @@
 // by (kind, cachedAddress) and seeds the per-wallet network from the v1 field.
 
 package com.elabify.musnad.wallet.ethereum
+import com.elabify.musnad.util.optStringOrNull
 
 import java.util.UUID
 import org.json.JSONArray
@@ -308,7 +309,7 @@ class EthereumWalletStore(private val kv: EthereumKeyValueStore = EthereumKeyVal
         for (i in 0 until arr.length()) {
             val o = arr.optJSONObject(i) ?: continue
             val kind = runCatching { EthereumWalletKind.fromJson(o.getJSONObject("kind")) }.getOrNull() ?: continue
-            val cachedAddress = if (o.isNull("cachedAddress")) null else o.optString("cachedAddress", null)
+            val cachedAddress = if (o.isNull("cachedAddress")) null else o.optStringOrNull("cachedAddress")
             val net = EthereumNetwork.fromRawValue(o.optString("network")) ?: EthereumNetwork.MAINNET
             val dedupKey = "${kind.stableKey()}:${cachedAddress ?: "no-addr"}"
             if (!seen.add(dedupKey)) continue

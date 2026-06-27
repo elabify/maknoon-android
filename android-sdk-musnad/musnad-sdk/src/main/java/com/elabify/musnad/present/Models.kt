@@ -711,7 +711,7 @@ data class LocalCheckResultBundle(
 // ---------------------------------------------------------------------------
 
 internal fun JSONObject.optStringOrNull(key: String): String? =
-    if (has(key) && !isNull(key)) optString(key, null) else null
+    if (has(key) && !isNull(key)) getString(key) else null
 
 internal fun JSONObject.optStringList(key: String): List<String>? {
     if (!has(key) || isNull(key)) return null

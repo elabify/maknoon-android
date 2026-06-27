@@ -301,10 +301,10 @@ private fun MiniAppWebView(
                     // page renders, so RTL (Arabic) is correct with no flash and
                     // every dApp inherits the right direction even if it ignores
                     // device.info().locale. Runs before the provider + page scripts.
-                    @Suppress("DEPRECATION")
+                    // minSdk 33: configuration.locales is always present, so the
+                    // deprecated single Configuration.locale fallback is dead code.
                     val cfg = view.context.resources.configuration
-                    val tag = cfg.locales.takeIf { !it.isEmpty }?.get(0)?.toLanguageTag()
-                        ?: cfg.locale?.toLanguageTag() ?: "en"
+                    val tag = cfg.locales.takeIf { !it.isEmpty }?.get(0)?.toLanguageTag() ?: "en"
                     view.evaluateJavascript(localeShim(tag), null)
                     // Inject the provider shim before the page's own scripts run.
                     // onPageStarted fires before document scripts execute, the

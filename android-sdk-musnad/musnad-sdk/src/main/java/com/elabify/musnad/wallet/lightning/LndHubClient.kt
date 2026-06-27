@@ -274,4 +274,4 @@ class LndHubClient(
 
 /** optString that returns null (not "") for a missing/null key. */
 internal fun JSONObject.optStringOrNull(key: String): String? =
-    if (has(key) && !isNull(key)) optString(key, null)?.takeIf { it.isNotEmpty() } else null
+    if (has(key) && !isNull(key)) getString(key).takeIf { it.isNotEmpty() } else null

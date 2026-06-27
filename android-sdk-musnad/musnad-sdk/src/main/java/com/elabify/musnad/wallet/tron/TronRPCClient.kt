@@ -16,6 +16,7 @@
 // the SDK. One client per (network, endpoint URL); cheap to recreate.
 
 package com.elabify.musnad.wallet.tron
+import com.elabify.musnad.util.optStringOrNull
 
 import com.elabify.musnad.crypto.hexToBytes
 import com.elabify.musnad.crypto.toHex
@@ -91,7 +92,7 @@ class TronRPCClient(
         val r = post("/wallet/broadcasttransaction", body)
         val result = if (r.has("result")) r.opt("result") else null
         val resultBool = result as? Boolean
-        val message = if (r.isNull("message")) null else r.optString("message", null)
+        val message = if (r.isNull("message")) null else r.optStringOrNull("message")
         if (message != null && resultBool != true) {
             // Tron returns `message` as hex when `code` is set; decode
             // best-effort so the user sees the human-readable reason.
@@ -99,7 +100,7 @@ class TronRPCClient(
             val code = if (r.isNull("code")) "?" else r.optString("code", "?")
             throw TronRPCException("[$code] $decoded")
         }
-        val txid = (if (r.isNull("txid")) null else r.optString("txid", null))
+        val txid = (if (r.isNull("txid")) null else r.optStringOrNull("txid"))
             ?: throw TronRPCException("broadcastTransaction returned no txid")
         return txid
     }
@@ -153,13 +154,13 @@ class TronRPCClient(
                 TxRecord(
                     txID = o.optString("txID"),
                     blockTimestamp = if (o.isNull("block_timestamp")) null else o.optLong("block_timestamp"),
-                    contractType = firstContract?.optString("type", null),
-                    contractStatus = ret?.optString("contractRet", null),
-                    ownerAddress = value?.optString("owner_address", null),
-                    toAddress = value?.optString("to_address", null),
-                    contractAddress = value?.optString("contract_address", null),
+                    contractType = firstContract?.optStringOrNull("type"),
+                    contractStatus = ret?.optStringOrNull("contractRet"),
+                    ownerAddress = value?.optStringOrNull("owner_address"),
+                    toAddress = value?.optStringOrNull("to_address"),
+                    contractAddress = value?.optStringOrNull("contract_address"),
                     amount = value?.let { if (it.isNull("amount")) null else it.optLong("amount") },
-                    data = value?.optString("data", null),
+                    data = value?.optStringOrNull("data"),
                 )
             )
         }
@@ -186,7 +187,7 @@ class TronRPCClient(
         val r = post("/wallet/triggerconstantcontract", body)
         val result = r.optJSONObject("result")
         if (result != null && result.has("result") && !result.optBoolean("result", true)) {
-            val msg = if (result.isNull("message")) null else result.optString("message", null)
+            val msg = if (result.isNull("message")) null else result.optStringOrNull("message")
             throw TronRPCException(msg?.let { hexDecodeString(it) ?: it } ?: "constant contract error")
         }
         val arr = r.optJSONArray("constant_result")
@@ -246,7 +247,7 @@ class TronRPCClient(
             rawData = rawBytes,
             rawDataHex = rawHex,
             envelopeJSON = envelope.toString(),
-            txID = if (envelope.isNull("txID")) null else envelope.optString("txID", null),
+            txID = if (envelope.isNull("txID")) null else envelope.optStringOrNull("txID"),
         )
     }
 
@@ -275,7 +276,7 @@ class TronRPCClient(
         val envelope = post("/wallet/triggersmartcontract", body)
         val result = envelope.optJSONObject("result")
         if (result != null && result.has("result") && !result.optBoolean("result", true)) {
-            val msg = if (result.isNull("message")) null else result.optString("message", null)
+            val msg = if (result.isNull("message")) null else result.optStringOrNull("message")
             throw TronRPCException(msg?.let { hexDecodeString(it) ?: it } ?: "triggersmartcontract error")
         }
         val txObj = envelope.optJSONObject("transaction")
@@ -288,7 +289,7 @@ class TronRPCClient(
             rawData = rawBytes,
             rawDataHex = rawHex,
             envelopeJSON = txObj.toString(),
-            txID = if (txObj.isNull("txID")) null else txObj.optString("txID", null),
+            txID = if (txObj.isNull("txID")) null else txObj.optStringOrNull("txID"),
         )
     }
 

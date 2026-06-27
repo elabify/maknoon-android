@@ -34,13 +34,14 @@ import org.json.JSONObject
 
 /**
  * addressBook namespace: list the user's saved + own addresses for a chain.
- * Gated by the "payment" permission. Returns [{name,address,network,isOwnWallet}].
+ * Gated by the "wallet" permission (it reads receiving addresses; "payment" is
+ * reserved for a future outbound-send handler). Returns [{name,address,network,isOwnWallet}].
  * Own wallets are surfaced first (they are the only entries Android backs today,
  * so every returned entry is isOwnWallet=true for now).
  */
 class AddressBookBridgeHandler(context: Context) : MiniAppNamespaceHandler {
     override val namespace = "addressBook"
-    override val requiredPermission: String? = "payment"
+    override val requiredPermission: String? = "wallet"
 
     private val appContext = context.applicationContext
 

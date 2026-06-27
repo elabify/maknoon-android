@@ -7,6 +7,7 @@
 // cluster" lives in SolanaWalletStore, not here.
 
 package com.elabify.musnad.wallet.solana
+import com.elabify.musnad.util.optStringOrNull
 
 import java.util.UUID
 import org.json.JSONObject
@@ -92,7 +93,7 @@ data class SolanaWalletDescriptor(
             // Trezor passphrase marker on restore (ADR-0035).
             hidden = o.optJSONObject("hidden")
                 ?: o.optString("hidden", "").takeIf { it.isNotEmpty() }?.let { JSONObject().put("ref", it) },
-            derivationPath = if (o.has("derivationPath")) o.optString("derivationPath", null) else null,
+            derivationPath = if (o.has("derivationPath")) o.optStringOrNull("derivationPath") else null,
         )
     }
 }

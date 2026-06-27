@@ -77,7 +77,7 @@ class PaymentBridgeHandler(
 ) : MiniAppNamespaceHandler {
 
     override val namespace = "payment"
-    override val requiredPermission: String? = "payment"
+    override val requiredPermission: String? = "wallet"
 
     override suspend fun handle(method: String, argsJson: String): String = when (method) {
         "payment.lightningAccounts" -> {

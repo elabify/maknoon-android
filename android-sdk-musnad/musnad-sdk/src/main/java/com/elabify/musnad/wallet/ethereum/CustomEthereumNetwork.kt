@@ -4,6 +4,7 @@
 // built-in code paths.
 
 package com.elabify.musnad.wallet.ethereum
+import com.elabify.musnad.util.optStringOrNull
 
 import java.util.UUID
 import org.json.JSONArray
@@ -39,8 +40,8 @@ data class CustomEthereumNetwork(
             ticker = o.getString("ticker"),
             rpcURL = o.getString("rpcURL"),
             explorerURL = o.getString("explorerURL"),
-            explorerAPIURL = if (o.isNull("explorerAPIURL")) null else o.optString("explorerAPIURL", null),
-            explorerAPIKey = if (o.isNull("explorerAPIKey")) null else o.optString("explorerAPIKey", null),
+            explorerAPIURL = if (o.isNull("explorerAPIURL")) null else o.optStringOrNull("explorerAPIURL"),
+            explorerAPIKey = if (o.isNull("explorerAPIKey")) null else o.optStringOrNull("explorerAPIKey"),
             isTestnet = o.optBoolean("isTestnet", false),
         )
     }

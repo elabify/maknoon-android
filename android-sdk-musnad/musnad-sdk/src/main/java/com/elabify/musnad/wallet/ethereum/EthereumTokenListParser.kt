@@ -10,6 +10,7 @@
 // the whole catalog.
 
 package com.elabify.musnad.wallet.ethereum
+import com.elabify.musnad.util.optStringOrNull
 
 import org.json.JSONObject
 
@@ -46,7 +47,7 @@ object EthereumTokenListParser {
                     symbol = sym,
                     name = nm,
                     decimals = decimals.coerceIn(0, 255),
-                    logoURI = if (row.isNull("logoURI")) null else row.optString("logoURI", null),
+                    logoURI = if (row.isNull("logoURI")) null else row.optStringOrNull("logoURI"),
                 )
             )
         }

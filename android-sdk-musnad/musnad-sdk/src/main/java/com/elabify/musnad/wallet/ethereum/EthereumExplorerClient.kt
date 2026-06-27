@@ -10,6 +10,7 @@
 // decoding is lossy so one malformed tx can't empty the whole list.
 
 package com.elabify.musnad.wallet.ethereum
+import com.elabify.musnad.util.optStringOrNull
 
 import com.elabify.musnad.net.MaknoonHttp
 import com.elabify.musnad.net.NetworkException
@@ -180,7 +181,7 @@ class EthereumExplorerClient private constructor(
             }
             return Envelope(status, message, list, null)
         }
-        val resultStr = if (o.isNull("result")) null else o.optString("result", null)
+        val resultStr = if (o.isNull("result")) null else o.optStringOrNull("result")
         return Envelope(status, message, emptyList(), resultStr)
     }
 
@@ -189,14 +190,14 @@ class EthereumExplorerClient private constructor(
         blockNumber = o.optString("blockNumber"),
         timeStamp = o.optString("timeStamp"),
         from = o.optString("from"),
-        to = if (o.isNull("to")) null else o.optString("to", null),
+        to = if (o.isNull("to")) null else o.optStringOrNull("to"),
         value = o.optString("value", "0"),
-        gas = o.optString("gas", null),
-        gasPrice = o.optString("gasPrice", null),
-        gasUsed = o.optString("gasUsed", null),
-        isError = o.optString("isError", null),
-        txreceiptStatus = o.optString("txreceipt_status", null),
-        input = o.optString("input", null),
+        gas = o.optStringOrNull("gas"),
+        gasPrice = o.optStringOrNull("gasPrice"),
+        gasUsed = o.optStringOrNull("gasUsed"),
+        isError = o.optStringOrNull("isError"),
+        txreceiptStatus = o.optStringOrNull("txreceipt_status"),
+        input = o.optStringOrNull("input"),
     )
 
     private fun tokenTransferFromJson(o: JSONObject): EthereumTokenTransfer = EthereumTokenTransfer(
@@ -207,9 +208,9 @@ class EthereumExplorerClient private constructor(
         to = o.optString("to"),
         value = o.optString("value", "0"),
         contractAddress = o.optString("contractAddress"),
-        tokenName = o.optString("tokenName", null),
-        tokenSymbol = o.optString("tokenSymbol", null),
-        tokenDecimal = o.optString("tokenDecimal", null),
+        tokenName = o.optStringOrNull("tokenName"),
+        tokenSymbol = o.optStringOrNull("tokenSymbol"),
+        tokenDecimal = o.optStringOrNull("tokenDecimal"),
     )
 
     private fun enc(s: String): String = java.net.URLEncoder.encode(s, "UTF-8")

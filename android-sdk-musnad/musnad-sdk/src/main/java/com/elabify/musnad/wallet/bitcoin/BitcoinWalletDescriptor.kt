@@ -5,6 +5,7 @@
 // the cached xpub for a hardware-backed wallet).
 
 package com.elabify.musnad.wallet.bitcoin
+import com.elabify.musnad.util.optStringOrNull
 
 import org.json.JSONObject
 import java.util.UUID
@@ -122,15 +123,15 @@ data class BitcoinWalletDescriptor(
             createdAtEpochSec = o.optLong("createdAt", System.currentTimeMillis() / 1000),
             lastSyncAtEpochSec = if (o.has("lastSyncAt")) o.getLong("lastSyncAt") else null,
             cachedAccountFingerprint = if (o.has("cachedAccountFingerprint"))
-                o.optString("cachedAccountFingerprint", null) else null,
+                o.optStringOrNull("cachedAccountFingerprint") else null,
             cachedAccountXpub = if (o.has("cachedAccountXpub"))
-                o.optString("cachedAccountXpub", null) else null,
+                o.optStringOrNull("cachedAccountXpub") else null,
             // Accept native object {"ref":..} AND iOS bare-string "hostEntry" so a
             // cross-device backup keeps the Trezor passphrase marker (ADR-0035).
             hidden = o.optJSONObject("hidden")
                 ?: o.optString("hidden", "").takeIf { it.isNotEmpty() }?.let { JSONObject().put("ref", it) },
             derivationPath = if (o.has("derivationPath"))
-                o.optString("derivationPath", null) else null,
+                o.optStringOrNull("derivationPath") else null,
         )
     }
 }

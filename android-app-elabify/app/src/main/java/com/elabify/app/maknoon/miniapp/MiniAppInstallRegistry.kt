@@ -92,27 +92,28 @@ data class MiniAppCatalogEntry(
  * cross-platform commerce demo, no longer beta.
  */
 val SEED_CATALOG: List<MiniAppCatalogEntry> = listOf(
-    // Single Point of Sale app (the former pos-demo + pos-demo-beta, merged):
-    // all-chains Verify & Pay + asset picker, on the beta channel, needs the
-    // wallet capability and Maknoon >= 0.6.0.
+    // Point of Sale, 0.1.6 entry: this binary is Maknoon >= 0.6.3, where the host
+    // re-scoped the receive flows (commerce/payment/addressBook) from "payment" to
+    // "wallet" (ADR-0036), so the offline seed declares only identity + wallet. The
+    // remote catalog also carries the legacy 0.1.5 entry (supersededAtMaknoonVersion
+    // 0.6.3, still "payment") for Maknoon <= 0.6.2; the seed omits it since this
+    // binary never runs there. Beta channel.
     MiniAppCatalogEntry(
         appId = "pos",
         title = "Point of Sale",
         summary = "Verify a customer and accept payments.",
-        details = "A merchant point-of-sale demo. Prove a customer holds a verifiable " +
-            "credential (sanctions screening or passport), then request a payment on any " +
-            "supported network. On Ethereum, Solana, and Tron you can pick which asset to " +
-            "receive (the native coin, USDC, USDT, or a token your wallet holds); Bitcoin " +
-            "and Lightning receive the native coin. Runs entirely through the Maknoon " +
-            "bridge: no data leaves your device except the payment you approve.",
+        details = "A merchant point-of-sale terminal. Enter an amount in cryptocurrency " +
+            "or equivalent fiat currency and select which customer credentials are " +
+            "required. Customers make payments on the network you choose to your wallet " +
+            "along with sending the required credentials to verify.",
         curatedBy = "Elabify",
-        manifestUrl = "https://elabify.github.io/maknoon-dapps/apps/pos/manifest.json",
-        manifestSha256 = "091c6057dd4e78ba131cc34e247b7a599baf6cde71307c853747509fddb4cea5",
-        permissions = setOf("identity", "payment", "wallet"),
+        manifestUrl = "https://elabify.github.io/maknoon-dapps/apps/pos-0.1.6/manifest.json",
+        manifestSha256 = "fd612d461626298d62d506a9ff8d95f44059cb6d984ddbe5b1edea0936c13af0",
+        permissions = setOf("identity", "wallet"),
         channel = "beta",
-        version = "0.1.5",
+        version = "0.1.6",
         iconToken = "creditCard",
-        requiresMaknoonVersion = "0.6.0",
+        requiresMaknoonVersion = "0.6.3",
     ),
 )
 

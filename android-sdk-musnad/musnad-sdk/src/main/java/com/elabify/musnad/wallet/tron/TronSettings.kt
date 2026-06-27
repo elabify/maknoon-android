@@ -5,6 +5,7 @@
 // UserDefaults blob.
 
 package com.elabify.musnad.wallet.tron
+import com.elabify.musnad.util.optStringOrNull
 
 import android.content.SharedPreferences
 import org.json.JSONObject
@@ -100,7 +101,7 @@ class TronSettings(private val prefs: SharedPreferences) {
         val o = try { JSONObject(raw) } catch (e: Exception) { return }
         o.optJSONObject("rpcOverrides")?.let { rpcOverridesByNetwork = it.toStringMap() }
         o.optJSONObject("explorerOverrides")?.let { explorerOverridesByNetwork = it.toStringMap() }
-        o.optString("selectedNetwork", null)?.let { sel ->
+        o.optStringOrNull("selectedNetwork")?.let { sel ->
             TronNetwork.fromRawValue(sel)?.let { selectedNetwork = it }
         }
         o.optString("tokenCatalogURL", "").takeIf { it.isNotEmpty() }?.let { tokenCatalogURL = it }
