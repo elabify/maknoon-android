@@ -337,6 +337,26 @@ class LedgerHardwareWallet(
         }
     }
 
+    /**
+     * EIP-712 `eth_signTypedData_v4` for [account] (or the active path override).
+     * The device hashes the typed-data JSON with the shared hasher and signs via
+     * INS 0x0C; returns the recoverable v / r / s. Mirrors
+     * LedgerBLE.signEthereumTypedData; the user confirms on-device.
+     */
+    suspend fun signEthereumTypedData(account: Long, typedDataJson: String): EcdsaSignature {
+        try {
+            val sdk = ethereumSdk()
+            val path = pendingDerivationPath
+            val sig = if (path != null) sdk.signEip712TypedDataAtPath(path, typedDataJson)
+            else sdk.signEip712TypedDataForAccount(account.toUInt(), typedDataJson)
+            return EcdsaSignature(v = sig.v.toInt(), r = sig.r, s = sig.s)
+        } catch (e: Throwable) {
+            throw mapEthError(e, "SIGN_EIP712")
+        } finally {
+            resetSession()
+        }
+    }
+
     // ------------------------------------------------------------------
     // Solana
     // ------------------------------------------------------------------

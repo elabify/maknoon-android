@@ -124,6 +124,9 @@ private sealed interface EthRoute {
 
     /** Full-screen verify-message screen. */
     data object VerifyMessage : EthRoute
+
+    /** WalletConnect connections screen (EVM-only, ADR-0049). */
+    data object WalletConnect : EthRoute
 }
 
 /** THE entry composable for the Ethereum chain. The Wallet tab routes here.
@@ -136,6 +139,10 @@ fun EthereumWalletScreen(onBack: () -> Unit) {
     // Hardware tab with this device selected (ADR-0033).
     var pendingHwDeviceId by remember { mutableStateOf<UUID?>(null) }
 
+    // WalletConnect proposal / sign-request approval dialogs, hoisted here so a
+    // request surfaces over any EVM sub-screen (ADR-0049).
+    com.elabify.app.maknoon.walletconnect.WalletConnectApprovalHost()
+
     when (val r = route) {
         is EthRoute.Dashboard -> EthereumDashboard(
             onBack = onBack,
@@ -146,6 +153,7 @@ fun EthereumWalletScreen(onBack: () -> Unit) {
             onSettings = { route = EthRoute.Settings },
             onSignMessage = { route = EthRoute.SignMessage },
             onVerifyMessage = { route = EthRoute.VerifyMessage },
+            onWalletConnect = { route = EthRoute.WalletConnect },
             onNetworkPicker = { route = EthRoute.NetworkPicker },
             onAddToken = { prefill -> route = EthRoute.AddToken(prefill) },
             onTxList = { id, addr -> route = EthRoute.TxList(id, addr) },
@@ -156,6 +164,9 @@ fun EthereumWalletScreen(onBack: () -> Unit) {
             onClose = { route = EthRoute.Dashboard },
         )
         is EthRoute.VerifyMessage -> EthereumVerifyMessageScreen(onClose = { route = EthRoute.Dashboard })
+        is EthRoute.WalletConnect -> com.elabify.app.maknoon.walletconnect.WalletConnectScreen(
+            onClose = { route = EthRoute.Dashboard },
+        )
         is EthRoute.Send -> EthereumSendScreen(
             walletId = r.walletId,
             preselectTokenId = r.preselectTokenId,
@@ -224,6 +235,7 @@ private fun EthereumDashboard(
     onSettings: () -> Unit,
     onSignMessage: () -> Unit,
     onVerifyMessage: () -> Unit,
+    onWalletConnect: () -> Unit,
     onNetworkPicker: () -> Unit,
     onAddToken: (String?) -> Unit,
     onTxList: (UUID, String) -> Unit,
@@ -310,6 +322,7 @@ private fun EthereumDashboard(
                 onAddWallet = onAddWallet,
                 onSignMessage = if (activeWallet != null) onSignMessage else null,
                 onVerifyMessage = onVerifyMessage,
+                onWalletConnect = if (activeWallet != null) onWalletConnect else null,
             )
         },
         isRefreshing = syncing,

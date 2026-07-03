@@ -12,6 +12,15 @@ plugins {
 // `listenablefuture` stub. Drop the stub to avoid a duplicate class.
 configurations.configureEach {
     exclude(group = "com.google.guava", module = "listenablefuture")
+    // GMS-free (GrapheneOS, ADR-0049): Reown WalletKit / android-core declare
+    // firebase-messaging (transitive com.google.android.gms). WalletConnect only
+    // needs push to wake a backgrounded wallet; Maknoon services sessions in the
+    // foreground (scan QR / open wc: link, then approve), so we never wire a
+    // PushMessagingService and strip the whole firebase + gms groups. checkNoGms
+    // enforces this. If WalletKit hard-fails at init with firebase absent, drop
+    // to com.reown:sign (SignClient) + android-core with the same excludes.
+    exclude(group = "com.google.firebase")
+    exclude(group = "com.google.android.gms")
 }
 
 // Release signing is driven by a gitignored keystore.properties at the
@@ -67,6 +76,9 @@ android {
         versionCode = System.getenv("ANDROID_VERSION_CODE")?.toIntOrNull() ?: 11
         versionName = "0.6.3"
         buildConfigField("String", "GIT_COMMIT", "\"${gitShortSha()}\"")
+        // WalletConnect / Reown Cloud project id (ADR-0049). Public client id,
+        // allowlisted by app id in Reown Cloud; not a secret.
+        buildConfigField("String", "WC_PROJECT_ID", "\"8c99b5a141a9efbffd6b40169eb471f5\"")
 
         // Ship arm64-v8a only. It is the only ABI used by real 16 KB-page
         // devices (Pixel etc.) and the only 64-bit target the in-house Rust
@@ -172,6 +184,15 @@ dependencies {
     implementation(libs.androidx.activity.compose)
     implementation(libs.androidx.biometric) // BiometricPrompt + FragmentActivity
     implementation(libs.zxing.core) // QR generation for receive addresses
+
+    // WalletConnect (EVM-only, ADR-0049) via Reown WalletKit. Firebase + GMS are
+    // stripped by the configureEach excludes above (foreground-only relay, no
+    // push); checkNoGms enforces the GrapheneOS guarantee.
+    implementation(platform("com.reown:android-bom:1.5.0"))
+    implementation("com.reown:walletkit")
+    // android-core hosts CoreClient / ConnectionType / Core.Model used to
+    // initialise the relay; walletkit alone does not expose them for direct use.
+    implementation("com.reown:android-core")
 
     // ICAO 9303 eMRTD passport reading (NFC IsoDep) + Passive Auth (SOD CMS
     // chain verification against the CSCA bundle). GMS-free.

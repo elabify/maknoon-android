@@ -3,6 +3,7 @@ package com.elabify.app.maknoon
 import android.app.Application
 import android.content.Context
 import android.os.Build
+import com.elabify.app.maknoon.walletconnect.WalletConnectManager
 import com.elabify.musnad.hardware.HardwareWalletFactory
 import com.elabify.musnad.hardware.RealHardwareWalletProvider
 
@@ -29,6 +30,10 @@ class MaknoonApplication : Application() {
         // emulator Build fingerprints (this is the app layer, so the
         // android.os.Build import the SDK avoids is fine here).
         HardwareWalletFactory.forceMock = isProbablyEmulator()
+
+        // WalletConnect (EVM-only, ADR-0049): initialise the Reown relay client
+        // foreground-only (no push / FCM, preserving the GMS-free guarantee).
+        WalletConnectManager.init(this)
     }
 
     companion object {

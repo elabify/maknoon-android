@@ -38,10 +38,25 @@
             android:name=".MainActivity"
             android:exported="true"
             android:label="Maknoon"
+            android:launchMode="singleTop"
             android:theme="@style/Theme.Maknoon">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+            <!-- WalletConnect deep links (ADR-0049): a dApp hands off a `wc:`
+                 pairing URI; `maknoon://wc` is the return-redirect. EVM-only. -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="wc" />
+            </intent-filter>
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="maknoon" android:host="wc" />
             </intent-filter>
         </activity>
 

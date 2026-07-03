@@ -64,6 +64,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.AddCircle
+import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Code
 import androidx.compose.material.icons.filled.ContentPaste
 import androidx.compose.material.icons.filled.Delete
@@ -885,8 +886,19 @@ fun AboutScreen(onBack: () -> Unit) {
                     LinkRow(Icons.Filled.Public, "elabify.com", "https://elabify.com", context)
                     LinkRow(Icons.Filled.Code, stringResource(R.string.settings_source_code_link), "https://github.com/elabify/maknoon-android", context)
                     LinkRow(Icons.Filled.Description, stringResource(R.string.settings_license_link), "https://github.com/elabify/maknoon-android/blob/main/LICENSE.md", context)
-                    LinkRow(Icons.Filled.PanTool, stringResource(R.string.settings_privacy_policy_link), "https://musnad.elabify.com/privacy", context)
+                    LinkRow(Icons.Filled.PanTool, stringResource(R.string.settings_privacy_policy_link), "https://elabify.com/support/compliance/privacy-policy/", context)
                 }
+            }
+
+            // Standards (mirrors iOS AboutView standardsSection).
+            Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+                MiscHeader("Standards")
+                MiscSectionCard {
+                    LinkRow(Icons.Filled.CheckCircle, "ToIP HAVID", "https://github.com/trustoverip/high-assurance-verifiable-identifiers", context)
+                }
+                MiscFooter(
+                    "Maknoon verifiers can cross-check an issuer's DID against its X.509 organisational certificate (HAVID), and a passport's CSCA against an on-chain registry, so trust does not rest on the issuer's word alone.",
+                )
             }
 
             // Default services.
@@ -904,7 +916,6 @@ fun AboutScreen(onBack: () -> Unit) {
                 MiscSectionCard {
                     COMPONENTS.forEach { ComponentRow(it, context) }
                 }
-                MiscFooter(stringResource(R.string.settings_open_source_footer))
             }
 
             // Diagnostics.
@@ -1132,6 +1143,7 @@ private val COMPONENTS: List<ComponentEntry> = listOf(
     ComponentEntry("SwiftProtobuf", "Bundled with TWC", "Apache 2.0", "https://github.com/apple/swift-protobuf"),
     ComponentEntry("ElabifyCore", "In-tree", "Apache 2.0 / MIT", "https://github.com/elabify/elabify-core"),
     ComponentEntry("Ledger device SDKs (BTC/ETH/SOL/TRON)", "In-tree", "Apache 2.0", "https://github.com/elabify/maknoon-ios"),
+    ComponentEntry("WalletConnect (Reown)", "1.5.0", "Apache 2.0", "https://github.com/reown-com/reown-android"),
     ComponentEntry("YubiKit", "4.7.0", "Apache 2.0", "https://github.com/Yubico/yubikit-ios"),
     ComponentEntry("NFCPassportReader", "2.3.0", "MIT", "https://github.com/AndyQ/NFCPassportReader"),
     ComponentEntry("URKit", "14.0.2", "BSD-2-Clause-Patent", "https://github.com/BlockchainCommons/URKit"),

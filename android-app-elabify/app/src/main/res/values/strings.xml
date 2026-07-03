@@ -233,7 +233,6 @@
     <string name="settings_default_services">Default services</string>
     <string name="settings_default_services_footer">Maknoon talks to these services out of the box. You can override any of them with your own endpoint in Settings → Networks.</string>
     <string name="settings_open_source_components">Open-source components</string>
-    <string name="settings_open_source_footer">Complete third-party bill of materials, every component is permissively licensed (Apache 2.0, MIT, or BSD-2-Clause-Patent), with no copyleft (GPL/LGPL/AGPL/MPL). Versions are pinned. The Ledger device SDKs are in-tree Apache-2.0 wrappers around LedgerHQ\'s official clients.</string>
     <string name="settings_diagnostics">Diagnostics</string>
     <string name="settings_log_entries">Log entries</string>
     <string name="settings_share_diagnostic_logs">Share diagnostic logs</string>
@@ -913,6 +912,10 @@
 <string name="eth_token_logos">Token logos</string>
 <string name="eth_logo_url_template">Logo URL template</string>
 <string name="eth_logo_note">Uses {chain} + {address} placeholders. Empty restores the Trust Wallet default.</string>
+<string name="eth_advanced">Advanced</string>
+<string name="eth_wc_relay">Self-hosted WalletConnect relay</string>
+<string name="eth_wc_relay_placeholder">relay.walletconnect.com</string>
+<string name="eth_wc_relay_note">Leave blank to use the default WalletConnect relay. Host only (e.g. relay.example.com). Applies to all networks; takes effect next app launch.</string>
 <string name="eth_saved">Saved</string>
 <string name="eth_contract">Contract</string>
 <string name="eth_copy_contract_address">Copy contract address</string>

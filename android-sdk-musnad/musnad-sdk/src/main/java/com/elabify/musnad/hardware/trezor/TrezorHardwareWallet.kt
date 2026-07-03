@@ -565,6 +565,32 @@ class TrezorHardwareWallet(
         }
     }
 
+    /**
+     * EIP-712 `eth_signTypedData_v4`: stream the typed data to the device
+     * (StructRequest / ValueRequest) and return the full 65-byte R||S||V. The
+     * user confirms on-device. Mirrors TrezorBLE.signEthereumTypedData; applies
+     * the active [pendingPassphrase] so a hidden wallet derives the right key.
+     */
+    suspend fun signEthereumTypedData(account: Long, typedDataJson: String): ByteArray {
+        try {
+            val creds = credentialAndHostKey()
+            val passphrase = pendingPassphrase
+            val path = pendingDerivationPath
+            return withBusyRetry {
+                trezorClient().signEthereumTypedData(
+                    hostStaticPriv = creds.hostKey,
+                    credential = creds.credential,
+                    passphrase = passphrase,
+                    account = account.toUInt(),
+                    typedDataJson = typedDataJson,
+                    path = path,
+                )
+            }
+        } finally {
+            resetSession()
+        }
+    }
+
     // -- Solana --
 
     /**

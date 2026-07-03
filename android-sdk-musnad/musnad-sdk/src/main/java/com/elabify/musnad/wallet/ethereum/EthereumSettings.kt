@@ -22,6 +22,13 @@ class EthereumSettings(private val kv: EthereumKeyValueStore = EthereumKeyValueS
     /** Token-logo URL template with {chain} + {address} placeholders. */
     var logoTemplate: String = DEFAULT_LOGO_TEMPLATE
         private set
+    /**
+     * Optional self-hosted WalletConnect relay host (EVM-only today, but a
+     * single relay across all networks). Empty uses the built-in default relay.
+     * Host only (e.g. relay.example.com); takes effect on next app launch.
+     */
+    var walletConnectRelayHost: String = ""
+        private set
 
     init { load() }
 
@@ -87,6 +94,16 @@ class EthereumSettings(private val kv: EthereumKeyValueStore = EthereumKeyValueS
         persist()
     }
 
+    /** Host only: strips any scheme (wss://, https://) and trailing slashes. */
+    fun setWalletConnectRelayHost(value: String) {
+        var h = value.trim()
+        val idx = h.indexOf("://")
+        if (idx >= 0) h = h.substring(idx + 3)
+        h = h.trim('/')
+        walletConnectRelayHost = h
+        persist()
+    }
+
     fun resetToDefaults() {
         rpcURLByNetwork.clear()
         explorerURLByNetwork.clear()
@@ -95,6 +112,7 @@ class EthereumSettings(private val kv: EthereumKeyValueStore = EthereumKeyValueS
         fiatCode = "usd"
         ensRPCURL = ""
         tokenCatalogURL = EthereumTokenRegistry.DEFAULT_CATALOG_URL
+        walletConnectRelayHost = ""
         persist()
     }
 
@@ -123,6 +141,7 @@ class EthereumSettings(private val kv: EthereumKeyValueStore = EthereumKeyValueS
         ensRPCURL = ""
         tokenCatalogURL = EthereumTokenRegistry.DEFAULT_CATALOG_URL
         logoTemplate = DEFAULT_LOGO_TEMPLATE
+        walletConnectRelayHost = ""
         load()
     }
 
@@ -139,6 +158,7 @@ class EthereumSettings(private val kv: EthereumKeyValueStore = EthereumKeyValueS
         ensRPCURL = o.optString("ensRPCURL", "")
         o.optString("tokenCatalogURL", "").takeIf { it.isNotEmpty() }?.let { tokenCatalogURL = it }
         o.optString("logoTemplate", "").takeIf { it.isNotEmpty() }?.let { logoTemplate = it }
+        walletConnectRelayHost = o.optString("walletConnectRelayHost", "")
 
         // Retire stale Etherscan v1/v2 hosts so the Blockscout defaults take over.
         var changed = false
@@ -163,6 +183,7 @@ class EthereumSettings(private val kv: EthereumKeyValueStore = EthereumKeyValueS
             .put("ensRPCURL", ensRPCURL)
             .put("tokenCatalogURL", tokenCatalogURL)
             .put("logoTemplate", logoTemplate)
+            .put("walletConnectRelayHost", walletConnectRelayHost)
         kv.putString(STORE_KEY, o.toString())
     }
 

@@ -1,6 +1,7 @@
 package com.elabify.app.maknoon
 
 import android.content.Context
+import android.content.Intent
 import android.os.Bundle
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
@@ -40,6 +41,22 @@ class MainActivity : FragmentActivity() {
             MaknoonTheme(darkTheme = dark) {
                 MaknoonRoot()
             }
+        }
+        handleDeepLink(intent)
+    }
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        handleDeepLink(intent)
+    }
+
+    // WalletConnect (ADR-0049): a dApp hands off a `wc:` pairing URI; route it to
+    // the manager to pair. `maknoon://wc` is the return-redirect and needs no work.
+    private fun handleDeepLink(intent: Intent?) {
+        val data = intent?.data ?: return
+        if (data.scheme.equals("wc", ignoreCase = true)) {
+            com.elabify.app.maknoon.walletconnect.WalletConnectManager.pair(data.toString())
         }
     }
 }

@@ -215,7 +215,6 @@
     <string name="settings_default_services">默认服务</string>
     <string name="settings_default_services_footer">Maknoon 默认与这些服务通信。你可以在 设置 → 网络 中用你自己的端点覆盖其中任何一项。</string>
     <string name="settings_open_source_components">开源组件</string>
-    <string name="settings_open_source_footer">完整的第三方物料清单，每个组件都采用宽松许可（Apache 2.0、MIT 或 BSD-2-Clause-Patent），不含任何 copyleft（GPL/LGPL/AGPL/MPL）。版本已固定。Ledger 设备 SDK 是树内的 Apache-2.0 封装，包装了 LedgerHQ 的官方客户端。</string>
     <string name="settings_diagnostics">诊断</string>
     <string name="settings_log_entries">日志条目</string>
     <string name="settings_share_diagnostic_logs">分享诊断日志</string>
@@ -881,6 +880,10 @@
     <string name="eth_token_logos">代币徽标</string>
     <string name="eth_logo_url_template">徽标 URL 模板</string>
     <string name="eth_logo_note">使用 {chain} + {address} 占位符。留空则恢复 Trust Wallet 默认值。</string>
+    <string name="eth_advanced">高级</string>
+    <string name="eth_wc_relay">自托管 WalletConnect 中继</string>
+    <string name="eth_wc_relay_placeholder">relay.walletconnect.com</string>
+    <string name="eth_wc_relay_note">留空则使用默认的 WalletConnect 中继。仅填写主机（例如 relay.example.com）。适用于所有网络，下次启动应用时生效。</string>
     <string name="eth_saved">已保存</string>
     <string name="eth_contract">合约</string>
     <string name="eth_copy_contract_address">复制合约地址</string>

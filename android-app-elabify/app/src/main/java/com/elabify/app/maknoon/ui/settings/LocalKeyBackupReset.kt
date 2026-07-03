@@ -94,6 +94,7 @@ import com.elabify.app.maknoon.ui.theme.Spacing
 import com.elabify.app.maknoon.ui.theme.tint
 import com.elabify.app.maknoon.yubikey.SecondFactorRecoverDialog
 import com.elabify.musnad.backup.EncryptedBackup
+import org.json.JSONObject
 import com.elabify.musnad.devices.DeviceRegistry
 import com.elabify.musnad.identity.IdentitySandwich
 import com.elabify.musnad.identity.IdentityStore
@@ -639,11 +640,18 @@ private fun VerifyBackupSheet(onDone: () -> Unit) {
         val b = blob ?: return
         scope.launch {
             status = VerifyBackupStatus.Working
+            // Decrypt (same checks as verify()) and, on success, summarize the
+            // decrypted payload with the SAME builder the export confirmation
+            // uses, so the verify screen lists identical contents.
             val result = withContext(Dispatchers.IO) {
-                runCatching { EncryptedBackup.verify(b, passphrase) }
+                runCatching {
+                    val plain = EncryptedBackup.decrypt(b, passphrase)
+                    val extra = JSONObject(String(plain, Charsets.UTF_8))
+                    com.elabify.app.maknoon.backup.MaknoonBackupV4.summarize(context, extra).items
+                }
             }
             status = if (result.isSuccess) {
-                VerifyBackupStatus.Ok
+                VerifyBackupStatus.Ok(result.getOrThrow())
             } else {
                 VerifyBackupStatus.Failed(result.exceptionOrNull()?.message ?: wrongPasswordError)
             }
@@ -706,11 +714,20 @@ private fun VerifyBackupSheet(onDone: () -> Unit) {
                 }
             }
             when (val s = status) {
-                is VerifyBackupStatus.Ok -> Banner(
-                    title = stringResource(R.string.settings_backup_verified),
-                    variant = BannerVariant.SUCCESS,
-                    body = stringResource(R.string.settings_backup_verified_body),
-                )
+                is VerifyBackupStatus.Ok -> Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+                    Banner(
+                        title = stringResource(R.string.settings_backup_verified),
+                        variant = BannerVariant.SUCCESS,
+                        body = stringResource(R.string.settings_backup_verified_body),
+                    )
+                    // Same list the export confirmation shows, so the two can be
+                    // compared at a glance (MaknoonBackupV4.summarize is the single
+                    // source of truth for these labels).
+                    Column(verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
+                        Text(stringResource(R.string.settings_backup_includes), style = MaterialTheme.typography.bodyMedium)
+                        s.items.forEach { Text(stringResource(R.string.settings_bullet_item, it), style = MaterialTheme.typography.bodySmall) }
+                    }
+                }
                 is VerifyBackupStatus.Failed -> Banner(
                     title = stringResource(R.string.settings_backup_did_not_open),
                     variant = BannerVariant.ERROR,
@@ -725,7 +742,7 @@ private fun VerifyBackupSheet(onDone: () -> Unit) {
 private sealed interface VerifyBackupStatus {
     data object Idle : VerifyBackupStatus
     data object Working : VerifyBackupStatus
-    data object Ok : VerifyBackupStatus
+    data class Ok(val items: List<String>) : VerifyBackupStatus
     data class Failed(val message: String) : VerifyBackupStatus
 }
 

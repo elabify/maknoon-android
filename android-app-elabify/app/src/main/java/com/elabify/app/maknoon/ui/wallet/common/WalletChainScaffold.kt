@@ -26,6 +26,7 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.ListAlt
 import androidx.compose.material.icons.filled.AddCircleOutline
 import androidx.compose.material.icons.filled.Draw
+import androidx.compose.material.icons.filled.Link
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Verified
 import androidx.compose.material3.DropdownMenu
@@ -117,6 +118,8 @@ fun WalletChainScaffold(
 //   --- divider (only when a message tool follows) ---
 //   4. Sign message     (onSignMessage)   signature             -> Draw
 //   5. Verify message   (onVerifyMessage) checkmark.seal        -> Verified
+//   --- divider (only when WalletConnect follows) ---
+//   6. WalletConnect    (onWalletConnect) link                  -> Link   (EVM only)
 //
 // Management / configuration items come first, then a divider, then the
 // message-signing tools, mirroring the iOS BitcoinWalletView / EthereumWalletView
@@ -133,6 +136,7 @@ fun WalletActionsMenu(
     onAddWallet: (() -> Unit)? = null,
     onSignMessage: (() -> Unit)? = null,
     onVerifyMessage: (() -> Unit)? = null,
+    onWalletConnect: (() -> Unit)? = null,
 ) {
     var expanded by remember { mutableStateOf(false) }
     IconButton(onClick = { expanded = true }) {
@@ -173,6 +177,17 @@ fun WalletActionsMenu(
                 text = { Text(stringResource(R.string.wallet_verify_message)) },
                 leadingIcon = { Icon(Icons.Filled.Verified, contentDescription = null) },
                 onClick = { expanded = false; onVerifyMessage() },
+            )
+        }
+        // WalletConnect is its OWN group after a SECOND divider and is LAST in
+        // the menu, matching iOS EthereumWalletView exactly: Add/Manage -- div --
+        // Sign/Verify -- div -- WalletConnect. EVM-only (other chains pass null).
+        if (onWalletConnect != null) {
+            HorizontalDivider()
+            DropdownMenuItem(
+                text = { Text("WalletConnect") },
+                leadingIcon = { Icon(Icons.Filled.Link, contentDescription = null) },
+                onClick = { expanded = false; onWalletConnect() },
             )
         }
     }

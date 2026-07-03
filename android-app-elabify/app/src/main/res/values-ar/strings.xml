@@ -215,7 +215,6 @@
     <string name="settings_default_services">الخدمات الافتراضية</string>
     <string name="settings_default_services_footer">يتواصل Maknoon مع هذه الخدمات بشكل افتراضي. يمكنك تجاوز أي منها بنقطة اتصالك الخاصة في الإعدادات ← الشبكات.</string>
     <string name="settings_open_source_components">المكونات مفتوحة المصدر</string>
-    <string name="settings_open_source_footer">قائمة كاملة بمواد الأطراف الثالثة؛ كل مكوّن مُرخّص بشكل متساهل (Apache 2.0 أو MIT أو BSD-2-Clause-Patent)، دون أي copyleft (GPL/LGPL/AGPL/MPL). الإصدارات مثبّتة. حِزم SDK لأجهزة Ledger هي أغلفة Apache-2.0 داخل الشجرة حول عملاء LedgerHQ الرسميين.</string>
     <string name="settings_diagnostics">التشخيصات</string>
     <string name="settings_log_entries">إدخالات السجل</string>
     <string name="settings_share_diagnostic_logs">مشاركة سجلات التشخيص</string>
@@ -881,6 +880,10 @@
     <string name="eth_token_logos">شعارات الرموز</string>
     <string name="eth_logo_url_template">قالب عنوان الشعار URL</string>
     <string name="eth_logo_note">يستخدم العنصرين النائبين {chain} + {address}. الترك فارغًا يستعيد افتراضي Trust Wallet.</string>
+    <string name="eth_advanced">إعدادات متقدمة</string>
+    <string name="eth_wc_relay">خادم WalletConnect مُستضاف ذاتيًا</string>
+    <string name="eth_wc_relay_placeholder">relay.walletconnect.com</string>
+    <string name="eth_wc_relay_note">اتركه فارغًا لاستخدام خادم WalletConnect الافتراضي. المضيف فقط (مثل relay.example.com). ينطبق على جميع الشبكات، ويسري عند تشغيل التطبيق التالي.</string>
     <string name="eth_saved">تم الحفظ</string>
     <string name="eth_contract">العقد</string>
     <string name="eth_copy_contract_address">نسخ عنوان العقد</string>

@@ -23,6 +23,10 @@ dependencyResolutionManagement {
         // app must also resolve them across the composite build. Same dir the
         // SDK reads (android-sdk-musnad/hwlibs). Run scripts/copy-hwlibs.
         flatDir { dirs("${rootDir}/../android-sdk-musnad/hwlibs") }
+        // Reown WalletKit (WalletConnect, ADR-0049) pulls transitive deps hosted
+        // on JitPack: the Scarlet relay socket, kethereum, yttrium, multiformats.
+        // GMS/firebase stay excluded by the app's configureEach block.
+        maven { url = uri("https://jitpack.io") }
     }
 }
 

@@ -47,6 +47,13 @@ data class EthereumTxPlan(
 
         /** ERC-20 transfer: `value` token-units to `recipient` via the contract. */
         data class Erc20(val recipient: String) : Payload
+
+        /**
+         * Arbitrary contract call (e.g. a WalletConnect dApp's eth_sendTransaction):
+         * raw [data] sent to `toAddress`, carrying `value` wei (often zero, non-zero
+         * for payable calls such as an ETH swap). Mirrors iOS Payload.contractCall.
+         */
+        data class ContractCall(val data: ByteArray) : Payload
     }
 }
 
@@ -69,6 +76,7 @@ object EthereumTxEncoder {
     private fun ethValueWei(plan: EthereumTxPlan): EthereumWeiValue = when (plan.payload) {
         is EthereumTxPlan.Payload.Native -> plan.value
         is EthereumTxPlan.Payload.Erc20 -> EthereumWeiValue.ZERO
+        is EthereumTxPlan.Payload.ContractCall -> plan.value
     }
 
     /** 0x02 || rlp([chainId, nonce, ..., accessList]). */
@@ -91,6 +99,7 @@ object EthereumTxEncoder {
         is EthereumTxPlan.Payload.Native -> ByteArray(0)
         is EthereumTxPlan.Payload.Erc20 ->
             EthereumABI.transferData(p.recipient, plan.value) ?: ByteArray(0)
+        is EthereumTxPlan.Payload.ContractCall -> p.data
     }
 
     private fun stripLeadingZeros(d: ByteArray): ByteArray {
@@ -185,6 +194,32 @@ object EthereumDescriptors {
             ?: throw EthereumDescriptorException("secp256k1 personal_sign failed")
         if (sig.size != 65) throw EthereumDescriptorException("secp256k1 personal_sign failed")
         // recid (0/1) -> web3 v (27/28).
+        sig[64] = (sig[64] + 27).toByte()
+        return "0x" + sig.toHex()
+    }
+
+    /**
+     * EIP-712 eth_signTypedData_v4 (software). Hashes the standard
+     * {types,primaryType,domain,message} JSON with the SAME pure-Rust hasher the
+     * Ledger path uses (uniffi.ledger_eth_core.hashEip712TypedData), so software
+     * and hardware signatures agree, then signs the 32-byte digest with secp256k1.
+     * Returns 0x-hex r||s||v (v in {27,28}). Mirrors signTypedDataFromSandwich.
+     */
+    fun signTypedData(
+        words: List<String>,
+        passphrase: String = "",
+        account: Long = 0,
+        typedDataJson: String,
+        derivationPath: String? = null,
+    ): String {
+        MultiChainNative.ensure()
+        val digest = uniffi.ledger_eth_core.hashEip712TypedData(typedDataJson).digest
+        if (digest.size != 32) throw EthereumDescriptorException("eip712 digest size ${digest.size}")
+        val wallet = HDWallet(words.joinToString(" "), passphrase)
+        val key = deriveKey(wallet, account, derivationPath)
+        val sig = key.sign(digest, Curve.SECP256K1)
+            ?: throw EthereumDescriptorException("secp256k1 eip712 sign failed")
+        if (sig.size != 65) throw EthereumDescriptorException("secp256k1 eip712 sign failed")
         sig[64] = (sig[64] + 27).toByte()
         return "0x" + sig.toHex()
     }

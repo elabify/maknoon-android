@@ -165,6 +165,46 @@ suspend fun signEthereumHardwareMessage(
     }
 }
 
+/**
+ * Sign EIP-712 typed data ([typedDataJson]) with the EVM hardware wallet bound to
+ * [device] for [account], returning the 0x-hex r||s||v signature with v in
+ * {27,28}. Ledger signs the two hashes via INS 0x0C; Trezor streams the struct.
+ * [hidden] / [derivationPath] / [hostPassphrase] select a hidden (Trezor
+ * passphrase) or custom-path wallet so the signature derives from the same wallet
+ * the descriptor recorded. Suspend; call off the main thread. Mirrors iOS
+ * signTypedDataOverBLE.
+ */
+suspend fun signEthereumHardwareTypedData(
+    device: RegisteredDevice,
+    account: Long,
+    typedDataJson: String,
+    hidden: String?,
+    derivationPath: String? = null,
+    hostPassphrase: String? = null,
+): String {
+    val hiddenRef = HardwarePassphraseRef.fromWireId(hidden)
+    val choice = HardwarePassphraseRef.resolveChoice(hiddenRef, hostPassphrase)
+    return withEthereumDevice(device, choice, derivationPath) { wallet ->
+        when (wallet) {
+            is LedgerHardwareWallet -> {
+                val sig = wallet.signEthereumTypedData(account, typedDataJson)
+                val v = (sig.v and 0xff).let { if (it < 27) it + 27 else it }
+                "0x" + (leftPad32(sig.r) + leftPad32(sig.s) + byteArrayOf(v.toByte())).toHex()
+            }
+            is TrezorHardwareWallet -> {
+                val raw = wallet.signEthereumTypedData(account, typedDataJson)
+                require(raw.size == 65) { "Trezor eip712 must be 65 bytes (r||s||v)" }
+                val v = (raw[64].toInt() and 0xff).let { if (it < 27) it + 27 else it }
+                raw[64] = v.toByte()
+                "0x" + raw.toHex()
+            }
+            else -> throw IllegalStateException(
+                "${device.kind.displayName} does not support EVM typed-data signing.",
+            )
+        }
+    }
+}
+
 /** Left-pad (or right-trim) a big-endian integer to exactly 32 bytes. */
 private fun leftPad32(b: ByteArray): ByteArray {
     if (b.size == 32) return b
