@@ -193,7 +193,11 @@ class MiniAppBundleStore(context: Context) {
         if (manifest.files.isEmpty()) throw MiniAppBundleException.empty()
 
         val appDir = appCacheDir(installedAppId)
-        val versionDir = File(appDir, sanitizeComponent(manifest.version))
+        // Key the cache dir by version AND the manifest sha (parity with iOS), so
+        // switching channels or a same-version re-publish never serves a stale
+        // bundle: a different manifest -> a different dir -> a fresh download.
+        val cacheKey = sanitizeComponent(manifest.version) + "-" + manifestSha256.lowercase().take(12)
+        val versionDir = File(appDir, cacheKey)
 
         // Already cached + complete? Serve it without touching the network.
         if (File(versionDir, manifest.entryPath).exists()) {
@@ -203,7 +207,7 @@ class MiniAppBundleStore(context: Context) {
         // 2. Download into a temp dir, verifying each file, then move into
         //    place atomically so a crash mid-download never leaves a partial
         //    bundle that looks complete.
-        val tmpDir = File(appDir, ".tmp-${sanitizeComponent(manifest.version)}")
+        val tmpDir = File(appDir, ".tmp-$cacheKey")
         tmpDir.deleteRecursively()
         tmpDir.mkdirs()
 

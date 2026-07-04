@@ -49,6 +49,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontFamily
@@ -72,6 +73,7 @@ internal fun SolanaSignMessageScreen(
     val context = LocalContext.current
     val env = remember { SolanaEnv.get(context) }
     val scope = rememberCoroutineScope()
+    val keyboard = LocalSoftwareKeyboardController.current
 
     var message by remember { mutableStateOf("") }
     var signing by remember { mutableStateOf(false) }
@@ -174,6 +176,7 @@ internal fun SolanaSignMessageScreen(
                             error = e.message ?: e.toString()
                         } finally {
                             signing = false
+                            keyboard?.hide() // reveal the signature (iOS parity)
                         }
                     }
                 },

@@ -41,11 +41,16 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Bolt
 import androidx.compose.material.icons.filled.CurrencyBitcoin
 import androidx.compose.material.icons.filled.Diamond
+import androidx.compose.material.icons.filled.ExpandLess
+import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material.icons.filled.Hexagon
+import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -74,6 +79,7 @@ import com.elabify.app.maknoon.ui.wallet.bitcoin.BitcoinSettingsScreen
 import com.elabify.app.maknoon.ui.wallet.bitcoin.BitcoinWalletEnv
 import com.elabify.app.maknoon.ui.wallet.ethereum.CustomNetworkEditorScreen
 import com.elabify.app.maknoon.ui.wallet.ethereum.EthereumNetworkPickerScreen
+import com.elabify.app.maknoon.ui.wallet.ethereum.EthereumStores
 import com.elabify.app.maknoon.ui.wallet.ethereum.EthereumSettingsScreen
 import com.elabify.app.maknoon.ui.wallet.lightning.LightningAccountsScreen
 import com.elabify.app.maknoon.ui.wallet.lightning.LightningSettingsScreen
@@ -235,6 +241,15 @@ private fun NetworksHub(
         ),
     )
 
+    // Global self-hosted WalletConnect relay (EVM-only today, but a single relay
+    // across ALL networks) so it lives here under Networks, not in the Ethereum
+    // screen. Storage stays on EthereumStores.settings (setter normalizes host).
+    val context = LocalContext.current
+    val settings = remember { EthereumStores.settings(context) }
+    var wcRelay by remember { mutableStateOf(settings.walletConnectRelayHost) }
+    var relaySaved by remember { mutableStateOf(false) }
+    var advancedExpanded by remember { mutableStateOf(false) }
+
     Scaffold(
         topBar = {
             TopAppBar(
@@ -260,6 +275,60 @@ private fun NetworksHub(
             SectionCardGroup {
                 entries.forEach { entry ->
                     NetworkRow(entry = entry, onClick = { onOpen(entry.route) })
+                }
+            }
+
+            SectionCardGroup {
+                // Collapsed by default: just an "Advanced" row that expands to the
+                // WalletConnect relay field.
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable { advancedExpanded = !advancedExpanded }
+                        .padding(Spacing.md),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Text(
+                        stringResource(R.string.eth_advanced),
+                        style = MaterialTheme.typography.titleSmall,
+                        modifier = Modifier.weight(1f),
+                    )
+                    Icon(
+                        if (advancedExpanded) Icons.Filled.ExpandLess else Icons.Filled.ExpandMore,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+                if (advancedExpanded) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(start = Spacing.md, end = Spacing.md, bottom = Spacing.md),
+                        verticalArrangement = Arrangement.spacedBy(Spacing.sm),
+                    ) {
+                        Text(
+                            stringResource(R.string.net_wc_relay_title),
+                            style = MaterialTheme.typography.titleSmall,
+                        )
+                        OutlinedTextField(
+                            value = wcRelay,
+                            onValueChange = { wcRelay = it; relaySaved = false },
+                            placeholder = { Text(stringResource(R.string.eth_wc_relay_placeholder)) },
+                            singleLine = true,
+                            modifier = Modifier.fillMaxWidth(),
+                        )
+                        Button(
+                            onClick = {
+                                settings.setWalletConnectRelayHost(wcRelay)
+                                settings.persist()
+                                wcRelay = settings.walletConnectRelayHost
+                                relaySaved = true
+                            },
+                            modifier = Modifier.fillMaxWidth(),
+                        ) {
+                            Text(if (relaySaved) stringResource(R.string.eth_saved) else stringResource(R.string.common_save))
+                        }
+                    }
                 }
             }
         }

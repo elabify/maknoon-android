@@ -282,6 +282,7 @@ private fun EthereumDashboard(
                     val balances = HashMap<String, String>()
                     for (token in tokenStore.tokens(net)) {
                         runCatching { wallet.tokenBalance(token, net.rpcURL) }
+                            .onFailure { android.util.Log.w("EthTokBal", "fail ${token.symbol} @ ${net.rpcURL} : $it") }
                             .getOrNull()?.let { balances[token.contractAddress] = it.hex }
                     }
                     walletStore.markSynced(descriptor.id)

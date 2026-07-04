@@ -19,6 +19,14 @@ import wallet.core.jni.Hash
 
 object EthereumABI {
 
+    // selector() below computes keccak256 via TrustWalletCore's JNI Hash. That
+    // native lib is loaded lazily by whichever wallet class is touched first
+    // (EthereumDescriptors, MultiChainWallet, Tron*), so a read-only path that
+    // never signs (e.g. fetching ERC-20 balances on wallet open) could reach
+    // Hash.keccak256 with the lib unloaded -> UnsatisfiedLinkError -> every
+    // balanceOf throws and tokens render blank. Load it on first ABI use.
+    init { MultiChainNative.ensure() }
+
     /** call data for balanceOf(address). */
     fun balanceOfData(holderAddress: String): ByteArray? {
         val holder = address20(holderAddress) ?: return null

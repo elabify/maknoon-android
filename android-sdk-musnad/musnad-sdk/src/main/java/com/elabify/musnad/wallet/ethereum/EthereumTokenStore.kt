@@ -11,8 +11,23 @@ class EthereumTokenStore(private val kv: EthereumKeyValueStore = EthereumKeyValu
 
     val tokensByNetwork = HashMap<EthereumNetwork, MutableList<EthereumToken>>()
     private val seededNetworks = HashSet<EthereumNetwork>()
+    // Every curated catalog default ever seeded, keyed "network:contract". Lets
+    // us union in tokens ADDED to the catalog after a network was first seeded
+    // (e.g. Arbitrum USDC) exactly once, without resurrecting a token the user
+    // later removed on every launch.
+    private val seededContracts = HashSet<String>()
 
     init { load() }
+
+    private fun seedKey(network: EthereumNetwork, contract: String): String =
+        "${network.rawValue}:${contract.lowercase()}"
+
+    /** Insert-or-replace a token without persisting (used during load reconcile). */
+    private fun addInMemory(token: EthereumToken) {
+        val current = tokensByNetwork.getOrPut(token.network) { mutableListOf() }
+        val idx = current.indexOfFirst { it.contractAddress == token.contractAddress }
+        if (idx >= 0) current[idx] = token else current.add(token)
+    }
 
     fun tokens(network: EthereumNetwork): List<EthereumToken> =
         tokensByNetwork[network]?.toList() ?: emptyList()
@@ -24,9 +39,7 @@ class EthereumTokenStore(private val kv: EthereumKeyValueStore = EthereumKeyValu
         }
 
     fun add(token: EthereumToken) {
-        val current = tokensByNetwork.getOrPut(token.network) { mutableListOf() }
-        val idx = current.indexOfFirst { it.contractAddress == token.contractAddress }
-        if (idx >= 0) current[idx] = token else current.add(token)
+        addInMemory(token)
         persist()
     }
 
@@ -43,6 +56,7 @@ class EthereumTokenStore(private val kv: EthereumKeyValueStore = EthereumKeyValu
     fun reload() {
         tokensByNetwork.clear()
         seededNetworks.clear()
+        seededContracts.clear()
         load()
     }
 
@@ -68,11 +82,23 @@ class EthereumTokenStore(private val kv: EthereumKeyValueStore = EthereumKeyValu
         for (i in 0 until seeded.length()) {
             EthereumNetwork.fromRawValue(seeded.optString(i))?.let { seededNetworks.add(it) }
         }
+        val seededC = o.optJSONArray("seededContracts") ?: JSONArray()
+        for (i in 0 until seededC.length()) seededContracts.add(seededC.optString(i))
         // Seed networks added after the app was first launched.
         for (n in EthereumNetwork.entries) {
             if (!seededNetworks.contains(n)) {
-                EthereumTokenCatalog.defaults(n).forEach { add(it) }
+                EthereumTokenCatalog.defaults(n).forEach { addInMemory(it) }
                 seededNetworks.add(n)
+            }
+        }
+        // Reconcile: ensure every curated catalog default has been seeded at
+        // least once. Adds tokens introduced to the catalog AFTER a network was
+        // first seeded (e.g. Arbitrum USDC on an install that predates it), which
+        // the seededNetworks gate alone would miss. Tracked per-contract so a
+        // token the user removes later is not resurrected on the next launch.
+        for (n in EthereumNetwork.entries) {
+            for (def in EthereumTokenCatalog.defaults(n)) {
+                if (seededContracts.add(seedKey(n, def.contractAddress))) addInMemory(def)
             }
         }
         persist()
@@ -82,6 +108,7 @@ class EthereumTokenStore(private val kv: EthereumKeyValueStore = EthereumKeyValu
         for (n in EthereumNetwork.entries) {
             tokensByNetwork[n] = EthereumTokenCatalog.defaults(n).toMutableList()
             seededNetworks.add(n)
+            EthereumTokenCatalog.defaults(n).forEach { seededContracts.add(seedKey(n, it.contractAddress)) }
         }
         persist()
     }
@@ -91,7 +118,12 @@ class EthereumTokenStore(private val kv: EthereumKeyValueStore = EthereumKeyValu
         tokensByNetwork.values.flatten().forEach { tokensArr.put(tokenToJson(it)) }
         val seededArr = JSONArray()
         seededNetworks.forEach { seededArr.put(it.rawValue) }
-        val o = JSONObject().put("tokens", tokensArr).put("seededNetworks", seededArr)
+        val seededContractsArr = JSONArray()
+        seededContracts.forEach { seededContractsArr.put(it) }
+        val o = JSONObject()
+            .put("tokens", tokensArr)
+            .put("seededNetworks", seededArr)
+            .put("seededContracts", seededContractsArr)
         kv.putString(STORE_KEY, o.toString())
     }
 

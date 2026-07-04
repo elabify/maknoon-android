@@ -600,6 +600,9 @@
     <string name="app_this_app_can">This app can</string>
     <string name="app_asks_each_time">asks each time</string>
     <string name="app_install_to_apps_tab">Install to Apps tab</string>
+    <string name="app_channel_stable">Stable</string>
+    <string name="app_channel_beta">Beta</string>
+    <string name="app_switch_to_channel">Switch to %1$s</string>
     <string name="app_requires_maknoon">Requires Maknoon %1$s</string>
     <string name="app_needs_update_superseded">This app needs an update for Maknoon (superseded at %1$s)</string>
 
@@ -914,6 +917,7 @@
 <string name="eth_logo_note">Uses {chain} + {address} placeholders. Empty restores the Trust Wallet default.</string>
 <string name="eth_advanced">Advanced</string>
 <string name="eth_wc_relay">Self-hosted WalletConnect relay</string>
+<string name="net_wc_relay_title">WalletConnect Relay</string>
 <string name="eth_wc_relay_placeholder">relay.walletconnect.com</string>
 <string name="eth_wc_relay_note">Leave blank to use the default WalletConnect relay. Host only (e.g. relay.example.com). Applies to all networks; takes effect next app launch.</string>
 <string name="eth_saved">Saved</string>

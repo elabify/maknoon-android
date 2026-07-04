@@ -4,9 +4,10 @@
 // buttons, SPL token list, recent activity) plus internal navigation to the
 // receive / send / history / settings / wallets / add-token screens.
 //
-// All engine + RPC work runs off the main thread (Dispatchers.IO). The first
-// software wallet is auto-created on a fresh identity so the tab is never
-// empty (mirrors iOS's "ensure account 0" behaviour).
+// All engine + RPC work runs off the main thread (Dispatchers.IO). With an
+// empty store the dashboard shows an "add wallet" prompt that opens the
+// Software/Hardware chooser (iOS parity, ADR-0033); it does NOT silently
+// auto-create a software wallet.
 
 package com.elabify.app.maknoon.ui.wallet.solana
 
@@ -231,12 +232,14 @@ private fun SolanaDashboard(
     var busy by remember { mutableStateOf(true) }
     var error by remember { mutableStateOf<String?>(null) }
     var noIdentity by remember { mutableStateOf(false) }
+    var noWallet by remember { mutableStateOf(false) }
     var network by remember { mutableStateOf(env.walletStore.currentNetwork) }
 
     LaunchedEffect(reloadKey, network) {
         busy = true
         error = null
         noIdentity = false
+        noWallet = false
 
         val sandwich = withContext(Dispatchers.IO) { env.loadSandwich() }
         if (sandwich == null) {
@@ -245,17 +248,12 @@ private fun SolanaDashboard(
             return@LaunchedEffect
         }
 
-        // Ensure at least account 0 exists (fresh identity).
-        if (env.walletStore.wallets.isEmpty()) {
-            env.walletStore.add(
-                SolanaWalletDescriptor(label = "Solana 0", kind = SolanaWalletKind.Software(account = 0L)),
-                initialNetwork = network,
-                makeActive = true,
-            )
-        }
+        // No silent software wallet: with an empty store, present the Add-wallet
+        // chooser (iOS parity, ADR-0033) so the user picks Software vs Hardware,
+        // like the other chains. (Previously this auto-created a software wallet.)
         val descriptor = env.walletStore.activeWallet
         if (descriptor == null) {
-            error = "No active wallet."
+            noWallet = true
             busy = false
             return@LaunchedEffect
         }
@@ -356,6 +354,18 @@ private fun SolanaDashboard(
                 style = MaterialTheme.typography.bodyMedium,
                 modifier = Modifier.padding(horizontal = Spacing.lg),
             )
+
+            noWallet -> Column(
+                Modifier.fillMaxWidth().padding(horizontal = Spacing.lg),
+                verticalArrangement = Arrangement.spacedBy(Spacing.sm),
+            ) {
+                Text(
+                    stringResource(R.string.sol_no_wallet_yet),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                OutlinedButton(onClick = onAddWallet) { Text(stringResource(R.string.sol_add_wallet)) }
+            }
 
             busy && data == null -> Box(Modifier.fillMaxWidth().padding(48.dp), contentAlignment = Alignment.Center) {
                 CircularProgressIndicator()

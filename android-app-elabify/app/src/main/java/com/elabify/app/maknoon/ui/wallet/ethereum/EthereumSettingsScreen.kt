@@ -71,7 +71,6 @@ internal fun EthereumSettingsScreen(onCustomNetworks: () -> Unit, onDone: () -> 
     var ensDraft by remember { mutableStateOf("") }
     var catalogDraft by remember { mutableStateOf("") }
     var logoDraft by remember { mutableStateOf("") }
-    var wcRelayDraft by remember { mutableStateOf("") }
     var saved by remember { mutableStateOf(false) }
     var refreshing by remember { mutableStateOf(false) }
     var catalogStatus by remember { mutableStateOf<String?>(null) }
@@ -84,7 +83,6 @@ internal fun EthereumSettingsScreen(onCustomNetworks: () -> Unit, onDone: () -> 
         ensDraft = settings.ensRPCURL
         catalogDraft = if (settings.tokenCatalogURL == EthereumTokenRegistry.DEFAULT_CATALOG_URL) "" else settings.tokenCatalogURL
         logoDraft = if (settings.logoTemplate == com.elabify.musnad.wallet.ethereum.EthereumSettings.DEFAULT_LOGO_TEMPLATE) "" else settings.logoTemplate
-        wcRelayDraft = settings.walletConnectRelayHost
         saved = false
     }
 
@@ -156,22 +154,6 @@ internal fun EthereumSettingsScreen(onCustomNetworks: () -> Unit, onDone: () -> 
 
             EthFieldSection(stringResource(R.string.eth_token_logos), stringResource(R.string.eth_logo_url_template), logoDraft, { logoDraft = it }, stringResource(R.string.eth_logo_note))
 
-            HorizontalDivider()
-            Text(
-                stringResource(R.string.eth_advanced),
-                style = MaterialTheme.typography.titleSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-            // Single global WalletConnect relay across all networks (EVM-only
-            // today). Blank uses the default relay; takes effect next launch.
-            EthFieldSection(
-                stringResource(R.string.eth_wc_relay),
-                stringResource(R.string.eth_wc_relay_placeholder),
-                wcRelayDraft,
-                { wcRelayDraft = it },
-                stringResource(R.string.eth_wc_relay_note),
-            )
-
             Button(
                 onClick = {
                     settings.setRPC(rpcDraft, network)
@@ -180,8 +162,6 @@ internal fun EthereumSettingsScreen(onCustomNetworks: () -> Unit, onDone: () -> 
                     settings.ensRPCURL = ensDraft.trim()
                     settings.setTokenCatalogURL(catalogDraft)
                     settings.setLogoTemplate(logoDraft)
-                    settings.setWalletConnectRelayHost(wcRelayDraft)
-                    wcRelayDraft = settings.walletConnectRelayHost
                     settings.persist()
                     saved = true
                 },

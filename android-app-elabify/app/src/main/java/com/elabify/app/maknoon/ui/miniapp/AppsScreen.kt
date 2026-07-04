@@ -61,6 +61,7 @@ import androidx.compose.material.icons.filled.CreditCard
 import androidx.compose.material.icons.automirrored.filled.HelpOutline
 import androidx.compose.material.icons.filled.Link
 import androidx.compose.material.icons.filled.Lock
+import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material.icons.filled.PersonOutline
 import androidx.compose.material.icons.filled.QrCodeScanner
@@ -72,6 +73,10 @@ import androidx.compose.material.icons.filled.Verified
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.SegmentedButton
+import androidx.compose.material3.SegmentedButtonDefaults
+import androidx.compose.material3.SingleChoiceSegmentedButtonRow
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -91,6 +96,7 @@ import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -109,6 +115,8 @@ import com.elabify.app.maknoon.miniapp.DAppCompatibility
 import com.elabify.app.maknoon.miniapp.DefaultMiniAppHandlerFactory
 import com.elabify.app.maknoon.miniapp.MiniAppCapabilityRegistry
 import com.elabify.app.maknoon.miniapp.MiniAppCatalogEntry
+import com.elabify.app.maknoon.miniapp.MiniAppCatalogFetcher
+import com.elabify.app.maknoon.miniapp.groupCatalogForBrowse
 import com.elabify.app.maknoon.miniapp.MiniAppCatalogSettings
 import com.elabify.app.maknoon.miniapp.MiniAppInstallRegistry
 import com.elabify.app.maknoon.miniapp.MiniAppSettingsStore
@@ -128,6 +136,7 @@ import com.elabify.musnad.devices.DeviceRegistry
 import com.elabify.musnad.present.VerifierHistory
 import com.elabify.musnad.present.VerifierHistoryGroup
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -207,11 +216,26 @@ fun AppsScreen(resetKey: Int = 0) {
     if (showBrowse) {
         // Which catalog the user drilled into (null = showing the catalog list).
         var openCatalog by remember { mutableStateOf<MiniAppCatalogSummary?>(null) }
+        // Fetch the LIVE catalog (parity with iOS AppStoreRegistry.refresh);
+        // start from the offline seed and replace it when the fetch lands. A
+        // failed/empty fetch keeps the seed, so the tab never shows empty.
+        var catalogEntries by remember { mutableStateOf(SEED_CATALOG) }
+        var catalogRefreshing by remember { mutableStateOf(false) }
+        val catalogScope = rememberCoroutineScope()
+        suspend fun loadCatalog() {
+            catalogRefreshing = true
+            MiniAppCatalogFetcher.fetch()?.takeIf { it.isNotEmpty() }?.let { catalogEntries = it }
+            catalogRefreshing = false
+        }
+        LaunchedEffect(Unit) { loadCatalog() }
+        val catalogs = listOf(
+            MiniAppCatalogSummary(MiniAppCatalogEntry.DEFAULT_STORE_ID, SEED_CATALOG_NAME, catalogEntries),
+        )
         val current = openCatalog
         if (current == null) {
             BackHandler(enabled = true) { showBrowse = false }
             BrowseCatalogListScreen(
-                catalogs = browsableCatalogs(),
+                catalogs = catalogs,
                 onOpenCatalog = { openCatalog = it },
                 onBack = { showBrowse = false },
             )
@@ -222,10 +246,14 @@ fun AppsScreen(resetKey: Int = 0) {
                 entries = current.entries,
                 showBetaApps = catalogSettings.showBetaApps(),
                 isInstalled = { entry -> registry.isInstalled(MiniAppCatalogEntry.DEFAULT_STORE_ID, entry.appId) },
+                installedVersion = { appId -> registry.installedApps().firstOrNull { it.entry.appId == appId }?.entry?.version },
+                isRefreshing = catalogRefreshing,
+                onRefresh = { catalogScope.launch { loadCatalog() } },
                 // Installing a runnable app opens it immediately (iOS parity): the
-                // install sheet's Install / Open buttons both land here.
+                // install sheet's Install / Open / channel choice all land here with
+                // the chosen variant.
                 onOpen = { entry ->
-                    registry.install(entry) // idempotent; ensures it's installed + granted
+                    registry.install(entry) // upsert; installs/switches to the chosen channel + granted
                     refreshKey++
                     showBrowse = false
                     openCatalog = null
@@ -706,15 +734,6 @@ private data class MiniAppCatalogSummary(
     val entries: List<MiniAppCatalogEntry>,
 )
 
-/** The catalogs the user can browse. Currently just the baked seed. */
-private fun browsableCatalogs(): List<MiniAppCatalogSummary> = listOf(
-    MiniAppCatalogSummary(
-        id = MiniAppCatalogEntry.DEFAULT_STORE_ID,
-        name = SEED_CATALOG_NAME,
-        entries = SEED_CATALOG,
-    ),
-)
-
 /**
  * The Apps catalog list, reached from the Apps tab "+". Mirrors iOS
  * BrowseAppStoreView: an "Apps catalogs" section listing each catalog (name +
@@ -831,12 +850,21 @@ private fun BrowseAppStoreScreen(
     entries: List<MiniAppCatalogEntry>,
     showBetaApps: Boolean,
     isInstalled: (MiniAppCatalogEntry) -> Boolean,
+    installedVersion: (String) -> String?,
+    isRefreshing: Boolean,
+    onRefresh: () -> Unit,
     onOpen: (MiniAppCatalogEntry) -> Unit,
     onBack: () -> Unit,
 ) {
     var sheetFor by remember { mutableStateOf<MiniAppCatalogEntry?>(null) }
-    // Hide beta-channel apps unless the user opted in (iOS visibleApps).
-    val visible = if (showBetaApps) entries else entries.filterNot { it.isBeta }
+    // One tile per app id (ADR-0052): group channels/versions of the same app so
+    // it never shows twice. The beta toggle picks the channel (default stable);
+    // within it, prefer a host-compatible variant then the highest version.
+    val visible = remember(entries, showBetaApps) {
+        groupCatalogForBrowse(entries, showBetaApps) {
+            !DAppCompatibility.evaluate(it.requiresMaknoonVersion, it.supersededAtMaknoonVersion).blocksInstall
+        }
+    }
 
     Scaffold(
         topBar = {
@@ -853,8 +881,13 @@ private fun BrowseAppStoreScreen(
             )
         },
     ) { padding ->
+        PullToRefreshBox(
+            isRefreshing = isRefreshing,
+            onRefresh = onRefresh,
+            modifier = Modifier.fillMaxSize().padding(padding),
+        ) {
         LazyColumn(
-            modifier = Modifier.fillMaxSize().padding(padding).padding(Spacing.lg),
+            modifier = Modifier.fillMaxSize().padding(Spacing.lg),
             verticalArrangement = Arrangement.spacedBy(Spacing.md),
         ) {
             item {
@@ -879,15 +912,18 @@ private fun BrowseAppStoreScreen(
                 }
             }
         }
+        }
     }
 
     sheetFor?.let { entry ->
         InstallSheet(
             entry = entry,
-            installed = isInstalled(entry),
-            onOpen = {
+            variants = entries.filter { it.appId == entry.appId },
+            showBeta = showBetaApps,
+            installedVersion = installedVersion(entry.appId),
+            onOpen = { chosen ->
                 sheetFor = null
-                onOpen(entry) // installs (idempotent) + opens immediately
+                onOpen(chosen) // installs/switches to the chosen channel + opens
             },
             onDismiss = { sheetFor = null },
         )
@@ -952,11 +988,22 @@ private fun BrowseRow(entry: MiniAppCatalogEntry, installed: Boolean, onTap: () 
 @Composable
 private fun InstallSheet(
     entry: MiniAppCatalogEntry,
-    installed: Boolean,
-    onOpen: () -> Unit,
+    variants: List<MiniAppCatalogEntry>,
+    showBeta: Boolean,
+    installedVersion: String?,
+    onOpen: (MiniAppCatalogEntry) -> Unit,
     onDismiss: () -> Unit,
 ) {
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    // Channel selection (ADR-0052): default stable; show a Stable|Beta picker only
+    // when both channels exist AND beta apps are enabled. `chosen` drives the whole
+    // sheet + install; installing a different channel upserts (a channel switch).
+    var channel by remember { mutableStateOf("stable") }
+    val stableVariant = variants.firstOrNull { !it.isBeta }
+    val betaVariant = variants.firstOrNull { it.isBeta }
+    val chosen = if (channel == "beta") (betaVariant ?: entry) else (stableVariant ?: entry)
+    val showPicker = showBeta && stableVariant != null && betaVariant != null
+    val chosenInstalled = installedVersion != null && installedVersion == chosen.version
     ModalBottomSheet(onDismissRequest = onDismiss, sheetState = sheetState) {
         Column(
             modifier = Modifier
@@ -970,24 +1017,38 @@ private fun InstallSheet(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(Spacing.md),
             ) {
-                AppIcon(entry.iconToken, large = true)
+                AppIcon(chosen.iconToken, large = true)
                 Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                    Text(entry.title, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.SemiBold)
+                    Text(chosen.title, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.SemiBold)
                     Text(
                         buildString {
-                            append(entry.channelLabel)
-                            entry.version?.let { append(" · v$it") }
+                            append(chosen.channelLabel)
+                            chosen.version?.let { append(" · v$it") }
                         },
                         style = MaterialTheme.typography.labelMedium,
                         fontWeight = FontWeight.Medium,
-                        color = channelColor(entry.channel),
+                        color = channelColor(chosen.channel),
                     )
+                }
+            }
+            if (showPicker) {
+                SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
+                    SegmentedButton(
+                        selected = channel == "stable",
+                        onClick = { channel = "stable" },
+                        shape = SegmentedButtonDefaults.itemShape(index = 0, count = 2),
+                    ) { Text(stringResource(R.string.app_channel_stable)) }
+                    SegmentedButton(
+                        selected = channel == "beta",
+                        onClick = { channel = "beta" },
+                        shape = SegmentedButtonDefaults.itemShape(index = 1, count = 2),
+                    ) { Text(stringResource(R.string.app_channel_beta)) }
                 }
             }
             // Compatibility badge (Compatible / Requires Maknoon X.Y.Z / unknown),
             // mirroring the iOS DAppCompatibilityRow.
             val compatibility = DAppCompatibility.evaluate(
-                entry.requiresMaknoonVersion, entry.supersededAtMaknoonVersion,
+                chosen.requiresMaknoonVersion, chosen.supersededAtMaknoonVersion,
             )
             val compatColor = when (compatibility) {
                 is DAppCompatibility.Compatible -> MaknoonColors.success
@@ -1009,13 +1070,13 @@ private fun InstallSheet(
                 Text(compatibility.label, style = MaterialTheme.typography.labelMedium, color = compatColor)
             }
 
-            Text(entry.summary, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium)
-            if (entry.details.isNotEmpty()) {
-                Text(entry.details, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text(chosen.summary, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium)
+            if (chosen.details.isNotEmpty()) {
+                Text(chosen.details, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
 
             // "This app can" disclosure of declared capabilities + reasons.
-            val caps = MiniAppCapabilityRegistry.disclosable(entry.permissions)
+            val caps = MiniAppCapabilityRegistry.disclosable(chosen.permissions)
             if (caps.isNotEmpty()) {
                 Column(
                     modifier = Modifier
@@ -1059,19 +1120,24 @@ private fun InstallSheet(
             // in the app (iOS parity); the label reflects whether it was already
             // installed. A hard compatibility requirement the host does not meet
             // blocks install (button disabled); already-installed apps still open.
-            val blocked = !installed && compatibility.blocksInstall
-            Button(onClick = onOpen, enabled = !blocked, modifier = Modifier.fillMaxWidth()) {
+            val blocked = !chosenInstalled && compatibility.blocksInstall
+            val switching = !chosenInstalled && installedVersion != null
+            Button(onClick = { onOpen(chosen) }, enabled = !blocked, modifier = Modifier.fillMaxWidth()) {
                 Icon(
-                    if (installed) Icons.AutoMirrored.Filled.Launch else Icons.Filled.Add,
+                    when {
+                        chosenInstalled -> Icons.AutoMirrored.Filled.Launch
+                        switching -> Icons.Filled.Refresh
+                        else -> Icons.Filled.Add
+                    },
                     contentDescription = null,
                     modifier = Modifier.size(18.dp),
                 )
                 Spacer(Modifier.size(Spacing.sm))
                 Text(
-                    if (installed) {
-                        stringResource(R.string.app_open)
-                    } else {
-                        stringResource(R.string.app_install_to_apps_tab)
+                    when {
+                        chosenInstalled -> stringResource(R.string.app_open)
+                        switching -> stringResource(R.string.app_switch_to_channel, chosen.channelLabel)
+                        else -> stringResource(R.string.app_install_to_apps_tab)
                     },
                 )
             }

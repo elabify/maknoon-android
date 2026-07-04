@@ -29,7 +29,11 @@ package com.elabify.app.maknoon.miniapp
 
 import android.content.Context
 import android.content.SharedPreferences
+import java.net.HttpURLConnection
+import java.net.URL
 import java.time.Instant
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import org.json.JSONArray
 import org.json.JSONObject
 
@@ -85,19 +89,16 @@ data class MiniAppCatalogEntry(
 }
 
 /**
- * The built-in catalog. The published elabify/maknoon-dapps catalog ships a
- * single curated entry: the "Point of Sale" Verify & Pay demo (which doubles as
- * the Merchant POS demo). Manifest URL + pinned SHA-256 are the published
- * values. Point of Sale ships on the stable channel (GA): it is the reference
- * cross-platform commerce demo, no longer beta.
+ * The offline fallback catalog. Used only when the runtime fetch
+ * (MiniAppCatalogFetcher) fails; when online, the published elabify/maknoon-dapps
+ * catalog is authoritative. One curated entry: the "Point of Sale" Verify & Pay
+ * demo. Manifest URL + pinned SHA-256 are the published values.
  */
 val SEED_CATALOG: List<MiniAppCatalogEntry> = listOf(
-    // Point of Sale, 0.1.6 entry: this binary is Maknoon >= 0.6.3, where the host
-    // re-scoped the receive flows (commerce/payment/addressBook) from "payment" to
-    // "wallet" (ADR-0036), so the offline seed declares only identity + wallet. The
-    // remote catalog also carries the legacy 0.1.5 entry (supersededAtMaknoonVersion
-    // 0.6.3, still "payment") for Maknoon <= 0.6.2; the seed omits it since this
-    // binary never runs there. Beta channel.
+    // Point of Sale, 0.1.6 (Maknoon >= 0.6.3): the host re-scoped the receive
+    // flows (commerce/payment/addressBook) from "payment" to "wallet" (ADR-0036),
+    // so this declares only identity + wallet. Served from the single apps/pos
+    // bundle. Beta channel.
     MiniAppCatalogEntry(
         appId = "pos",
         title = "Point of Sale",
@@ -107,7 +108,7 @@ val SEED_CATALOG: List<MiniAppCatalogEntry> = listOf(
             "required. Customers make payments on the network you choose to your wallet " +
             "along with sending the required credentials to verify.",
         curatedBy = "Elabify",
-        manifestUrl = "https://elabify.github.io/maknoon-dapps/apps/pos-0.1.6/manifest.json",
+        manifestUrl = "https://elabify.github.io/maknoon-dapps/apps/pos/manifest.json",
         manifestSha256 = "fd612d461626298d62d506a9ff8d95f44059cb6d984ddbe5b1edea0936c13af0",
         permissions = setOf("identity", "wallet"),
         channel = "beta",
@@ -120,6 +121,153 @@ val SEED_CATALOG: List<MiniAppCatalogEntry> = listOf(
 /** The seed presented as a single catalog (the "Maknoon Apps" store). */
 const val SEED_CATALOG_NAME = "Maknoon Apps"
 const val SEED_CATALOG_CURATOR = "Elabify"
+
+/**
+ * Runtime catalog fetch (parity with iOS AppStoreRegistry.refresh). Downloads
+ * the published catalog.json and parses BOTH the flat (v1) shape and the
+ * ADR-0052 `catalogFormat: 2` nested-channel shape into flat entries that share
+ * an appId (so the browse list groups them into one tile). GMS-free: plain
+ * HttpURLConnection, no play-services. Soft-fails to null so the caller keeps
+ * the offline SEED_CATALOG.
+ */
+object MiniAppCatalogFetcher {
+    const val DEFAULT_CATALOG_URL = "https://elabify.github.io/maknoon-dapps/catalog.json"
+
+    suspend fun fetch(url: String = DEFAULT_CATALOG_URL): List<MiniAppCatalogEntry>? =
+        withContext(Dispatchers.IO) {
+            runCatching {
+                val conn = (URL(url).openConnection() as HttpURLConnection).apply {
+                    connectTimeout = 15_000
+                    readTimeout = 15_000
+                    requestMethod = "GET"
+                    useCaches = false // always pull LIVE; pins must match the published bundle
+                    setRequestProperty("Accept", "application/json")
+                }
+                try {
+                    if (conn.responseCode !in 200..299) return@runCatching null
+                    conn.inputStream.bufferedReader().use { it.readText() }
+                } finally {
+                    conn.disconnect()
+                }
+            }.getOrNull()?.let { body ->
+                runCatching { parseCatalog(JSONObject(body)) }.getOrNull()
+            }
+        }
+
+    /** Parse a catalog JSON object into flat entries (v1 flat or v2 nested). */
+    fun parseCatalog(o: JSONObject): List<MiniAppCatalogEntry> {
+        val apps = o.optJSONArray("apps") ?: JSONArray()
+        val v2 = o.optInt("catalogFormat", 1) >= 2
+        val out = ArrayList<MiniAppCatalogEntry>()
+        for (i in 0 until apps.length()) {
+            val a = apps.optJSONObject(i) ?: continue
+            if (v2) out.addAll(expandV2(a)) else parseFlat(a)?.let { out.add(it) }
+        }
+        return out
+    }
+
+    private fun parseFlat(a: JSONObject): MiniAppCatalogEntry? = runCatching {
+        MiniAppCatalogEntry(
+            appId = a.getString("id"),
+            title = a.getString("title"),
+            summary = a.optString("summary", ""),
+            details = a.optString("details", ""),
+            curatedBy = a.optString("curatedBy", SEED_CATALOG_CURATOR),
+            manifestUrl = a.getString("manifestURL"),
+            manifestSha256 = a.getString("manifestSha256"),
+            permissions = permissionsOf(a),
+            channel = if (a.isNull("channel")) null else a.optString("channel", "stable"),
+            version = a.optString("version").ifEmpty { null },
+            iconToken = iconTokenOf(a.optString("iconName")),
+            requiresMaknoonVersion = a.optString("requiresMaknoonVersion").ifEmpty { null },
+            supersededAtMaknoonVersion = a.optString("supersededAtMaknoonVersion").ifEmpty { null },
+        )
+    }.getOrNull()
+
+    /** Expand an ADR-0052 app (one id, optional stable/beta channels). */
+    private fun expandV2(a: JSONObject): List<MiniAppCatalogEntry> {
+        val out = ArrayList<MiniAppCatalogEntry>()
+        val id = a.optString("id").ifEmpty { return out }
+        for (channel in listOf("stable", "beta")) {
+            val ch = a.optJSONObject(channel) ?: continue
+            out.add(
+                MiniAppCatalogEntry(
+                    appId = id,
+                    title = a.optString("title", id),
+                    summary = a.optString("summary", ""),
+                    details = a.optString("details", ""),
+                    curatedBy = a.optString("curatedBy", SEED_CATALOG_CURATOR),
+                    manifestUrl = ch.getString("manifestURL"),
+                    manifestSha256 = ch.getString("manifestSha256"),
+                    permissions = permissionsOf(ch),
+                    channel = channel,
+                    version = ch.optString("version").ifEmpty { null },
+                    iconToken = iconTokenOf(a.optString("iconName")),
+                    requiresMaknoonVersion = ch.optString("requiresMaknoonVersion").ifEmpty { null },
+                    supersededAtMaknoonVersion = ch.optString("supersededAtMaknoonVersion").ifEmpty { null },
+                ),
+            )
+        }
+        return out
+    }
+
+    /** Permission tokens from `capabilities[].name` (preferred) or `permissions`. */
+    private fun permissionsOf(o: JSONObject): Set<String> {
+        o.optJSONArray("capabilities")?.let { caps ->
+            val s = (0 until caps.length()).mapNotNull { caps.optJSONObject(it)?.optString("name") }
+                .filter { it.isNotEmpty() }.map { it.lowercase() }.toSet()
+            if (s.isNotEmpty()) return s
+        }
+        val perms = o.optJSONArray("permissions") ?: return emptySet()
+        return (0 until perms.length()).map { perms.getString(it).lowercase() }.toSet()
+    }
+
+    /** Map an iOS SF-symbol icon name to an Android icon token. */
+    private fun iconTokenOf(iconName: String): String =
+        if (iconName.startsWith("creditcard")) "creditCard" else "apps"
+}
+
+/**
+ * Group catalog entries for the browse list (ADR-0052): one representative per
+ * appId. The Show-beta-apps flag is the channel selector: default to stable;
+ * when beta is on prefer beta and fall back to stable. A beta-only app is hidden
+ * while beta is off. Within the chosen channel, prefer a host-compatible variant
+ * (via [compatible]) then the highest version. Mirrors the iOS representative().
+ */
+fun groupCatalogForBrowse(
+    entries: List<MiniAppCatalogEntry>,
+    showBeta: Boolean,
+    compatible: (MiniAppCatalogEntry) -> Boolean,
+): List<MiniAppCatalogEntry> {
+    val out = ArrayList<MiniAppCatalogEntry>()
+    val seen = HashSet<String>()
+    for (e in entries) {
+        if (!seen.add(e.appId)) continue
+        val variants = entries.filter { it.appId == e.appId }
+        val stable = variants.filterNot { it.isBeta }
+        val beta = variants.filter { it.isBeta }
+        // Tile defaults to stable; a beta-only app appears only when beta is on.
+        // Choosing beta for an app that also has stable is done in the install
+        // sheet's channel picker, not here.
+        val pool = if (stable.isNotEmpty()) stable else if (showBeta) beta else emptyList()
+        if (pool.isEmpty()) continue
+        val compat = pool.filter(compatible)
+        val candidates = if (compat.isEmpty()) pool else compat
+        candidates.maxWithOrNull { a, b -> compareVersions(a.version, b.version) }?.let { out.add(it) }
+    }
+    return out
+}
+
+/** Element-wise numeric compare of semver-ish versions (missing = lowest). */
+private fun compareVersions(a: String?, b: String?): Int {
+    val x = (a ?: "").split(".").map { it.toIntOrNull() ?: 0 }
+    val y = (b ?: "").split(".").map { it.toIntOrNull() ?: 0 }
+    for (i in 0 until maxOf(x.size, y.size)) {
+        val c = (x.getOrElse(i) { 0 }).compareTo(y.getOrElse(i) { 0 })
+        if (c != 0) return c
+    }
+    return 0
+}
 
 /**
  * The installed-apps store. Mirrors the iOS AppStoreRegistry.installedApps:
@@ -159,7 +307,9 @@ class MiniAppInstallRegistry(
      * Install [entry], granting [granted] capability tokens (default: everything
      * the entry declares). The granted set is the consent the install sheet
      * collected; it is also written to [MiniAppSettingsStore] so the bridge
-     * enforces it. Idempotent.
+     * enforces it. Upsert: re-installing the same app id replaces its snapshot,
+     * so choosing a different channel swaps the pinned manifest (a channel
+     * switch) rather than being a no-op.
      */
     fun install(
         entry: MiniAppCatalogEntry,
@@ -167,18 +317,16 @@ class MiniAppInstallRegistry(
         granted: Set<String> = entry.permissions,
     ) {
         val installedAppId = entry.installedAppId(storeId)
-        val current = installedApps().toMutableList()
-        if (current.none { it.installedAppId == installedAppId }) {
-            current.add(
-                InstalledApp(
-                    installedAppId = installedAppId,
-                    storeId = storeId,
-                    entry = entry,
-                    installedAtIso = Instant.now().toString(),
-                ),
-            )
-            persist(current)
-        }
+        val current = installedApps().filterNot { it.installedAppId == installedAppId }.toMutableList()
+        current.add(
+            InstalledApp(
+                installedAppId = installedAppId,
+                storeId = storeId,
+                entry = entry,
+                installedAtIso = Instant.now().toString(),
+            ),
+        )
+        persist(current)
         settings.setGrantedCapabilities(installedAppId, granted.map { it.lowercase() }.toSet())
     }
 
