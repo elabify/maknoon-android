@@ -267,7 +267,13 @@ object MaknoonBackupV4 {
             activeAuthVerifiedLocally = if (o.has("activeAuthVerifiedLocally") && !o.isNull("activeAuthVerifiedLocally")) o.getBoolean("activeAuthVerifiedLocally") else null,
             readAt = str("readAt")?.let { epochMsFromIso(it) } ?: System.currentTimeMillis(),
             sanctionsResult = o.optJSONObject("sanctionsResult")?.let { decodeSanctions(it) },
-            passiveAuthResult = o.optJSONObject("passiveAuthResult")?.let { decodePassiveAuth(it) },
+            // Do NOT restore the chip-authenticity ("genuine") verdict from the
+            // backup: it is advisory and must be recomputed against the CURRENT
+            // CSCA trust list, not carried across as a stale sticker (iOS treats
+            // it as transient too). Left null so the passport detail's
+            // LaunchedEffect re-runs passive auth against the freshly-forced
+            // CSCA bundle refreshed at the end of restore(). See ADR-0050.
+            passiveAuthResult = null,
             schemaVersion = o.optString("schemaVersion", "1.0.0"),
         )
     }

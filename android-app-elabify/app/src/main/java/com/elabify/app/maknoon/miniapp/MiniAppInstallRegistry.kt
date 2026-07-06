@@ -33,6 +33,9 @@ import java.net.HttpURLConnection
 import java.net.URL
 import java.time.Instant
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.withContext
 import org.json.JSONArray
 import org.json.JSONObject
@@ -425,6 +428,15 @@ class MiniAppInstallRegistry(
  * add/remove UI) and the Apps tab (the browse-list beta filter), so they agree.
  */
 class MiniAppCatalogSettings(private val settings: MiniAppSettingsStore) {
+    init {
+        // Seed the process-wide reactive flag from persistence on first use so
+        // the flow starts with the stored value.
+        if (!seeded) {
+            _showBetaApps.value = settings.value(BUCKET, BETA_KEY) == "true"
+            seeded = true
+        }
+    }
+
     data class Catalog(val id: String, val name: String, val url: String)
 
     fun userStores(): List<Catalog> =
@@ -450,13 +462,23 @@ class MiniAppCatalogSettings(private val settings: MiniAppSettingsStore) {
 
     fun showBetaApps(): Boolean = settings.value(BUCKET, BETA_KEY) == "true"
 
+    /** Reactive view of the flag so a screen recomposes the instant the toggle
+     *  changes anywhere (mirrors iOS's @Observable AppStoreRegistry.showBetaApps,
+     *  which had neither the toggle lag nor the stale-beta bug). */
+    fun showBetaAppsFlow(): StateFlow<Boolean> = _showBetaApps.asStateFlow()
+
     fun setShowBetaApps(on: Boolean) {
         runCatching { settings.set(BUCKET, BETA_KEY, if (on) "true" else "false") }
+        _showBetaApps.value = on
     }
 
-    private companion object {
-        const val BUCKET = "__settings::appstores"
-        const val STORE_PREFIX = "store."
-        const val BETA_KEY = "showBetaApps"
+    companion object {
+        private const val BUCKET = "__settings::appstores"
+        private const val STORE_PREFIX = "store."
+        private const val BETA_KEY = "showBetaApps"
+        // Process-wide so the Apps browse screen and the Settings toggle share
+        // one reactive source. Compose-free (kotlinx StateFlow).
+        private val _showBetaApps = MutableStateFlow(false)
+        @Volatile private var seeded = false
     }
 }

@@ -32,6 +32,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -114,7 +115,12 @@ fun MaknoonRoot() {
 
 @Composable
 private fun MainTabs() {
-    var selected by remember { mutableStateOf(Tab.IDENTITY) }
+    // rememberSaveable so the selected tab survives Activity recreation / process
+    // death. Rotation no longer recreates the Activity (MainActivity declares
+    // configChanges), so together they stop the tab snapping back to Identity on
+    // rotation (item 9). Tab is an enum (Serializable), so the default saver
+    // handles it.
+    var selected by rememberSaveable { mutableStateOf(Tab.IDENTITY) }
     // Re-tap-to-home: tapping a tab while ALREADY on it bumps its key, which the
     // tab screen observes to pop its in-screen navigation back to its home
     // (mirrors iOS popping that tab's stack to root).
@@ -229,20 +235,40 @@ private fun LockScreen(onUnlocked: () -> Unit) {
     val context = LocalContext.current
     val activity = context as? FragmentActivity
     val scope = rememberCoroutineScope()
+    val lifecycleOwner = LocalLifecycleOwner.current
     var attempting by remember { mutableStateOf(false) }
 
     fun attempt() {
         val act = activity ?: return
         if (attempting) return
+        // Only launch the prompt while the activity is actually resumed:
+        // launching during a lifecycle transition makes BiometricPrompt throw,
+        // which previously stranded `attempting` = true and froze the Unlock
+        // button (item 8). The ON_RESUME observer below re-attempts once resumed.
+        if (!lifecycleOwner.lifecycle.currentState.isAtLeast(Lifecycle.State.RESUMED)) return
         attempting = true
         scope.launch {
-            val ok = BiometricGate.authenticate(act, title = "Unlock Maknoon", subtitle = "Confirm it's you")
+            // authenticate() no longer throws (it resumes false on error), but
+            // guard anyway so `attempting` is ALWAYS cleared and the button stays
+            // live for a retry.
+            val ok = runCatching {
+                BiometricGate.authenticate(act, title = "Unlock Maknoon", subtitle = "Confirm it's you")
+            }.getOrDefault(false)
             attempting = false
             if (ok) onUnlocked()
         }
     }
 
     LaunchedEffect(Unit) { attempt() }
+    // Re-prompt when the app returns to the foreground (the initial auto-prompt
+    // may have been skipped if the activity was mid-transition).
+    DisposableEffect(lifecycleOwner) {
+        val obs = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_RESUME) attempt()
+        }
+        lifecycleOwner.lifecycle.addObserver(obs)
+        onDispose { lifecycleOwner.lifecycle.removeObserver(obs) }
+    }
 
     Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
         Column(

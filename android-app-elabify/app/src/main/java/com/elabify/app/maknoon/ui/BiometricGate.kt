@@ -56,6 +56,17 @@ object BiometricGate {
             .setSubtitle(subtitle)
             .setAllowedAuthenticators(AUTHENTICATORS)
             .build()
-        prompt.authenticate(info)
+        // Cancel the system prompt if the caller's coroutine is cancelled (e.g.
+        // the screen is disposed) so it doesn't linger.
+        cont.invokeOnCancellation { runCatching { prompt.cancelAuthentication() } }
+        // authenticate() can throw if the host activity's FragmentManager has
+        // already saved its state (a lifecycle transition). Resume false instead
+        // of letting the exception escape and strand the caller forever (that was
+        // the frozen "Unlock" button: the caller's `attempting` flag never reset).
+        try {
+            prompt.authenticate(info)
+        } catch (e: Exception) {
+            if (cont.isActive) cont.resume(false)
+        }
     }
 }

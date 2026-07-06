@@ -580,6 +580,7 @@
     <string name="app_apps">Apps</string>
     <string name="app_add_app">Add app</string>
     <string name="app_installed">Installed</string>
+    <string name="app_manage">Manage</string>
     <string name="app_no_apps_installed">No apps installed yet</string>
     <string name="app_no_apps_subtitle">Tap the + in the top right to browse the Maknoon Apps catalog (and any catalogs you have added in Settings &gt; Apps).</string>
     <string name="app_connected_verifiers">Connected verifiers</string>

@@ -56,6 +56,7 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Apps
 import androidx.compose.material.icons.filled.Badge
 import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.CreditCard
 import androidx.compose.material.icons.automirrored.filled.HelpOutline
@@ -85,12 +86,16 @@ import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Switch
+import androidx.compose.material3.SwipeToDismissBox
+import androidx.compose.material3.SwipeToDismissBoxValue
+import androidx.compose.material3.rememberSwipeToDismissBoxState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -153,6 +158,10 @@ fun AppsScreen(resetKey: Int = 0) {
     val settingsStore = remember { MiniAppSettingsStore(context) }
     val registry = remember(settingsStore) { MiniAppInstallRegistry(context, settingsStore) }
     val catalogSettings = remember(settingsStore) { MiniAppCatalogSettings(settingsStore) }
+    // Reactive beta flag: recomposes the catalog count + browse list the instant
+    // the Settings toggle changes, so there is no toggle lag and no stale beta
+    // option (iOS parity).
+    val showBetaApps by catalogSettings.showBetaAppsFlow().collectAsState()
     val handlerFactory = remember(settingsStore) {
         DefaultMiniAppHandlerFactory(
             context = context,
@@ -236,6 +245,7 @@ fun AppsScreen(resetKey: Int = 0) {
             BackHandler(enabled = true) { showBrowse = false }
             BrowseCatalogListScreen(
                 catalogs = catalogs,
+                showBetaApps = showBetaApps,
                 onOpenCatalog = { openCatalog = it },
                 onBack = { showBrowse = false },
             )
@@ -244,7 +254,7 @@ fun AppsScreen(resetKey: Int = 0) {
             BrowseAppStoreScreen(
                 catalogName = current.name,
                 entries = current.entries,
-                showBetaApps = catalogSettings.showBetaApps(),
+                showBetaApps = showBetaApps,
                 isInstalled = { entry -> registry.isInstalled(MiniAppCatalogEntry.DEFAULT_STORE_ID, entry.appId) },
                 installedVersion = { appId -> registry.installedApps().firstOrNull { it.entry.appId == appId }?.entry?.version },
                 isRefreshing = catalogRefreshing,
@@ -371,7 +381,13 @@ fun AppsScreen(resetKey: Int = 0) {
                 }
             } else {
                 items(installed, key = { "installed/${it.installedAppId}" }) { app ->
-                    InstalledRow(app = app, onTap = { detailFor = app })
+                    // Tap launches the app straight into its host; management
+                    // moved to a left-swipe pencil (parity with iOS swipeActions).
+                    InstalledRow(
+                        app = app,
+                        onTap = { launched = app },
+                        onManage = { detailFor = app },
+                    )
                 }
             }
 
@@ -417,46 +433,82 @@ fun AppsScreen(resetKey: Int = 0) {
 
 // MARK: -- installed apps
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun InstalledRow(app: MiniAppInstallRegistry.InstalledApp, onTap: () -> Unit) {
+private fun InstalledRow(
+    app: MiniAppInstallRegistry.InstalledApp,
+    onTap: () -> Unit,
+    onManage: () -> Unit,
+) {
     val entry = app.entry
-    Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable(onClick = onTap),
-        shape = RoundedCornerShape(Radii.card),
-        elevation = CardDefaults.cardElevation(defaultElevation = Elevation.card),
-    ) {
-        Row(
-            modifier = Modifier.fillMaxWidth().padding(Spacing.lg),
-            verticalAlignment = Alignment.Top,
-            horizontalArrangement = Arrangement.spacedBy(Spacing.md),
-        ) {
-            AppIcon(entry.iconToken)
-            Column(
-                modifier = Modifier.weight(1f),
-                verticalArrangement = Arrangement.spacedBy(Spacing.xs),
+    // Left-swipe (EndToStart) reveals a pencil that opens the management sheet;
+    // we never actually dismiss (confirmValueChange returns false so the row
+    // snaps back), matching iOS's non-destructive swipeActions pencil.
+    val dismissState = rememberSwipeToDismissBoxState(
+        confirmValueChange = { value ->
+            if (value == SwipeToDismissBoxValue.EndToStart) onManage()
+            false
+        },
+    )
+    SwipeToDismissBox(
+        state = dismissState,
+        enableDismissFromStartToEnd = false,
+        enableDismissFromEndToStart = true,
+        backgroundContent = {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .clip(RoundedCornerShape(Radii.card))
+                    .background(MaterialTheme.colorScheme.primary)
+                    .padding(horizontal = Spacing.lg),
+                contentAlignment = Alignment.CenterEnd,
             ) {
-                Text(
-                    entry.title,
-                    style = MaterialTheme.typography.titleSmall,
-                    fontWeight = FontWeight.SemiBold,
+                Icon(
+                    Icons.Filled.Edit,
+                    contentDescription = stringResource(R.string.app_manage),
+                    tint = MaterialTheme.colorScheme.onPrimary,
                 )
-                Text(
-                    entry.summary,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-                entry.version?.let { v ->
-                    Text(
-                        "v$v",
-                        style = MaterialTheme.typography.labelSmall,
-                        fontFamily = FontFamily.Monospace,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
-                    )
-                }
             }
-            StatusPill(text = entry.channelLabel, color = channelColor(entry.channel))
+        },
+    ) {
+        Card(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clickable(onClick = onTap),
+            shape = RoundedCornerShape(Radii.card),
+            elevation = CardDefaults.cardElevation(defaultElevation = Elevation.card),
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth().padding(Spacing.lg),
+                verticalAlignment = Alignment.Top,
+                horizontalArrangement = Arrangement.spacedBy(Spacing.md),
+            ) {
+                AppIcon(entry.iconToken)
+                Column(
+                    modifier = Modifier.weight(1f),
+                    verticalArrangement = Arrangement.spacedBy(Spacing.xs),
+                ) {
+                    Text(
+                        entry.title,
+                        style = MaterialTheme.typography.titleSmall,
+                        fontWeight = FontWeight.SemiBold,
+                    )
+                    Text(
+                        entry.summary,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                    entry.version?.let { v ->
+                        Text(
+                            "v$v",
+                            style = MaterialTheme.typography.labelSmall,
+                            fontFamily = FontFamily.Monospace,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+                        )
+                    }
+                }
+                StatusPill(text = entry.channelLabel, color = channelColor(entry.channel))
+            }
         }
     }
 }
@@ -743,6 +795,7 @@ private data class MiniAppCatalogSummary(
 @Composable
 private fun BrowseCatalogListScreen(
     catalogs: List<MiniAppCatalogSummary>,
+    showBetaApps: Boolean,
     onOpenCatalog: (MiniAppCatalogSummary) -> Unit,
     onBack: () -> Unit,
 ) {
@@ -767,7 +820,11 @@ private fun BrowseCatalogListScreen(
         ) {
             item { SectionHeader(title = stringResource(R.string.app_apps_catalogs)) }
             items(catalogs, key = { "catalog/${it.id}" }) { catalog ->
-                CatalogListRow(catalog = catalog, onTap = { onOpenCatalog(catalog) })
+                CatalogListRow(
+                    catalog = catalog,
+                    showBetaApps = showBetaApps,
+                    onTap = { onOpenCatalog(catalog) },
+                )
             }
             item {
                 Text(
@@ -782,8 +839,17 @@ private fun BrowseCatalogListScreen(
 }
 
 @Composable
-private fun CatalogListRow(catalog: MiniAppCatalogSummary, onTap: () -> Unit) {
-    val count = catalog.entries.size
+private fun CatalogListRow(
+    catalog: MiniAppCatalogSummary,
+    showBetaApps: Boolean,
+    onTap: () -> Unit,
+) {
+    // Count apps as the browser shows them: grouped by app id and filtered by the
+    // live beta flag, so POS's stable+beta entries count as one (matches iOS
+    // BrowseAppStoreView.visibleAppCount).
+    val count = groupCatalogForBrowse(catalog.entries, showBetaApps) {
+        !DAppCompatibility.evaluate(it.requiresMaknoonVersion, it.supersededAtMaknoonVersion).blocksInstall
+    }.size
     Card(
         modifier = Modifier
             .fillMaxWidth()

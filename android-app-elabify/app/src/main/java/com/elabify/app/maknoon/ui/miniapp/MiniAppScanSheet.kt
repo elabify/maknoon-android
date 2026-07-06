@@ -183,7 +183,15 @@ private class Camera2QrController(
 ) {
     private val cameraManager = context.getSystemService(Context.CAMERA_SERVICE) as CameraManager
     private val reader = MultiFormatReader().apply {
-        setHints(mapOf(DecodeHintType.POSSIBLE_FORMATS to listOf(BarcodeFormat.QR_CODE)))
+        // TRY_HARDER makes ZXing do a more exhaustive scan per frame, which is
+        // what lets the dense (~v25) multi-frame QR that iOS presents decode
+        // reliably before the next frame rotates in (item 10).
+        setHints(
+            mapOf(
+                DecodeHintType.POSSIBLE_FORMATS to listOf(BarcodeFormat.QR_CODE),
+                DecodeHintType.TRY_HARDER to true,
+            ),
+        )
     }
 
     var onDecoded: ((String) -> Unit)? = null

@@ -68,6 +68,29 @@ sealed class JsonValue {
         is Obj -> "{${value.size} field${if (value.size == 1) "" else "s"}}"
     }
 
+    /** Multi-line, indented rendering that expands nested objects and arrays so
+     *  a structured claim (e.g. sdnScreen) shows its fields instead of
+     *  collapsing to "{3 fields}". Scalars match displayText (single line).
+     *  Mirrors iOS JSONValue.prettyText. */
+    fun prettyText(): String = when (this) {
+        is Str, is IntVal, is DoubleVal, is Bool, is Null -> displayText()
+        is Arr ->
+            if (value.isEmpty()) "[]"
+            else value.mapIndexed { i, v -> prettyEntry(i.toString(), v) }.joinToString("\n")
+        is Obj ->
+            if (value.isEmpty()) "{}"
+            else value.entries.sortedBy { it.key }
+                .joinToString("\n") { prettyEntry(it.key, it.value) }
+    }
+
+    private fun prettyEntry(label: String, value: JsonValue): String = when (value) {
+        is Obj, is Arr -> {
+            val nested = value.prettyText().split("\n").joinToString("\n") { "  $it" }
+            "$label:\n$nested"
+        }
+        else -> "$label: ${value.displayText()}"
+    }
+
     companion object {
         /** Decode an arbitrary org.json field (the result of JSONObject.get /
          *  JSONArray.get, or a raw scalar) into a JsonValue. Distinguishes

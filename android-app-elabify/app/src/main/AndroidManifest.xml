@@ -39,6 +39,7 @@
             android:exported="true"
             android:label="Maknoon"
             android:launchMode="singleTop"
+            android:configChanges="orientation|screenSize|screenLayout|smallestScreenSize|keyboardHidden|uiMode"
             android:theme="@style/Theme.Maknoon">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />

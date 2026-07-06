@@ -23,6 +23,10 @@ import kotlinx.coroutines.withContext
 
 @Composable
 fun QrCode(content: String, modifier: Modifier = Modifier, sizePx: Int = 512) {
+    // Any on-screen QR is meant to be scanned, so ramp to full brightness while
+    // it is shown (ref-counted, restored on dispose). Covers wallet receive
+    // addresses and the online drop QR. See ADR (QR display conventions).
+    com.elabify.app.maknoon.ui.MaxBrightness()
     // Encode off the main thread: ZXing encode + bitmap fill on a large payload
     // is heavy enough to visibly freeze the UI if done during composition. Show
     // a spinner until the bitmap is ready instead of blocking on a blank screen.

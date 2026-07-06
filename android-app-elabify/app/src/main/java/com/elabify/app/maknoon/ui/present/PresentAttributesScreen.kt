@@ -79,6 +79,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontFamily
@@ -770,6 +771,15 @@ private fun QrSheet(title: String, onDone: () -> Unit, content: @Composable () -
 private fun RotatingFramesCard(frames: List<LocalFrames.Frame>) {
     var index by remember(frames) { mutableStateOf(0) }
     var secondsPerFrame by remember { mutableStateOf(0.7f) }
+    // Keep the screen awake AND at full brightness for the whole transmission so
+    // the peer scanner can read every dense frame without the display dimming or
+    // locking mid-sequence (items 10 + 11).
+    com.elabify.app.maknoon.ui.MaxBrightness()
+    val keepAwakeView = LocalView.current
+    DisposableEffect(Unit) {
+        keepAwakeView.keepScreenOn = true
+        onDispose { keepAwakeView.keepScreenOn = false }
+    }
     LaunchedEffect(frames, secondsPerFrame) {
         if (frames.size <= 1) return@LaunchedEffect
         while (true) {
@@ -790,7 +800,11 @@ private fun RotatingFramesCard(frames: List<LocalFrames.Frame>) {
     }
     SoftCard {
         Column(
-            Modifier.padding(Spacing.lg),
+            // Minimal horizontal padding so the QR fills nearly the full phone
+            // width: a larger code gives the peer scanner more camera pixels per
+            // module, which is what makes the dense multi-frame frames decode
+            // reliably (item 10).
+            Modifier.padding(horizontal = Spacing.sm, vertical = Spacing.lg),
             verticalArrangement = Arrangement.spacedBy(Spacing.sm),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
@@ -800,10 +814,12 @@ private fun RotatingFramesCard(frames: List<LocalFrames.Frame>) {
                 Image(
                     bitmap = bmp,
                     contentDescription = null,
+                    // Keep a small white quiet zone (required for scanning) but
+                    // otherwise fill the width.
                     modifier = Modifier
                         .fillMaxWidth()
                         .background(Color.White, RoundedCornerShape(Radii.md))
-                        .padding(Spacing.lg),
+                        .padding(Spacing.sm),
                 )
             } else {
                 Box(Modifier.fillMaxWidth().padding(Spacing.lg), contentAlignment = Alignment.Center) {

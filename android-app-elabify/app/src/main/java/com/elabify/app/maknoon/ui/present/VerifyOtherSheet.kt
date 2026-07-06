@@ -26,6 +26,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.Box
@@ -44,12 +45,14 @@ import androidx.compose.material.icons.filled.GppMaybe
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateMapOf
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -76,7 +79,13 @@ import com.elabify.app.maknoon.ui.theme.Radii
 import com.elabify.app.maknoon.ui.theme.Spacing
 import com.elabify.musnad.present.DropEnvelope
 import com.elabify.musnad.present.LocalCheckResult
+import com.elabify.app.maknoon.ui.theme.MaknoonColors
+import com.elabify.musnad.present.JsonValue
 import com.elabify.musnad.present.LocalVerdict
+import com.elabify.musnad.present.OnChainTier
+import com.elabify.musnad.present.OnChainVerdict
+import com.elabify.musnad.present.OnChainVerifier
+import com.elabify.musnad.present.RegistryConfig
 import com.elabify.musnad.present.Presentation
 import kotlinx.coroutines.launch
 import org.json.JSONObject
@@ -367,6 +376,24 @@ private fun VerdictBody(
         LocalVerdict.UNVERIFIED ->
             Triple(BannerVariant.SUCCESS, stringResource(R.string.present_verdict_locally_valid), Icons.Filled.GppGood)
     }
+    // Item 7 (ADR-0054): run the holder-independent on-chain pass once per
+    // presentation. Bundled Sepolia defaults; discovery/override plugs into
+    // RegistryConfig (bundle + discover).
+    var onChain by remember(presentation.header.cid) { mutableStateOf<OnChainVerdict?>(null) }
+    var running by remember(presentation.header.cid) { mutableStateOf(false) }
+    if (bundle.decision != LocalVerdict.SELF_ATTESTED) {
+        LaunchedEffect(presentation.header.cid) {
+            running = true
+            val certId = (bundle.disclosed["cscaCertId"] as? JsonValue.Str)?.value
+            onChain = OnChainVerifier.verify(
+                RegistryConfig.SEPOLIA_DEFAULT,
+                presentation.header,
+                presentation.headerSig,
+                certId,
+            )
+            running = false
+        }
+    }
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -388,7 +415,9 @@ private fun VerdictBody(
             HorizontalDivider()
             SectionHeader(stringResource(R.string.present_disclosed_claims))
             bundle.disclosed.keys.sorted().forEach { k ->
-                Kv(k, bundle.disclosed[k]?.displayText() ?: "-")
+                // Expand nested claim objects (e.g. sdnScreen) fully by default
+                // instead of collapsing to "{3 fields}" (iOS parity).
+                Kv(k, bundle.disclosed[k]?.prettyText() ?: "-")
             }
         }
 
@@ -407,12 +436,73 @@ private fun VerdictBody(
         CheckRow("timestampValid", c.timestampValid)
         CheckRow("expiryValid", c.expiryValid)
         CheckRow("verifierRequestValid", c.verifierRequestValid)
-        CheckRow("issuerRegistered", c.issuerRegistered)
-        CheckRow("credentialNotRevoked", c.credentialNotRevoked)
-        CheckRow("rootCurrent", c.rootCurrent)
+
+        // Item 7 (ADR-0054): the holder confirms the chain-gated checks itself
+        // over a read-only RPC, no verifier server, so "Locally valid" is no
+        // longer conflated with "fully verified".
+        if (bundle.decision != LocalVerdict.SELF_ATTESTED) {
+            HorizontalDivider()
+            SectionHeader("Online verification (on-chain)")
+            val oc = onChain
+            when {
+                running && oc == null -> Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+                ) {
+                    CircularProgressIndicator(modifier = Modifier.size(18.dp), strokeWidth = 2.dp)
+                    Text("Checking on-chain…", style = MaterialTheme.typography.bodyMedium)
+                }
+                oc == null -> Unit
+                !oc.reachedChain -> Text(
+                    "Online checks pending. Could not reach the chain RPC.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                else -> {
+                    OnChainRow("Issuer registered", oc.issuerRegistered)
+                    OnChainRow("Not revoked", oc.notRevoked)
+                    OnChainRow("Root current", oc.rootCurrent)
+                    OnChainRow("Header signature (on-chain key)", oc.headerSigValid)
+                    oc.cscaProvenance?.let { OnChainRow("Passport CSCA provenance", it) }
+                    if (oc.fullyVerified) {
+                        Text(
+                            "Fully verified: issuer registered, not revoked, root current, signature valid.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaknoonColors.success,
+                        )
+                    } else {
+                        Text(
+                            "These checks talk directly to the chain over a read-only RPC. No issuer or verifier server is involved.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                }
+            }
+        }
 
         HorizontalDivider()
         OutlinedButton(onClick = onScanAnother) { Text(stringResource(R.string.present_scan_another)) }
+    }
+}
+
+/** One on-chain check tier row (item 7). */
+@Composable
+private fun OnChainRow(name: String, tier: OnChainTier) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+    ) {
+        Text(name, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f))
+        when (tier) {
+            is OnChainTier.Pass ->
+                Icon(Icons.Filled.GppGood, contentDescription = "verified", tint = MaknoonColors.success)
+            is OnChainTier.Fail ->
+                Text(tier.reason, style = MaterialTheme.typography.labelSmall, color = TrustRed)
+            is OnChainTier.Unknown ->
+                Text(tier.reason, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
     }
 }
 
@@ -479,7 +569,7 @@ private fun CheckRow(name: String, result: LocalCheckResult) {
 private fun Kv(key: String, value: String) {
     Column(modifier = Modifier.fillMaxWidth()) {
         Text(key, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-        Text(value, style = MaterialTheme.typography.bodyMedium, fontFamily = FontFamily.Monospace, maxLines = 2)
+        Text(value, style = MaterialTheme.typography.bodyMedium, fontFamily = FontFamily.Monospace)
     }
 }
 
