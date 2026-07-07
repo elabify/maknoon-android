@@ -31,9 +31,14 @@ data class RegistryConfig(
     val cscaRegistry: String? = null,
 ) {
     companion object {
-        /** Committed Sepolia deployment (smart-contracts/deployments/11155111.json). */
-        val SEPOLIA_DEFAULT = RegistryConfig(
-            rpcURL = "https://eth-sepolia.public.blastapi.io",
+        /** Committed Sepolia deployment (smart-contracts/deployments/11155111.json).
+         *  The RPC is NOT hardcoded: the registries live on Sepolia, so the caller
+         *  passes the app's effective Sepolia RPC (EthereumSettings.rpcURL, which
+         *  honors the user's per-network override and otherwise falls back to
+         *  EthereumNetwork.SEPOLIA.defaultRPCURL). Keeps the on-chain verifier on
+         *  the same endpoint the wallet already uses. */
+        fun sepolia(rpcURL: String) = RegistryConfig(
+            rpcURL = rpcURL,
             identityRegistry = "0x8ca4260A49F4B05c652F926Cc402D909CA0881dB",
             revocationRegistry = "0x56CCaCEf210fc24007a8C327C10540Ea0d5ac52A",
         )
@@ -64,16 +69,58 @@ object OnChainVerifier {
     /** Generous root-freshness window for a holder-side sanity check. */
     private const val ROOT_WINDOW_SEC = 90L * 24 * 3600
 
+    /** Reference-pass result: the verdict (headerSigValid left "unknown", since a
+     *  badge carries no header to verify) + the on-chain issuer pubkey (so the
+     *  caller can bind HAVID via the on-chain key rather than a credential sig). */
+    data class ReferenceResult(val verdict: OnChainVerdict, val issuerPubkey: ByteArray?)
+
     suspend fun verify(
         config: RegistryConfig,
         header: CredentialHeader,
         headerSig: String,
         cscaCertIdHex: String?,
+        anchorBatchRoot: String?,
+        anchorRPCURL: String? = null,
+        anchorRevocationRegistry: String? = null,
     ): OnChainVerdict = withContext(Dispatchers.IO) {
+        // Reuse the reference pass, then layer headerSigValid on with the full header.
+        val ref = verifyReference(
+            config, header.iss, header.cid, header.iat, cscaCertIdHex,
+            anchorBatchRoot, anchorRPCURL, anchorRevocationRegistry,
+        )
+        val pk = ref.issuerPubkey
+        val headerSigValid: OnChainTier = when {
+            pk != null && pk.isNotEmpty() ->
+                if (MasterKey.verify(pk, hexToBytes(headerSig), header.canonicalBytes())) OnChainTier.Pass
+                else OnChainTier.Fail("Header signature does not verify against the on-chain issuer key")
+            ref.verdict.reachedChain -> OnChainTier.Unknown("Issuer key not published on-chain")
+            else -> ref.verdict.headerSigValid
+        }
+        ref.verdict.copy(headerSigValid = headerSigValid)
+    }
+
+    /**
+     * On-chain checks needing only a credential REFERENCE (did + cid + iat +
+     * anchor): issuerRegistered, notRevoked, rootCurrent, cscaProvenance, plus the
+     * issuer's on-chain pubkey. Identity checks run on `config` (Sepolia);
+     * revocation + root run on the anchor's chain (anchorRPCURL + the anchor's
+     * RevocationRegistry). Used directly by the badge flow.
+     */
+    suspend fun verifyReference(
+        config: RegistryConfig,
+        did: String,
+        cid: String,
+        iat: Long,
+        cscaCertIdHex: String?,
+        anchorBatchRoot: String?,
+        anchorRPCURL: String? = null,
+        anchorRevocationRegistry: String? = null,
+    ): ReferenceResult = withContext(Dispatchers.IO) {
         MultiChainNative.ensure() // keccak256 (selector) needs the native lib
         val rpc = EthereumRPCClient.orNull(config.rpcURL)
-            ?: return@withContext unreachable("No RPC configured")
-        val did = header.iss
+            ?: return@withContext ReferenceResult(unreachable("No RPC configured"), null)
+        val anchorRpc = anchorRPCURL?.let { EthereumRPCClient.orNull(it) }
+        val revRegistry = anchorRevocationRegistry ?: config.revocationRegistry
         var reached = false
 
         var issuerRegistered: OnChainTier = OnChainTier.Unknown("RPC unreachable")
@@ -86,48 +133,46 @@ object OnChainVerifier {
             else OnChainTier.Fail("Issuer is not registered / not active on-chain")
         }
 
-        var notRevoked: OnChainTier = OnChainTier.Unknown("RPC unreachable")
-        runCatching {
-            val data = selector("isRevoked(string,bytes32)") + word(0x40L) +
-                bytes32(header.cid) + stringTail(did)
-            decodeBool(rpc.ethCall(config.revocationRegistry, data))
-        }.getOrNull()?.let {
-            reached = true
-            notRevoked = if (it) OnChainTier.Fail("Credential has been revoked on-chain") else OnChainTier.Pass
+        var notRevoked: OnChainTier = OnChainTier.Unknown("No reachable anchor chain")
+        var rootCurrent: OnChainTier =
+            OnChainTier.Unknown("Carries no on-chain anchor for a supported network")
+        if (anchorRpc != null) {
+            runCatching {
+                val data = selector("isRevoked(string,bytes32)") + word(0x40L) +
+                    bytes32(cid) + stringTail(did)
+                decodeBool(anchorRpc.ethCall(revRegistry, data))
+            }.getOrNull()?.let {
+                reached = true
+                notRevoked = if (it) OnChainTier.Fail("Credential has been revoked on-chain") else OnChainTier.Pass
+            } ?: run { notRevoked = OnChainTier.Unknown("Could not read the revocation registry") }
+
+            if (!anchorBatchRoot.isNullOrEmpty()) {
+                runCatching {
+                    val data = selector("isRootRecent(string,bytes32,uint256)") + word(0x60L) +
+                        bytes32(anchorBatchRoot) + word(ROOT_WINDOW_SEC) + stringTail(did)
+                    decodeBool(anchorRpc.ethCall(revRegistry, data))
+                }.getOrNull()?.let {
+                    reached = true
+                    rootCurrent = if (it) OnChainTier.Pass
+                    else OnChainTier.Fail("Credential anchor root is not current on-chain (batch may be stale or unanchored)")
+                } ?: run { rootCurrent = OnChainTier.Unknown("Could not read the anchor root on-chain") }
+            }
         }
 
-        var rootCurrent: OnChainTier = OnChainTier.Unknown("RPC unreachable")
-        runCatching {
-            val data = selector("isRootRecent(string,bytes32,uint256)") + word(0x60L) +
-                bytes32(header.root) + word(ROOT_WINDOW_SEC) + stringTail(did)
-            decodeBool(rpc.ethCall(config.revocationRegistry, data))
-        }.getOrNull()?.let {
-            reached = true
-            rootCurrent = if (it) OnChainTier.Pass else OnChainTier.Fail("Credential root is not current on-chain")
-        }
-
-        var headerSigValid: OnChainTier = OnChainTier.Unknown("RPC unreachable")
+        var issuerPubkey: ByteArray? = null
         runCatching {
             val data = selector("getIssuerPubkey(string)") + word(0x20L) + stringTail(did)
             decodeFirstBytes(rpc.ethCall(config.identityRegistry, data))
         }.getOrNull()?.let { pubkey ->
             reached = true
-            headerSigValid = if (pubkey.isNotEmpty() &&
-                MasterKey.verify(pubkey, hexToBytes(headerSig), header.canonicalBytes())
-            ) {
-                OnChainTier.Pass
-            } else {
-                OnChainTier.Fail("Header signature does not verify against the on-chain issuer key")
-            }
-        } ?: run {
-            if (reached) headerSigValid = OnChainTier.Unknown("Issuer key not published on-chain")
+            issuerPubkey = pubkey
         }
 
         var cscaProvenance: OnChainTier? = null
         val cscaRegistry = config.cscaRegistry
         if (cscaCertIdHex != null && cscaRegistry != null) {
             runCatching {
-                val ts = maxOf(0L, header.iat)
+                val ts = maxOf(0L, iat)
                 val data = selector("isValidAt(bytes32,uint64)") + bytes32(cscaCertIdHex) + word(ts)
                 decodeBool(rpc.ethCall(cscaRegistry, data))
             }.getOrNull()?.let {
@@ -137,7 +182,14 @@ object OnChainVerifier {
             } ?: run { cscaProvenance = OnChainTier.Unknown("Could not read CSCA registry") }
         }
 
-        OnChainVerdict(reached, issuerRegistered, notRevoked, rootCurrent, headerSigValid, cscaProvenance)
+        ReferenceResult(
+            OnChainVerdict(
+                reached, issuerRegistered, notRevoked, rootCurrent,
+                OnChainTier.Unknown("Needs the full credential (a badge is a reference)"),
+                cscaProvenance,
+            ),
+            issuerPubkey,
+        )
     }
 
     private fun unreachable(why: String) = OnChainVerdict(

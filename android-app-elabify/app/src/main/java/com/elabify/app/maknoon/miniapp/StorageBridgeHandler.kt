@@ -31,8 +31,8 @@ class StorageBridgeHandler(
             }
             "storage.set" -> {
                 val key = requireKey(params)
-                val value = params?.optString("value", null)
-                if (value == null || !params.has("value") || params.isNull("value")) {
+                val value = params?.takeIf { it.has("value") && !it.isNull("value") }?.getString("value")
+                if (value == null) {
                     throw MiniAppBridgeError.invalidParams("storage.set requires a string `value`")
                 }
                 try {
@@ -55,8 +55,10 @@ class StorageBridgeHandler(
     }
 
     private fun requireKey(params: JSONObject?): String {
-        val key = params?.optString("key", null)
-        if (key.isNullOrEmpty() || !params.has("key") || params.isNull("key")) {
+        // getString (guarded by has/!isNull) rather than optString(_, null), which
+        // K2 flags for passing the null literal to a non-null Java param (KT-73255).
+        val key = params?.takeIf { it.has("key") && !it.isNull("key") }?.getString("key")
+        if (key.isNullOrEmpty()) {
             throw MiniAppBridgeError.invalidParams("requires a non-empty string `key`")
         }
         return key

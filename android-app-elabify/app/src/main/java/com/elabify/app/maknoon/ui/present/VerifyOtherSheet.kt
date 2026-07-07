@@ -22,9 +22,14 @@
 
 package com.elabify.app.maknoon.ui.present
 
+import android.widget.Toast
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.Spacer
@@ -43,6 +48,8 @@ import androidx.compose.material.icons.filled.GppBad
 import androidx.compose.material.icons.filled.GppGood
 import androidx.compose.material.icons.filled.GppMaybe
 import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.filled.KeyboardArrowDown
+import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -51,6 +58,7 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.mutableStateOf
@@ -61,6 +69,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.platform.LocalClipboardManager
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -80,6 +91,8 @@ import com.elabify.app.maknoon.ui.theme.Spacing
 import com.elabify.musnad.present.DropEnvelope
 import com.elabify.musnad.present.LocalCheckResult
 import com.elabify.app.maknoon.ui.theme.MaknoonColors
+import com.elabify.musnad.present.HavidResult
+import com.elabify.musnad.present.HavidState
 import com.elabify.musnad.present.JsonValue
 import com.elabify.musnad.present.LocalVerdict
 import com.elabify.musnad.present.OnChainTier
@@ -106,6 +119,20 @@ interface VerifyOtherActions {
 
     /** Run PresentationVerifier.verifyOffline on a presentation. */
     fun verifyOffline(presentation: Presentation): VerdictBundle
+
+    /** Resolve the issuer's client-side HAVID cross-endorsement (ADR-0051): a
+     *  local HTTPS + X.509 check of the issuer's org certificate against its DID. */
+    suspend fun resolveHavid(presentation: Presentation): HavidResult
+
+    /** HAVID for a badge reference (no headerSig): binds via the on-chain issuer
+     *  key (from OnChainVerifier.verifyReference) instead of a credential signature. */
+    suspend fun resolveHavidReference(did: String, issuerPubkey: ByteArray?): HavidResult
+
+    /** Effective RPC for a CAIP-2 chain from the app's Ethereum settings (honoring
+     *  per-network overrides), or null if the app doesn't support that chain. Used
+     *  for the identity chain (Sepolia) and the credential's anchor chain (e.g.
+     *  Base Sepolia), so anchoring is not limited to a single chain. */
+    fun chainRpcUrl(caip2: String): String?
 }
 
 // ---------------------------------------------------------------------------
@@ -113,10 +140,16 @@ interface VerifyOtherActions {
 // no Kotlin BadgePayload type and a badge carries no signing input).
 // ---------------------------------------------------------------------------
 
-private data class BadgeAnchorView(val chain: String, val batchTxHash: String)
+private data class BadgeAnchorView(
+    val chain: String,
+    val batchTxHash: String,
+    val batchRoot: String,
+    val registry: String?,
+)
 
 private data class BadgeView(
     val iss: String,
+    val cid: String,
     val schema: String,
     val iat: Long,
     val exp: Long?,
@@ -244,10 +277,11 @@ fun VerifyOtherSheet(
                 status = stringResource(R.string.present_offline_frame, p.received, p.total),
             )
             is VerifyPhase.Fetching -> VerifyProgress(stringResource(R.string.present_fetching_presentation))
-            is VerifyPhase.Badge -> BadgeViewBody(p.badge, onScanAnother = { resetFrames(); phase = VerifyPhase.Scanning })
+            is VerifyPhase.Badge -> BadgeViewBody(p.badge, actions, onScanAnother = { resetFrames(); phase = VerifyPhase.Scanning })
             is VerifyPhase.Verdict -> VerdictBody(
                 presentation = p.presentation,
                 bundle = p.bundle,
+                actions = actions,
                 onScanAnother = { resetFrames(); phase = VerifyPhase.Scanning },
             )
             is VerifyPhase.Rejected -> VerifyRejected(
@@ -330,7 +364,55 @@ private fun VerifyProgress(text: String) {
 }
 
 @Composable
-private fun BadgeViewBody(b: BadgeView, onScanAnother: () -> Unit) {
+private fun BadgeViewBody(b: BadgeView, actions: VerifyOtherActions, onScanAnother: () -> Unit) {
+    // A badge carries no header, so the on-chain pass is the "reference" variant:
+    // issuerRegistered + notRevoked + rootCurrent + HAVID (bound via the on-chain
+    // issuer key), everything except the header signature.
+    var onChain by remember(b.cid) { mutableStateOf<OnChainVerdict?>(null) }
+    var havid by remember(b.cid) { mutableStateOf<HavidResult?>(null) }
+    var running by remember(b.cid) { mutableStateOf(false) }
+    LaunchedEffect(b.cid) {
+        running = true
+        val identityRpc = actions.chainRpcUrl("eip155:11155111")
+            ?: "https://ethereum-sepolia-rpc.publicnode.com"
+        val anchor = b.anchors.firstOrNull { it.chain == "eip155:11155111" && actions.chainRpcUrl(it.chain) != null }
+            ?: b.anchors.firstOrNull { actions.chainRpcUrl(it.chain) != null }
+        val ref = OnChainVerifier.verifyReference(
+            RegistryConfig.sepolia(identityRpc),
+            b.iss, b.cid, b.iat, null,
+            anchor?.batchRoot,
+            anchor?.let { actions.chainRpcUrl(it.chain) },
+            anchor?.registry,
+        )
+        onChain = ref.verdict
+        havid = runCatching { actions.resolveHavidReference(b.iss, ref.issuerPubkey) }.getOrNull()
+        running = false
+    }
+
+    val oc = onChain
+    val banner: VerdictBanner = run {
+        val core = oc != null &&
+            oc.issuerRegistered is OnChainTier.Pass &&
+            oc.notRevoked is OnChainTier.Pass &&
+            oc.rootCurrent is OnChainTier.Pass
+        when {
+            oc == null -> VerdictBanner(BannerVariant.INFO, "Checking on-chain…", "Confirming the reference against the chain.", Icons.Filled.GppMaybe)
+            !oc.reachedChain -> VerdictBanner(BannerVariant.WARNING, "Reference (offline)", "Couldn't reach the chain to confirm this reference. Tap Scan another to retry.", Icons.Filled.GppMaybe)
+            firstOnChainFailure(oc) != null -> VerdictBanner(BannerVariant.ERROR, "Verification failed", firstOnChainFailure(oc)!!, Icons.Filled.GppBad)
+            core -> VerdictBanner(
+                BannerVariant.SUCCESS,
+                "Reference verified on-chain",
+                buildString {
+                    append("Registered issuer, not revoked, current root, confirmed on-chain.")
+                    if (havid?.state == HavidState.CROSS_ENDORSED) append(" Issuer certificate matches its DID.")
+                    append(" Full signature check needs the complete credential.")
+                },
+                Icons.Filled.GppGood,
+            )
+            else -> VerdictBanner(BannerVariant.WARNING, "Reference verified, with limits", onChainLimitsSummary(oc), Icons.Filled.GppMaybe)
+        }
+    }
+
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -338,112 +420,30 @@ private fun BadgeViewBody(b: BadgeView, onScanAnother: () -> Unit) {
             .padding(Spacing.lg),
         verticalArrangement = Arrangement.spacedBy(Spacing.md),
     ) {
-        // Blue info Banner: a badge shares no PII (the iOS info.circle note).
         Banner(
-            title = stringResource(R.string.present_badge),
-            variant = BannerVariant.INFO,
-            icon = Icons.Filled.Info,
-            body = stringResource(R.string.present_badge_no_pii_body),
+            title = banner.title,
+            variant = banner.variant,
+            icon = banner.icon,
+            body = banner.body,
             modifier = Modifier.fillMaxWidth(),
         )
+        Text(
+            stringResource(R.string.present_badge_no_pii_body),
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+
         SectionHeader(stringResource(R.string.present_what_this_shows))
         Kv(stringResource(R.string.present_issuer), shortIssuerName(b.iss))
         Kv(stringResource(R.string.present_type), schemaLabel(b.schema))
+        Kv(stringResource(R.string.present_cid), b.cid)
         Kv(stringResource(R.string.present_issued), formatDate(b.iat))
         b.exp?.let { Kv(stringResource(R.string.present_expires), formatDate(it)) }
-        // Production chains only; testnet anchors are hidden in the client (ADR-0040).
-        b.anchors.filter { isProductionChain(it.chain) }.forEach { a ->
+        b.anchors.forEach { a ->
             Kv(stringResource(R.string.present_anchor_dash, caip2Label(a.chain)), shortHex(a.batchTxHash))
         }
-        HorizontalDivider()
-        OutlinedButton(onClick = onScanAnother) { Text(stringResource(R.string.present_scan_another)) }
-    }
-}
 
-@Composable
-private fun VerdictBody(
-    presentation: Presentation,
-    bundle: VerdictBundle,
-    onScanAnother: () -> Unit,
-) {
-    val (variant, title, icon) = when (bundle.decision) {
-        LocalVerdict.SELF_ATTESTED ->
-            Triple(BannerVariant.WARNING, stringResource(R.string.present_verdict_self_attested), Icons.Filled.GppMaybe)
-        LocalVerdict.DENY ->
-            Triple(BannerVariant.ERROR, stringResource(R.string.present_verdict_deny), Icons.Filled.GppBad)
-        LocalVerdict.GRANT ->
-            Triple(BannerVariant.SUCCESS, stringResource(R.string.present_verdict_locally_valid), Icons.Filled.GppGood)
-        LocalVerdict.UNVERIFIED ->
-            Triple(BannerVariant.SUCCESS, stringResource(R.string.present_verdict_locally_valid), Icons.Filled.GppGood)
-    }
-    // Item 7 (ADR-0054): run the holder-independent on-chain pass once per
-    // presentation. Bundled Sepolia defaults; discovery/override plugs into
-    // RegistryConfig (bundle + discover).
-    var onChain by remember(presentation.header.cid) { mutableStateOf<OnChainVerdict?>(null) }
-    var running by remember(presentation.header.cid) { mutableStateOf(false) }
-    if (bundle.decision != LocalVerdict.SELF_ATTESTED) {
-        LaunchedEffect(presentation.header.cid) {
-            running = true
-            val certId = (bundle.disclosed["cscaCertId"] as? JsonValue.Str)?.value
-            onChain = OnChainVerifier.verify(
-                RegistryConfig.SEPOLIA_DEFAULT,
-                presentation.header,
-                presentation.headerSig,
-                certId,
-            )
-            running = false
-        }
-    }
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .verticalScroll(rememberScrollState())
-            .padding(Spacing.lg),
-        verticalArrangement = Arrangement.spacedBy(Spacing.md),
-    ) {
-        // The local verdict as a colored Banner (green valid, orange
-        // self-issued, red DENY), with the verifier summary as the body.
-        Banner(
-            title = title,
-            variant = variant,
-            icon = icon,
-            body = bundle.summary,
-            modifier = Modifier.fillMaxWidth(),
-        )
-
-        if (bundle.disclosed.isNotEmpty()) {
-            HorizontalDivider()
-            SectionHeader(stringResource(R.string.present_disclosed_claims))
-            bundle.disclosed.keys.sorted().forEach { k ->
-                // Expand nested claim objects (e.g. sdnScreen) fully by default
-                // instead of collapsing to "{3 fields}" (iOS parity).
-                Kv(k, bundle.disclosed[k]?.prettyText() ?: "-")
-            }
-        }
-
-        HorizontalDivider()
-        SectionHeader(stringResource(R.string.present_credential))
-        Kv(stringResource(R.string.present_issuer), presentation.header.iss)
-        Kv(stringResource(R.string.present_schema), schemaLabel(presentation.header.schema))
-        Kv(stringResource(R.string.present_cid), presentation.header.cid)
-
-        HorizontalDivider()
-        SectionHeader(stringResource(R.string.present_local_check_matrix))
-        val c = bundle.checks
-        CheckRow("headerSigValid", c.headerSigValid)
-        CheckRow("merkleValid", c.merkleValid)
-        CheckRow("challengeSigValid", c.challengeSigValid)
-        CheckRow("timestampValid", c.timestampValid)
-        CheckRow("expiryValid", c.expiryValid)
-        CheckRow("verifierRequestValid", c.verifierRequestValid)
-
-        // Item 7 (ADR-0054): the holder confirms the chain-gated checks itself
-        // over a read-only RPC, no verifier server, so "Locally valid" is no
-        // longer conflated with "fully verified".
-        if (bundle.decision != LocalVerdict.SELF_ATTESTED) {
-            HorizontalDivider()
-            SectionHeader("Online verification (on-chain)")
-            val oc = onChain
+        ExpandableSection("Online verification (on-chain)", badgeOnchainSectionStatus(oc)) {
             when {
                 running && oc == null -> Row(
                     verticalAlignment = Alignment.CenterVertically,
@@ -454,7 +454,7 @@ private fun VerdictBody(
                 }
                 oc == null -> Unit
                 !oc.reachedChain -> Text(
-                    "Online checks pending. Could not reach the chain RPC.",
+                    "Couldn't reach the chain RPC.",
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -462,28 +462,350 @@ private fun VerdictBody(
                     OnChainRow("Issuer registered", oc.issuerRegistered)
                     OnChainRow("Not revoked", oc.notRevoked)
                     OnChainRow("Root current", oc.rootCurrent)
-                    OnChainRow("Header signature (on-chain key)", oc.headerSigValid)
                     oc.cscaProvenance?.let { OnChainRow("Passport CSCA provenance", it) }
-                    if (oc.fullyVerified) {
-                        Text(
-                            "Fully verified: issuer registered, not revoked, root current, signature valid.",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaknoonColors.success,
-                        )
-                    } else {
-                        Text(
-                            "These checks talk directly to the chain over a read-only RPC. No issuer or verifier server is involved.",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
+                }
+            }
+            Text(
+                "Checks talk directly to the chain over a read-only RPC. No issuer or verifier server is involved.",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+
+        ExpandableSection("Organisation identity (HAVID)", havidSectionStatus(havid)) {
+            HavidRow(havid)
+            Text(
+                "Confirms the issuer's real-world X.509 certificate cross-endorses its DID. A local check, no server involved.",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+
+        HorizontalDivider()
+        OutlinedButton(onClick = onScanAnother) { Text(stringResource(R.string.present_scan_another)) }
+    }
+}
+
+/** On-chain section glyph for a badge: core issuer-assurance (no headerSig). */
+private fun badgeOnchainSectionStatus(oc: OnChainVerdict?): SectionStatus {
+    if (oc == null) return SectionStatus.PENDING
+    if (!oc.reachedChain) return SectionStatus.WARN
+    val core = listOf(oc.issuerRegistered, oc.notRevoked, oc.rootCurrent)
+    if (core.any { it is OnChainTier.Fail }) return SectionStatus.FAIL
+    return if (core.all { it is OnChainTier.Pass }) SectionStatus.PASS else SectionStatus.WARN
+}
+
+@Composable
+private fun VerdictBody(
+    presentation: Presentation,
+    bundle: VerdictBundle,
+    actions: VerifyOtherActions,
+    onScanAnother: () -> Unit,
+) {
+    // Holder-independent on-chain pass + HAVID. This app IS the online verifier,
+    // so the banner reflects the full result (not just the offline crypto).
+    var onChain by remember(presentation.header.cid) { mutableStateOf<OnChainVerdict?>(null) }
+    var running by remember(presentation.header.cid) { mutableStateOf(false) }
+    var havid by remember(presentation.header.cid) { mutableStateOf<HavidResult?>(null) }
+    if (bundle.decision != LocalVerdict.SELF_ATTESTED) {
+        LaunchedEffect(presentation.header.cid) {
+            running = true
+            val certId = (bundle.disclosed["cscaCertId"] as? JsonValue.Str)?.value
+            // Identity checks on Sepolia; revocation + root on whichever chain the
+            // credential is anchored on (e.g. Base Sepolia), using the anchor's own
+            // RevocationRegistry address + that chain's RPC (ADR-0022 / ADR-0054).
+            val identityRpc = actions.chainRpcUrl("eip155:11155111")
+                ?: "https://ethereum-sepolia-rpc.publicnode.com"
+            val anchors = presentation.anchor?.anchors.orEmpty()
+            val anchor = anchors.firstOrNull { it.chain == "eip155:11155111" && actions.chainRpcUrl(it.chain) != null }
+                ?: anchors.firstOrNull { actions.chainRpcUrl(it.chain) != null }
+            onChain = OnChainVerifier.verify(
+                RegistryConfig.sepolia(identityRpc),
+                presentation.header,
+                presentation.headerSig,
+                certId,
+                anchorBatchRoot = anchor?.batchRoot,
+                anchorRPCURL = anchor?.let { actions.chainRpcUrl(it.chain) },
+                anchorRevocationRegistry = anchor?.registry,
+            )
+            running = false
+            havid = runCatching { actions.resolveHavid(presentation) }.getOrNull()
+        }
+    }
+
+    // Single combined verdict: offline crypto + on-chain + HAVID.
+    val denyTitle = stringResource(R.string.present_verdict_deny)
+    val banner: VerdictBanner = run {
+        val oc = onChain
+        when {
+            bundle.decision == LocalVerdict.DENY ->
+                VerdictBanner(BannerVariant.ERROR, denyTitle, bundle.summary, Icons.Filled.GppBad)
+            bundle.decision == LocalVerdict.SELF_ATTESTED ->
+                VerdictBanner(BannerVariant.WARNING, "Self-issued", "Self-issued by the holder, no third-party issuer.", Icons.Filled.GppMaybe)
+            oc == null ->
+                VerdictBanner(BannerVariant.INFO, "Checking on-chain…", "Cryptographic checks passed. Confirming issuer registration, revocation, and root on-chain.", Icons.Filled.GppMaybe)
+            !oc.reachedChain ->
+                VerdictBanner(BannerVariant.WARNING, "Valid on this device (offline)", "Cryptographically valid, but the chain could not be reached to confirm the issuer.", Icons.Filled.GppMaybe)
+            firstOnChainFailure(oc) != null ->
+                VerdictBanner(BannerVariant.ERROR, "Verification failed", firstOnChainFailure(oc)!!, Icons.Filled.GppBad)
+            oc.fullyVerified ->
+                VerdictBanner(
+                    BannerVariant.SUCCESS,
+                    "Fully verified",
+                    buildString {
+                        append("Registered issuer, not revoked, current root, and issuer signature valid on-chain.")
+                        if (havid?.state == HavidState.CROSS_ENDORSED) append(" Issuer certificate matches its DID.")
+                    },
+                    Icons.Filled.GppGood,
+                )
+            else ->
+                VerdictBanner(BannerVariant.WARNING, "Verified, with limits", onChainLimitsSummary(oc), Icons.Filled.GppMaybe)
+        }
+    }
+
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .verticalScroll(rememberScrollState())
+            .padding(Spacing.lg),
+        verticalArrangement = Arrangement.spacedBy(Spacing.md),
+    ) {
+        Banner(
+            title = banner.title,
+            variant = banner.variant,
+            icon = banner.icon,
+            body = banner.body,
+            modifier = Modifier.fillMaxWidth(),
+        )
+
+        // Detail lives in collapsed sections, each headed by one status glyph, so
+        // the verdict fits a screen. The banner is the answer; expand to audit.
+        if (bundle.disclosed.isNotEmpty()) {
+            // Disclosed claims are the point of the scan, so open this expanded.
+            ExpandableSection("Disclosed claims (${bundle.disclosed.size})", SectionStatus.NEUTRAL, initiallyExpanded = true) {
+                bundle.disclosed.keys.sorted().forEach { k ->
+                    Kv(k, bundle.disclosed[k]?.prettyText() ?: "-")
+                }
+            }
+        }
+
+        ExpandableSection(stringResource(R.string.present_credential), SectionStatus.NEUTRAL) {
+            Kv(stringResource(R.string.present_issuer), presentation.header.iss)
+            Kv(stringResource(R.string.present_schema), schemaLabel(presentation.header.schema))
+            Kv(stringResource(R.string.present_cid), presentation.header.cid)
+        }
+
+        ExpandableSection("Cryptographic checks", cryptoSectionStatus(bundle)) {
+            val c = bundle.checks
+            // Issuer-bound header signature is verified in the online tier; shown
+            // here only for self-attested (holder key, offline).
+            if (bundle.decision == LocalVerdict.SELF_ATTESTED) CheckRow("headerSigValid", c.headerSigValid)
+            CheckRow("merkleValid", c.merkleValid)
+            CheckRow("challengeSigValid", c.challengeSigValid)
+            CheckRow("timestampValid", c.timestampValid)
+            CheckRow("expiryValid", c.expiryValid)
+            // verifierRequestValid omitted: the open flow sends no verifier request.
+        }
+
+        if (bundle.decision != LocalVerdict.SELF_ATTESTED) {
+            ExpandableSection("Online verification (on-chain)", onchainSectionStatus(onChain)) {
+                val oc = onChain
+                when {
+                    running && oc == null -> Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+                    ) {
+                        CircularProgressIndicator(modifier = Modifier.size(18.dp), strokeWidth = 2.dp)
+                        Text("Checking on-chain…", style = MaterialTheme.typography.bodyMedium)
+                    }
+                    oc == null -> Unit
+                    !oc.reachedChain -> Text(
+                        "Couldn't reach the chain RPC.",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                    else -> {
+                        OnChainRow("Issuer registered", oc.issuerRegistered)
+                        OnChainRow("Not revoked", oc.notRevoked)
+                        OnChainRow("Root current", oc.rootCurrent)
+                        OnChainRow("Header signature (on-chain key)", oc.headerSigValid)
+                        oc.cscaProvenance?.let { OnChainRow("Passport CSCA provenance", it) }
                     }
                 }
+                Text(
+                    "Checks talk directly to the chain over a read-only RPC. No issuer or verifier server is involved.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+
+            ExpandableSection("Organisation identity (HAVID)", havidSectionStatus(havid)) {
+                HavidRow(havid)
+                Text(
+                    "Confirms the issuer's real-world X.509 certificate cross-endorses its DID. A local check, no server involved.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
             }
         }
 
         HorizontalDivider()
         OutlinedButton(onClick = onScanAnother) { Text(stringResource(R.string.present_scan_another)) }
     }
+}
+
+/** HAVID cross-endorsement tier (ADR-0051). */
+@Composable
+private fun HavidRow(havid: HavidResult?) {
+    if (havid == null) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+        ) {
+            CircularProgressIndicator(modifier = Modifier.size(18.dp), strokeWidth = 2.dp)
+            Text("Checking issuer certificate…", style = MaterialTheme.typography.bodyMedium)
+        }
+        return
+    }
+    when (havid.state) {
+        HavidState.CROSS_ENDORSED -> {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+            ) {
+                Icon(Icons.Filled.GppGood, contentDescription = "matched", tint = MaknoonColors.success)
+                Text("Issuer certificate matched", style = MaterialTheme.typography.bodyMedium, color = MaknoonColors.success)
+            }
+            havid.subject?.takeIf { it.isNotEmpty() }?.let { Kv("Certificate subject", it) }
+        }
+        HavidState.KEY_ALIGNMENT_FAILURE, HavidState.INTEGRITY_FAILURE, HavidState.EXPIRED_REVOKED ->
+            Text(
+                havid.detail ?: "Issuer certificate does not match the DID",
+                style = MaterialTheme.typography.bodyMedium,
+                color = TrustRed,
+            )
+        HavidState.NO_ENDORSEMENT ->
+            Text(
+                "This issuer publishes no X.509 organisational certificate.",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        HavidState.NOT_RESOLVABLE ->
+            Text(
+                havid.detail ?: "Issuer identity could not be resolved.",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+    }
+}
+
+/** Per-section roll-up shown as one glyph on the collapsed header. */
+private enum class SectionStatus { PASS, FAIL, WARN, NEUTRAL, PENDING }
+
+private fun cryptoSectionStatus(bundle: VerdictBundle): SectionStatus {
+    val c = bundle.checks
+    val checks = buildList {
+        if (bundle.decision == LocalVerdict.SELF_ATTESTED) add(c.headerSigValid)
+        add(c.merkleValid); add(c.challengeSigValid); add(c.timestampValid)
+        add(c.expiryValid) // verifierRequestValid omitted (no request in open flow)
+    }
+    if (checks.any { it is LocalCheckResult.Fail }) return SectionStatus.FAIL
+    return if (checks.all { it is LocalCheckResult.Pass || it is LocalCheckResult.NotApplicable }) {
+        SectionStatus.PASS
+    } else {
+        SectionStatus.WARN
+    }
+}
+
+private fun onchainSectionStatus(oc: OnChainVerdict?): SectionStatus {
+    if (oc == null) return SectionStatus.PENDING
+    if (!oc.reachedChain) return SectionStatus.WARN
+    val tiers = listOf(oc.issuerRegistered, oc.notRevoked, oc.rootCurrent, oc.headerSigValid) +
+        listOfNotNull(oc.cscaProvenance)
+    if (tiers.any { it is OnChainTier.Fail }) return SectionStatus.FAIL
+    return if (oc.fullyVerified) SectionStatus.PASS else SectionStatus.WARN
+}
+
+private fun havidSectionStatus(havid: HavidResult?): SectionStatus = when (havid?.state) {
+    null -> SectionStatus.PENDING
+    HavidState.CROSS_ENDORSED -> SectionStatus.PASS
+    HavidState.KEY_ALIGNMENT_FAILURE, HavidState.INTEGRITY_FAILURE, HavidState.EXPIRED_REVOKED -> SectionStatus.FAIL
+    HavidState.NO_ENDORSEMENT, HavidState.NOT_RESOLVABLE -> SectionStatus.NEUTRAL
+}
+
+/** A collapsible detail section headed by its name + one pass/fail glyph. */
+@Composable
+private fun ExpandableSection(
+    title: String,
+    status: SectionStatus,
+    initiallyExpanded: Boolean = false,
+    content: @Composable ColumnScope.() -> Unit,
+) {
+    var expanded by rememberSaveable(title) { mutableStateOf(initiallyExpanded) }
+    HorizontalDivider()
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable { expanded = !expanded }
+            .padding(vertical = Spacing.sm),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+    ) {
+        Text(title, style = MaterialTheme.typography.titleSmall, modifier = Modifier.weight(1f))
+        when (status) {
+            SectionStatus.PASS -> Icon(Icons.Filled.GppGood, "verified", tint = MaknoonColors.success, modifier = Modifier.size(20.dp))
+            SectionStatus.FAIL -> Icon(Icons.Filled.GppBad, "failed", tint = TrustRed, modifier = Modifier.size(20.dp))
+            SectionStatus.WARN -> Icon(Icons.Filled.GppMaybe, "incomplete", tint = MaknoonColors.warning, modifier = Modifier.size(20.dp))
+            SectionStatus.PENDING -> CircularProgressIndicator(modifier = Modifier.size(16.dp), strokeWidth = 2.dp)
+            SectionStatus.NEUTRAL -> Unit
+        }
+        Icon(
+            if (expanded) Icons.Filled.KeyboardArrowUp else Icons.Filled.KeyboardArrowDown,
+            contentDescription = if (expanded) "Collapse" else "Expand",
+            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+    }
+    if (expanded) {
+        Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) { content() }
+    }
+}
+
+/** Combined top-line verdict (offline crypto + on-chain + HAVID). */
+private data class VerdictBanner(
+    val variant: BannerVariant,
+    val title: String,
+    val body: String,
+    val icon: androidx.compose.ui.graphics.vector.ImageVector,
+)
+
+/** First genuine on-chain FAILURE reason, or null when nothing failed (some
+ *  checks may still be "unknown"/unavailable, which is not a failure). */
+private fun firstOnChainFailure(oc: OnChainVerdict): String? {
+    val tiers = listOf(oc.issuerRegistered, oc.notRevoked, oc.rootCurrent, oc.headerSigValid) +
+        listOfNotNull(oc.cscaProvenance)
+    for (t in tiers) if (t is OnChainTier.Fail) return t.reason
+    return null
+}
+
+/** Summary for the "verified but not everything could be confirmed" case. */
+private fun onChainLimitsSummary(oc: OnChainVerdict): String {
+    val confirmed = mutableListOf<String>()
+    val couldNot = mutableListOf<String>()
+    fun note(name: String, t: OnChainTier) {
+        when (t) {
+            is OnChainTier.Pass -> confirmed.add(name)
+            is OnChainTier.Unknown -> couldNot.add(name)
+            else -> {}
+        }
+    }
+    note("registration", oc.issuerRegistered)
+    note("revocation", oc.notRevoked)
+    note("signature", oc.headerSigValid)
+    note("anchor freshness", oc.rootCurrent)
+    return buildString {
+        if (confirmed.isNotEmpty()) append("Confirmed on-chain: ${confirmed.joinToString(", ")}. ")
+        if (couldNot.isNotEmpty()) append("Couldn't confirm: ${couldNot.joinToString(", ")}.")
+    }.ifEmpty { "Some on-chain checks couldn't be completed." }
 }
 
 /** One on-chain check tier row (item 7). */
@@ -565,9 +887,24 @@ private fun CheckRow(name: String, result: LocalCheckResult) {
     }
 }
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun Kv(key: String, value: String) {
-    Column(modifier = Modifier.fillMaxWidth()) {
+    val clipboard = LocalClipboardManager.current
+    val context = LocalContext.current
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            // Long-press any field (disclosed claim, issuer, schema, CID) to copy
+            // its full value to the clipboard.
+            .combinedClickable(
+                onClick = {},
+                onLongClick = {
+                    clipboard.setText(AnnotatedString(value))
+                    Toast.makeText(context, context.getString(R.string.settings_copied), Toast.LENGTH_SHORT).show()
+                },
+            ),
+    ) {
         Text(key, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
         Text(value, style = MaterialTheme.typography.bodyMedium, fontFamily = FontFamily.Monospace)
     }
@@ -579,21 +916,23 @@ private fun Kv(key: String, value: String) {
 
 private fun parseBadge(o: JSONObject): BadgeView {
     val anchorsArr = o.optJSONArray("anchors")
+    fun anchor(a: JSONObject) = BadgeAnchorView(
+        chain = a.optString("chain", ""),
+        batchTxHash = a.optString("batchTxHash", ""),
+        batchRoot = a.optString("batchRoot", ""),
+        registry = a.optStr("registry"),
+    )
     val anchors = when {
         anchorsArr != null -> (0 until anchorsArr.length()).mapNotNull { i ->
-            anchorsArr.optJSONObject(i)?.let { a ->
-                BadgeAnchorView(a.optString("chain", ""), a.optString("batchTxHash", ""))
-            }
+            anchorsArr.optJSONObject(i)?.let { anchor(it) }
         }
         // Back-compat: a single legacy `anchor` field.
-        o.optJSONObject("anchor") != null -> {
-            val a = o.getJSONObject("anchor")
-            listOf(BadgeAnchorView(a.optString("chain", ""), a.optString("batchTxHash", "")))
-        }
+        o.optJSONObject("anchor") != null -> listOf(anchor(o.getJSONObject("anchor")))
         else -> emptyList()
     }
     return BadgeView(
         iss = o.optString("iss", ""),
+        cid = o.optString("cid", ""),
         schema = o.optString("schema", ""),
         iat = o.optLong("iat", 0L),
         exp = if (o.has("exp") && !o.isNull("exp")) o.optLong("exp") else null,

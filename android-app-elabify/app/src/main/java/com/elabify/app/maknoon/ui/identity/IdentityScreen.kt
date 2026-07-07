@@ -544,6 +544,39 @@ fun IdentityScreen(
 
                     override fun verifyOffline(presentation: Presentation): VerdictBundle =
                         PresentationVerifier.verifyOffline(presentation)
+
+                    override suspend fun resolveHavid(
+                        presentation: Presentation,
+                    ): com.elabify.musnad.present.HavidResult {
+                        // Probe the known-issuer hosts for the signed well-known doc
+                        // that carries the HAVID X.509 cross-endorsement (ADR-0051).
+                        val bases = knownIssuers.hosts.mapNotNull { knownIssuers.outboundBaseUrl(it) }
+                        return com.elabify.musnad.present.HavidVerifier.verify(
+                            candidateBaseUrls = bases,
+                            header = presentation.header,
+                            headerSig = presentation.headerSig,
+                        )
+                    }
+
+                    override suspend fun resolveHavidReference(
+                        did: String,
+                        issuerPubkey: ByteArray?,
+                    ): com.elabify.musnad.present.HavidResult {
+                        val bases = knownIssuers.hosts.mapNotNull { knownIssuers.outboundBaseUrl(it) }
+                        return com.elabify.musnad.present.HavidVerifier.verifyReference(
+                            candidateBaseUrls = bases,
+                            did = did,
+                            issuerPubkey = issuerPubkey,
+                        )
+                    }
+
+                    override fun chainRpcUrl(caip2: String): String? {
+                        val chainId = caip2.removePrefix("eip155:").toLongOrNull() ?: return null
+                        val net = com.elabify.musnad.wallet.ethereum.EthereumNetwork.fromChainId(chainId)
+                            ?: return null
+                        return com.elabify.app.maknoon.ui.wallet.ethereum.EthereumStores
+                            .settings(context).rpcURL(net)
+                    }
                 }
             }
             VerifyOtherSheet(actions = verifyActions, onClose = { route = IdentityRoute.Hub })

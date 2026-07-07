@@ -1,20 +1,19 @@
 # Elabify for Android, Privacy Policy
 
 **Effective date**: 2026-05-25
-**Applies to**: the Elabify Android application (the M5b super-app, Android counterpart to Maknoon for iOS)
-**Status**: Application is pre-release. Specification is complete; an implementation is in progress per [`README.md`](README.md).
+**Applies to**: the Maknoon Android application (the Android counterpart to Maknoon for iOS)
 **Publisher**: Elabify
 
-Elabify on Android is a self-custodial holder app. It is the Android reference surface for the Musnad post-quantum identity stack and surfaces the same wallet, presentation, issuance, and marketplace flows as the iOS counterpart. This document describes what data the app handles, where that data lives, and what (very little) leaves your device.
+Elabify on Android is a self-custodial holder app. It is the Android reference surface for the Musnad post-quantum identity stack and surfaces the same wallet, presentation, issuance, and mini-app flows as the iOS counterpart. This document describes what data the app handles, where that data lives, and what (very little) leaves your device.
 
-For the project-wide privacy stance, see [`/PRIVACY.md`](https://musnad.elabify.com/privacy) at the repository root. This document is the Android-app overlay.
+This document is the Maknoon Android app's privacy policy.
 
 ---
 
 ## 1. Plain-language summary
 
-1. Elabify on Android does **not** ship analytics, crash reporting, advertising SDKs, attribution SDKs, or any third-party telemetry. There is no Firebase, no Crashlytics, no Sentry, no Mixpanel, no Amplitude. The dependency floor is documented in [`README.md`](README.md) §3.
-2. Identity material (Trezor delegations, ML-DSA-65 signing keys, FIDO2 wrap material, BIP39 entropy) lives only inside `MusnadSDK` on the device. Wallet keys live in the platform Keystore behind biometric authentication. None of this leaves the phone.
+1. Elabify on Android does **not** ship analytics, crash reporting, advertising SDKs, attribution SDKs, or any third-party telemetry. There is no Firebase, no Crashlytics, no Sentry, no Mixpanel, no Amplitude. The dependency floor is documented in [`README.md`](README.md).
+2. Identity material (Trezor delegations, ML-DSA-65 signing keys, FIDO2 wrap material, BIP39 entropy) lives only inside `musnad-sdk` on the device. Wallet keys live in the platform Keystore behind biometric authentication. None of this leaves the phone.
 3. When you broadcast a Bitcoin or Ethereum transaction, that transaction is published to the relevant public blockchain by definition. That is a property of the blockchains.
 4. Elabify talks to a small set of public endpoints (mempool.space or equivalent, a configured Ethereum RPC, optionally an issuer or verifier you choose to scan a QR for or open a deep link to). It does not phone home to any Elabify service for telemetry.
 5. `android:allowBackup="false"` is set on the manifest; SDK-side data is additionally excluded via `backup_rules.xml`. Uninstalling the app removes all app-local storage.
@@ -30,25 +29,25 @@ For the project-wide privacy stance, see [`/PRIVACY.md`](https://musnad.elabify.
 - FIDO2 credential identifiers for any YubiKey enrolled in the Identity Sandwich, when present.
 - Trezor-signed delegation certificates and the resulting ephemeral keys (default 24 h lifetime, max 7 days).
 
-All of the above are stored exclusively in Android Keystore-backed storage inside `MusnadSDK`. Access is gated by `BiometricPrompt` via `AndroidX Biometric`. The hardware-backed StrongBox or TEE wraps the items where the platform supports it. None of these values are transmitted anywhere by Elabify.
+All of the above are stored exclusively in Android Keystore-backed storage inside `musnad-sdk`. Access is gated by `BiometricPrompt` via `AndroidX Biometric`. The hardware-backed StrongBox or TEE wraps the items where the platform supports it. None of these values are transmitted anywhere by Elabify.
 
 ### 2.2 Wallet and credential metadata (local persistence)
 - The list of wallets and credentials you have created, imported, or received.
 - Your chosen labels for wallets, addresses, and outputs.
 - The registry of hardware devices you have paired (kind, serial, label, BLE peripheral UUID for BLE devices).
 - Cached credential records you have received from issuers. The encrypted PII envelope inside each credential remains encrypted at rest.
-- DataStore Preferences for non-sensitive user prefs only: selected mode (Trezor or software), language, "show on-chain status by default", "show marketplace demos". Documented in [`README.md`](README.md) §10.
+- DataStore Preferences for non-sensitive user prefs only: selected mode (Trezor or software), language, "show on-chain status by default", "show beta apps". Documented in [`README.md`](README.md).
 
 This metadata lives in app-private storage under the SDK's data root and is excluded from auto-backup.
 
 ### 2.3 Diagnostic logs
-The SDK keeps a small in-process ring buffer for troubleshooting. The buffer never records credential plaintext, claim values, private keys, or wrap material; the CI lint enforces this rule (see [`README.md`](README.md) §9, "No `Log.d / Log.e` of Credential, Claims, Delegation types"). A "Share diagnostics" affordance lets you send the buffer to support yourself; Elabify never uploads it on your behalf.
+The SDK keeps a small in-process ring buffer for troubleshooting. The buffer never records credential plaintext, claim values, private keys, or wrap material; the CI lint enforces this rule (see [`README.md`](README.md), "No `Log.d / Log.e` of Credential, Claims, Delegation types"). A "Share diagnostics" affordance lets you send the buffer to support yourself; Elabify never uploads it on your behalf.
 
 ---
 
 ## 3. Network endpoints Elabify contacts
 
-Elabify makes outbound network calls only in response to a user action. All network calls go through `MusnadSDK`'s pinned HTTP client; app code does not open arbitrary sockets (enforced by CI lint per [`README.md`](README.md) §9).
+Elabify makes outbound network calls only in response to a user action. All network calls go through `musnad-sdk`'s pinned HTTP client; app code does not open arbitrary sockets (enforced by CI lint per [`README.md`](README.md)).
 
 | Purpose | Default endpoint | What is sent |
 |---|---|---|
@@ -59,7 +58,7 @@ Elabify makes outbound network calls only in response to a user action. All netw
 
 Elabify does not contact any Elabify-operated telemetry, analytics, crash-report, attribution, or feature-flag endpoint. There is no such endpoint to contact.
 
-Deep links and intents pointing at hosts outside the configured allowlist are classified as `MusnadDeepLink.Unknown` by the SDK and ignored with a Snackbar; Elabify never hand-parses URIs for cryptographic consumers ([`README.md`](README.md) §7).
+Deep links and intents pointing at hosts outside the configured allowlist are classified as unknown by the SDK and ignored; the app never hand-parses URIs for cryptographic consumers.
 
 ---
 
@@ -133,7 +132,7 @@ The Play Store Data Safety form is filled out as follows when this app is publis
 - **Encryption in transit**: yes (TLS 1.3 with pinned fingerprints).
 - **User can request data deletion**: trivially, by uninstalling. There is no server-side dataset to delete because Elabify does not run a server-side dataset.
 
-The Data Safety form is regenerated from this file and the SDK's privacy contribution at every release; see [`README.md`](README.md) §11.
+The Data Safety form is regenerated from this file and the SDK's privacy contribution at every release; see [`README.md`](README.md).
 
 ---
 

@@ -1,9 +1,8 @@
-# android-sdk-musnad (M5a)
+# android-sdk-musnad
 
-**Component**: Embeddable Android SDK for post-quantum identity custody and selective disclosure
-**Milestone**: M5a (mirrors `ios-sdk-musnad` after iOS ships)
-**Status**: Spec complete · not implemented
-**Owner**: TBD
+**Component**: Embeddable Android SDK for post-quantum identity custody, selective disclosure, multi-chain wallets, and hardware-wallet signing
+**Status**: Implemented. Consumed by the Maknoon Android app (`android-app-elabify`) as a composite `includeBuild`.
+**Hard constraint**: GMS-free (GrapheneOS-compatible).
 
 ---
 
@@ -14,15 +13,29 @@
 - **The Elabify Android super-app** (`android-app-elabify`): the reference consumer surface.
 - **Third-party host apps**: banks, exchanges, custodians who want post-quantum identity custody and selective disclosure inside their Android app.
 
-The SDK is **trust-critical**. Every byte of long-term key material, every ML-DSA signature, every selective-disclosure presentation passes through this code. The architectural separation is recorded in ADR-0016 (internal design doc, not published). Read that ADR before changing the SDK/host boundary.
+The SDK is **trust-critical**. Every byte of long-term key material, every ML-DSA signature, every selective-disclosure presentation passes through this code. Keep the SDK/host boundary intact: the host renders, the SDK enforces.
 
 The Android SDK aims for behavioural parity with the iOS SDK at the wire level. Cross-platform tests exercise the same KAT vectors and present-then-verify flows on both platforms; a credential issued on iOS MUST be readable on Android, and vice versa.
 
 ---
 
-## 2. Scope: same as iOS SDK
+## 2. Scope
 
-The "what is in the SDK and what is not" matrix from `the Musnad iOS SDK` §2 applies verbatim. The Kotlin API in §4 below is the line-by-line peer of the Swift API in `the Musnad iOS SDK` §4.
+The SDK covers post-quantum identity (ML-DSA-65 credentials, selective
+disclosure, the Identity Sandwich second factor), multi-chain wallets, and
+hardware-wallet signing. Concretely:
+
+- **Wallet chains**: Bitcoin (BDK), Ethereum and EVM chains (WalletCore, incl.
+  Base + the Sepolia / Base Sepolia testnets), Solana, Tron, and Lightning
+  (LND-hub custodial accounts).
+- **Hardware wallets**: Ledger (BLE) and Trezor (USB-OTG preferred, BLE fallback,
+  WebUSB-relay), both across all four chains, with hidden (passphrase) wallets and
+  custom / alternative derivation paths (`setDerivationPathOverride`).
+- **Holder-side verification**: offline credential checks plus holder-independent
+  on-chain verification and HAVID (see the app README).
+
+Wire-format parity with iOS is exact: the same KAT corpus and present-then-verify
+flows run on both platforms; a credential issued for one is readable on the other.
 
 ---
 
@@ -36,11 +49,12 @@ The "what is in the SDK and what is not" matrix from `the Musnad iOS SDK` §2 ap
 | Module | `com.elabify.musnad:musnad-sdk` | Gradle coordinates |
 | Language | Kotlin 2.0+ with Coroutines + Flow | Standard for new Android |
 | UI | Jetpack Compose 1.7+ | Modern declarative; UIKit-equivalent of SwiftUI for view modifiers |
-| PQ crypto | PQClean compiled to `.so` for `arm64-v8a`, `x86_64`; loaded via JNI | Audited reference implementation; matches iOS |
-| Hash + Merkle + canonical JSON | `com.elabify:elabify-core-android` (pure Kotlin AAR from M0) | Cross-impl parity via the frozen JSON KAT corpus; see ADR-0017 (internal design doc, not published) |
+| PQ crypto | `pq-crypto-rs` (pure-Rust RustCrypto ML-DSA-65 + X-Wing) as an AAR via JNI | Byte-exact with iOS CryptoKit via the shared KAT corpus (PQClean was dropped) |
+| Hash + Merkle + canonical JSON | `com.elabify:elabify-core-android` (pure Kotlin AAR) | Cross-impl parity via the frozen JSON KAT corpus (TypeScript is canonical) |
 | Local DB | Room with SQLCipher (AES-256-CBC by default) | Encrypted at rest; well-audited |
 | Networking | OkHttp 4.x with `CertificatePinner` | De-facto Android standard; canonical pinning API |
-| Trezor comm | USB Host API (USB-OTG), WebUSB-relay over WebSocket; BLE via `BluetoothLeScanner` | See §5 |
+| Trezor comm | USB Host API (USB-OTG), WebUSB-relay over WebSocket; BLE via `BluetoothLeScanner`; THP v2 in `trezor-core` | See §5 |
+| Ledger comm | BLE (`ledger-btc/eth/sol/tron-core.aar`) | See §5 |
 | OCR | ML Kit on-device text recognition + CameraX | On-device, no Google Cloud calls |
 | Biometrics | `androidx.biometric:biometric` (BiometricPrompt) | Standard, Class 3 (Strong) required |
 | Background work | `androidx.work` (WorkManager) for scheduled status refresh | Standard |
@@ -62,7 +76,7 @@ If a partner needs to ship on a lower floor, the conversation is "use a fork" or
 
 - No Firebase, no Crashlytics, no Mixpanel, no Sentry, no third-party analytics; ever.
 - No Google Play Services-only code paths beyond what's required for biometric attestation and (optionally) ML Kit's on-device models. The SDK works on AOSP and de-Googled devices for the credential / presentation core; only the OCR feature requires Play Services on devices without ML Kit's on-device shipping module.
-- No closed-source AAR dependencies. `elabify-core-android` is a pure-Kotlin AAR (no native code, no `.so`); the only native library shipped is `pqclean.so` (audited PQClean C source, JNI-loaded).
+- No closed-source AAR dependencies. `elabify-core-android` is a pure-Kotlin AAR (no native code, no `.so`); the PQ crypto native library is `pq-crypto-rs` (pure-Rust RustCrypto, JNI-loaded).
 - No cross-platform abstraction (React Native, Flutter, KMM-shared UI) inside the SDK.
 
 A host app may have all of those things in its own code. The SDK's dependency surface is what banks have to vet.
@@ -222,7 +236,7 @@ Hosts forward incoming intents (`Intent.ACTION_VIEW` data URIs) to `classify(...
 
 ## 5. Identity Sandwich on Android
 
-Re-stated for SDK implementers; design rationale is in ADR-0005 (internal design doc, not published).
+Re-stated for SDK implementers.
 
 ### 5.1 Key roles
 
@@ -344,7 +358,7 @@ class PinnedHttpClient(pins: Map<String, Set<ByteArray>>) {
 }
 ```
 
-OkHttp's standard `CertificatePinner` uses SHA-256 over SPKI; the SDK extends it with an RPO-256 pin format for parity with iOS. The custom pin format is implemented via an `Interceptor` that runs after TLS handshake and verifies the pin against the negotiated cert pubkey using `ElabifyCore.rpo256` from the M0 Kotlin port.
+OkHttp's standard `CertificatePinner` uses SHA-256 over SPKI; the SDK extends it with an RPO-256 pin format for parity with iOS. The custom pin format is implemented via an `Interceptor` that runs after TLS handshake and verifies the pin against the negotiated cert pubkey using `ElabifyCore.rpo256`.
 
 Pin rotation requires either an SDK update or a signed configuration fetched at first launch (host opt-in).
 
@@ -358,7 +372,7 @@ Same as iOS SDK §7.3: lazy, cached, no per-launch beaconing.
 
 ### 8.1 Room schema (SDK-internal)
 
-The SDK owns and manages its own SQLite database (via Room with SQLCipher encryption) inside the SDK's app-private data directory. Hosts do NOT see this schema. Entities mirror the wire-format objects (Credential, Delegation, IssuerMetadata); see `the wire-format spec` (internal design doc, not published).
+The SDK owns and manages its own SQLite database (via Room with SQLCipher encryption) inside the SDK's app-private data directory. Hosts do NOT see this schema. Entities mirror the wire-format objects (Credential, Delegation, IssuerMetadata).
 
 ### 8.2 Encryption at rest
 
@@ -459,7 +473,7 @@ dependencies {
 }
 ```
 
-The artifact transitively pulls `com.elabify:elabify-core-android` (pure Kotlin, no native code) and bundles `pqclean.so` for `arm64-v8a` and `x86_64`. 32-bit ABIs (`armeabi-v7a`) are NOT shipped; they are below the SDK's modern-device floor.
+The artifact transitively pulls `com.elabify:elabify-core-android` (pure Kotlin, no native code) and the `pq-crypto-rs` native library for `arm64-v8a`. 32-bit ABIs (`armeabi-v7a`) are NOT shipped; they are below the SDK's modern-device floor.
 
 ### 11.2 Versioning
 
@@ -468,7 +482,7 @@ Pre-1.0: any release MAY break compatibility. Pin to exact version.
 1.0+: semver. Major bump for any change in:
 - Public API surface (§4)
 - Trust contract (§6)
-- Wire formats (those follow `the wire-format spec` versioning)
+- Wire formats (versioned independently of the SDK)
 - Minimum SDK version
 - ABI list
 
@@ -507,38 +521,22 @@ The SDK ships a Data Safety contribution document (`PRIVACY.md` inside the AAR's
 
 ---
 
-## 14. Implementation checklist (M5a ship)
+## 14. Status
 
-- [ ] Min SDK 33, target latest stable.
-- [ ] All public APIs in §4 implemented.
-- [ ] PQClean compiled to native `.so` and integrated via JNI.
-- [ ] `com.elabify:elabify-core-android` (pure Kotlin port from M0) integrated; cross-impl KAT vectors pass against the M0 frozen corpus alongside iOS and Node.
-- [ ] Identity Sandwich implemented per §5; both Track A and Track B feature-flagged.
-- [ ] StrongBox detection; TEE fallback with warning; software-only refused except in dev mode.
-- [ ] Trezor integration via USB Host, BLE, WebUSB-relay.
-- [ ] `FLAG_SECURE` enforced inside `PresentationApprovalScreen`.
-- [ ] Cert pinning on all SDK HTTP via `PinnedHttpClient`.
-- [ ] No third-party SDKs (CI lint).
-- [ ] Room with SQLCipher for at-rest encryption.
-- [ ] Emirates ID OCR via ML Kit on-device.
-- [ ] BiometricPrompt (Class 3) gating sensitive operations.
-- [ ] Cross-platform interop tests with iOS SDK green.
-- [ ] All performance budgets met on Pixel 7-class hardware.
+Implemented and consumed by the Maknoon Android app as a composite `includeBuild`.
 
-After M5a ships, M5b (`android-app-elabify`) builds against the released SDK artifact.
-
----
-
-## 15. What this AI agent is allowed to assume
-
-- `com.elabify:elabify-core-android` (pure Kotlin port from M0) is published to Maven Central and exposes the API in [`elabify-core/README.md`](../elabify-core/README.md) §4.3.
-- PQClean is wrapped in a `pqclean-android` native library producing the same ML-DSA-65 / ML-KEM-768 outputs as the iOS `SwiftPQCrypto` and Node `@noble/post-quantum` for the same inputs.
-- Backend services (issuer, verifier) implement the wire formats per `the wire-format spec` (internal design doc, not published).
-- API 33+ is the minimum target; older devices not supported.
-- A Trezor with FIPS-204 firmware exists in the hands of testers, OR the agent uses a Trezor mock and labels Track B "coming soon".
-- The user has enrolled a Class 3 biometric at OS level.
-
-If Trezor firmware lacks FIPS-204 support during development, the agent ships Track A (software-only) first and surfaces Track B as a coming-soon mode at runtime. See ADR-0005 (internal design doc, not published).
+- Post-quantum crypto is `pq-crypto-rs` (RustCrypto ML-DSA-65 + X-Wing via JNI),
+  byte-exact with iOS CryptoKit and the TypeScript reference through the shared
+  KAT corpus.
+- Canonical JSON / hashing / Merkle come from the pure-Kotlin `elabify-core`
+  binding, held equal to the other platforms by that corpus.
+- Identity Sandwich supports both software-backed and hardware-backed modes
+  (Ledger, Trezor, YubiKey).
+- At-rest encryption via Room + SQLCipher; certificate pinning on all SDK HTTP;
+  `FLAG_SECURE` on the presentation approval surface; Class 3 BiometricPrompt
+  gating sensitive operations.
+- Cross-platform interop with the iOS SDK is verified against the same wire
+  formats.
 
 ---
 

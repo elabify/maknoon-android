@@ -96,6 +96,8 @@ internal fun attrValue(parsed: ParsedCredential?, key: String): String {
     return value.displayText()
 }
 
-/** Null-safe org.json string accessor (used by the badge parser). */
+/** Null-safe org.json string accessor (used by the badge parser). getString
+ *  (guarded) rather than optString(_, null), which K2 flags for passing the null
+ *  literal to a non-null Java param (KT-73255). */
 internal fun JSONObject.optStr(key: String): String? =
-    if (has(key) && !isNull(key)) optString(key, null) else null
+    if (has(key) && !isNull(key)) getString(key) else null
