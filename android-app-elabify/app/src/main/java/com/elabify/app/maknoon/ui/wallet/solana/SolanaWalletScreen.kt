@@ -13,7 +13,9 @@ package com.elabify.app.maknoon.ui.wallet.solana
 
 import android.content.Intent
 import android.net.Uri
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -35,6 +37,8 @@ import androidx.compose.material.icons.filled.Error
 import androidx.compose.material.icons.filled.Inbox
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -53,8 +57,10 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -208,7 +214,7 @@ private data class DashboardData(
     val recent: List<SolanaRPCClient.SignatureRecord>,
 )
 
-@OptIn(ExperimentalLayoutApi::class)
+@OptIn(ExperimentalLayoutApi::class, ExperimentalFoundationApi::class)
 @Composable
 private fun SolanaDashboard(
     reloadKey: Int,
@@ -227,6 +233,8 @@ private fun SolanaDashboard(
 ) {
     val context = LocalContext.current
     val env = remember { SolanaEnv.get(context) }
+    val clipboard = LocalClipboardManager.current
+    var menuMint by remember { mutableStateOf<String?>(null) }
 
     var data by remember { mutableStateOf<DashboardData?>(null) }
     var busy by remember { mutableStateOf(true) }
@@ -431,7 +439,10 @@ private fun SolanaDashboard(
                         Surface(
                             shape = RoundedCornerShape(Radii.md),
                             color = MaterialTheme.colorScheme.surfaceVariant,
-                            modifier = Modifier.fillMaxWidth().clickable { onTokenDetail(token.mint) },
+                            modifier = Modifier.fillMaxWidth().combinedClickable(
+                                onClick = { onTokenDetail(token.mint) },
+                                onLongClick = { menuMint = token.mint },
+                            ),
                         ) {
                             Row(Modifier.fillMaxWidth().padding(Spacing.lg), horizontalArrangement = Arrangement.SpaceBetween) {
                                 Column {
@@ -439,6 +450,27 @@ private fun SolanaDashboard(
                                     Text(token.name, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                                 }
                                 Text(token.format(raw), style = MaterialTheme.typography.titleSmall)
+                                // Long-press the row for a context menu (parity with iOS).
+                                DropdownMenu(expanded = menuMint == token.mint, onDismissRequest = { menuMint = null }) {
+                                    DropdownMenuItem(
+                                        text = { Text(stringResource(R.string.eth_copy_address)) },
+                                        onClick = {
+                                            clipboard.setText(AnnotatedString(token.mint))
+                                            menuMint = null
+                                        },
+                                    )
+                                    DropdownMenuItem(
+                                        text = { Text(stringResource(R.string.common_remove)) },
+                                        onClick = {
+                                            // Network-wide remove (SPL tokens are not wallet-scoped),
+                                            // mirroring iOS; drop it from the shown list locally so no
+                                            // network reload runs (which could re-add a held token).
+                                            env.tokenStore.remove(token)
+                                            data = data?.let { cur -> cur.copy(tokens = cur.tokens.filterNot { it.first.id == token.id }) }
+                                            menuMint = null
+                                        },
+                                    )
+                                }
                             }
                         }
                     }

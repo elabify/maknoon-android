@@ -68,6 +68,30 @@ object MiniAppCapabilityRegistry {
             reason = "Make a payment to a receiving address.",
             icon = "CreditCard",
         ),
+        // Hierarchical per-network wallet capabilities (ADR-0057). The dotted
+        // token is wallet.<network>.<capability>; granularity is per-network
+        // (Ethereum covers all EVM chains). read is INSTALL (silent RPC reads +
+        // connect + chain switch); write/sign are PER_USE (a native approval
+        // sheet runs each time). Bitcoin/Solana are reserved by the ADR.
+        "wallet.ethereum.read" to MiniAppCapabilitySpec(
+            token = "wallet.ethereum.read", tier = CapabilityTier.INSTALL,
+            label = "Ethereum: Network Access",
+            reason = "Read Ethereum network state (balances, gas, contract reads) and switch chains.",
+            icon = "Lan",
+        ),
+        "wallet.ethereum.write" to MiniAppCapabilitySpec(
+            token = "wallet.ethereum.write", tier = CapabilityTier.PER_USE,
+            label = "Ethereum: Write Transactions",
+            reason = "Submit Ethereum transactions from your wallet. You approve each one.",
+            icon = "Send",
+        ),
+        "wallet.ethereum.sign" to MiniAppCapabilitySpec(
+            token = "wallet.ethereum.sign", tier = CapabilityTier.PER_USE,
+            label = "Ethereum: Sign Messages",
+            reason = "Sign Ethereum messages and typed data. You approve each one.",
+            icon = "Draw",
+        ),
+        // Legacy flat token, superseded by wallet.ethereum.* (expanded at parse).
         "evm" to MiniAppCapabilitySpec(
             token = "evm", tier = CapabilityTier.PER_USE,
             label = "Ethereum wallet",
@@ -99,6 +123,18 @@ object MiniAppCapabilityRegistry {
             icon = "ContentCopy",
         ),
     )
+
+    /**
+     * Expand legacy flat capability tokens to their hierarchical equivalents
+     * (ADR-0057 back-compat): "evm" -> wallet.ethereum.{read,write,sign}. Used
+     * by every catalog-parse path so old declarations keep working.
+     */
+    fun expandLegacyCapabilities(tokens: Set<String>): Set<String> {
+        if (!tokens.any { it.equals("evm", ignoreCase = true) }) return tokens
+        val out = tokens.filterNot { it.equals("evm", ignoreCase = true) }.toMutableSet()
+        out += setOf("wallet.ethereum.read", "wallet.ethereum.write", "wallet.ethereum.sign")
+        return out
+    }
 
     /** Spec for a token (case-insensitive), or null when the token is AUTO. */
     fun spec(token: String): MiniAppCapabilitySpec? = specs[token.lowercase()]

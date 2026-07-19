@@ -17,13 +17,17 @@ class NetworkException(val status: Int, val body: String) :
 
 class MaknoonHttp(private val client: OkHttpClient = defaultClient()) {
 
-    fun postJson(url: String, jsonBody: String): String {
+    /** POST JSON. `readTimeoutSec` overrides the default read timeout for slow
+     *  endpoints (e.g. the pool-access grant, which does several sequential
+     *  on-chain writes on ~12s-block chains and can run past the 30s default). */
+    fun postJson(url: String, jsonBody: String, readTimeoutSec: Long? = null): String {
         val req = Request.Builder()
             .url(url)
             .header("Accept", "application/json")
             .post(jsonBody.toRequestBody(JSON))
             .build()
-        return execute(req)
+        val c = readTimeoutSec?.let { client.newBuilder().readTimeout(it, TimeUnit.SECONDS).build() } ?: client
+        return execute(req, c)
     }
 
     fun getJson(url: String): String {
@@ -42,8 +46,8 @@ class MaknoonHttp(private val client: OkHttpClient = defaultClient()) {
         return execute(req)
     }
 
-    private fun execute(req: Request): String {
-        client.newCall(req).execute().use { resp ->
+    private fun execute(req: Request, c: OkHttpClient = client): String {
+        c.newCall(req).execute().use { resp ->
             val body = resp.body?.string() ?: ""
             if (!resp.isSuccessful) throw NetworkException(resp.code, body)
             return body

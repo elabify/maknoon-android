@@ -383,6 +383,7 @@ private fun BadgeViewBody(b: BadgeView, actions: VerifyOtherActions, onScanAnoth
             anchor?.batchRoot,
             anchor?.let { actions.chainRpcUrl(it.chain) },
             anchor?.registry,
+            anchor?.batchTxHash,
         )
         onChain = ref.verdict
         havid = runCatching { actions.resolveHavidReference(b.iss, ref.issuerPubkey) }.getOrNull()
@@ -527,6 +528,7 @@ private fun VerdictBody(
                 anchorBatchRoot = anchor?.batchRoot,
                 anchorRPCURL = anchor?.let { actions.chainRpcUrl(it.chain) },
                 anchorRevocationRegistry = anchor?.registry,
+                anchorBatchTxHash = anchor?.batchTxHash,
             )
             running = false
             havid = runCatching { actions.resolveHavid(presentation) }.getOrNull()

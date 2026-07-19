@@ -120,6 +120,10 @@ class EthereumWalletStore(private val kv: EthereumKeyValueStore = EthereumKeyVal
         list.add(0, tx)
     }
 
+    /** Public lookup of a wallet id by its 0x address, used by the mini-app
+     *  "open wallet" bridge to re-activate the exact wallet a swap used. */
+    fun walletId(forAddress: String): UUID? = walletIdForAddress(forAddress)
+
     private fun walletIdForAddress(address: String): UUID? {
         val normalized = address.lowercase()
         return _wallets.firstOrNull { (it.address ?: "").lowercase() == normalized }?.id

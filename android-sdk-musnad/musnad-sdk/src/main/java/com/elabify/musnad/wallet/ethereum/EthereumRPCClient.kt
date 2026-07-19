@@ -89,11 +89,15 @@ class EthereumRPCClient(
         return parseUInt64(hex)
     }
 
-    /** Read-only contract call (ERC-20 balanceOf / symbol / decimals / name). */
-    fun ethCall(to: String, data: ByteArray, block: String = "latest"): String {
+    /** Read-only contract call (ERC-20 balanceOf / symbol / decimals / name).
+     *  `from` is caller-dependent reads: e.g. a Uniswap v4 Quoter simulates the
+     *  swap so the pool's beforeSwap hook checks isAllowed(tx.origin); without it
+     *  the simulation sees address(0) and reverts. */
+    fun ethCall(to: String, data: ByteArray, from: String? = null, block: String = "latest"): String {
         val call = JSONObject()
             .put("to", to)
             .put("data", EthereumABI.toHexData(data))
+        if (from != null) call.put("from", from)
         return callString("eth_call", JSONArray().put(call).put(block))
     }
 
@@ -101,6 +105,13 @@ class EthereumRPCClient(
     fun sendRawTransaction(rawHex: String): String {
         val hex = if (rawHex.startsWith("0x")) rawHex else "0x$rawHex"
         return callString("eth_sendRawTransaction", JSONArray().put(hex))
+    }
+
+    /** Receipt of a mined transaction, including its event logs. Throws if the tx
+     *  is unknown/pending (null result) — callers treat that as "unreadable". */
+    fun getTransactionReceipt(txHash: String): JSONObject {
+        val hex = if (txHash.startsWith("0x")) txHash else "0x$txHash"
+        return callObject("eth_getTransactionReceipt", JSONArray().put(hex))
     }
 
     // ---- transport ----

@@ -124,7 +124,13 @@ internal fun EthereumAddTokenScreen(prefilledContract: String?, onDone: () -> Un
             val sym = symbolInput.trim()
             EthereumToken.create(net, trimmed, sym, nameInput.trim().ifEmpty { sym }, d, curated = false)
         }
-        tokenStore.add(token)
+        // Scoped to the active wallet on this chain (ADR-0060): a custom token
+        // added here does not appear in the user's other wallets. Falls back to a
+        // chain-wide add only when there is no active wallet to attribute it to.
+        val walletId = walletStore.activeWallet?.id
+        if (walletId != null) tokenStore.add(token, walletId) else tokenStore.add(token)
+        // The dashboard re-runs its refresh on return (route swap re-composes it),
+        // so the new token's balance appears without a manual full sync (ADR-0060).
         onDone()
     }
 

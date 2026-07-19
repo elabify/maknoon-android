@@ -13,29 +13,31 @@
 //       Cross-device: the merchant scans (or hosts a QR for) a SEPARATE
 //       customer's presentation and gets back the verify verdict.
 //
-// IMPORTANT scope note (differs from iOS): the iOS handler leans on a holder
-// credential store, a MatchingEngine, a PresentationFactory, an offline
-// PresentationVerifier, and a server /v1/verify call. On Android only the
-// identity primitives (IdentitySandwich: holderDid + signChallenge) and the
-// verifier /v1/challenge client are ported so far (the credential/presentation
-// stack is not yet on the Android classpath). To avoid reimplementing crypto
-// here, this handler:
-//   * fully implements identity.getDID against IdentitySandwich;
-//   * gates identity.request / identity.collect behind the user-approval
-//     sheets (consent is real and user-driven) and returns the exact iOS
-//     verdict envelope shape, with offline=true and the disclosure the sheet
-//     gathered. The server-side verify wiring is wired through the SDK's
-//     VerifierClient.challenge so the requestId is real; the verify POST and
-//     credential matching are deferred to when the presentation stack lands
-//     (see the open questions in the handoff).
-// Nothing in here hands key material to JS, and no sensitive surface is
-// released without the sheet returning an approval.
+// identity.request now runs the full on-device holder -> verifier loop like iOS:
+// match the holder's stored credentials (SDK MatchingEngine) against the request
+// filter, gather consent + a credential pick via the approval sheet, build a
+// signed Presentation (SDK PresentationBuilder), and POST it to the verifier's
+// /v1/verify for the authoritative verdict, with an offline PresentationVerifier
+// fallback (offline=true) when the server is unreachable. identity.collect stays
+// policy/consent-based for now (cross-device scan verdict via its sheet).
+// Nothing here hands key material or the raw presentation to JS: the mini-app
+// only ever receives the verdict envelope.
 
 package com.elabify.app.maknoon.miniapp
 
+import com.elabify.musnad.data.CredentialEntity
+import com.elabify.musnad.data.VerifierHistoryEntity
 import com.elabify.musnad.identity.IdentitySandwich
 import com.elabify.musnad.identity.IdentityStore
+import com.elabify.musnad.net.ChallengeContext
 import com.elabify.musnad.net.VerifierClient
+import com.elabify.musnad.present.JsonValue
+import com.elabify.musnad.present.MatchingEngine
+import com.elabify.musnad.present.ParsedCredential
+import com.elabify.musnad.present.PresentationBuilder
+import com.elabify.musnad.present.PresentationVerifier
+import com.elabify.musnad.present.VerifierFilter
+import com.elabify.musnad.present.VerifierFilterClause
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.json.JSONArray
@@ -49,6 +51,12 @@ class IdentityBridgeHandler(
     /** Verifier host the bridge issues challenges against. The catalog/host
      *  supplies the host the rest of the app already trusts. */
     private val verifierBaseUrl: String,
+    /** Loads the holder's stored credentials (Room). Injected so the handler
+     *  stays free of a Context; the factory wires it to MaknoonStore. */
+    private val loadCredentials: suspend () -> List<CredentialEntity>,
+    /** Best-effort disclosure-history recorder (Room VerifierHistoryDao), wired
+     *  by the factory. Mirrors iOS VerifierHistory.record; a no-op by default. */
+    private val recordDisclosure: suspend (VerifierHistoryEntity) -> Unit = {},
 ) : MiniAppNamespaceHandler {
 
     override val namespace = "maknoon"
@@ -73,7 +81,10 @@ class IdentityBridgeHandler(
 
     // MARK: -- identity.request
 
-    /** Same-device: prove a claim from THIS holder's own wallet. */
+    /** Same-device: prove a claim from THIS holder's own wallet, mirroring the
+     *  iOS flow: match credentials -> consent + pick -> build a signed
+     *  presentation -> server /v1/verify (authoritative), with an offline local
+     *  verify fallback when the server is unreachable. */
     private suspend fun requestPresentation(argsJson: String): String {
         val opts = parseOpts(argsJson) ?: throw MiniAppBridgeError.invalidParams("expected an options object")
         val requiredClaims = stringList(opts.optJSONArray("requiredClaims"))
@@ -85,18 +96,39 @@ class IdentityBridgeHandler(
         val purpose = opts.optStringOrNull("purpose")
         val maxAgeSec = opts.optLongOrNull("maxAgeSec")
 
-        // Locked wallet: nothing to prove with.
-        loadSandwich() ?: throw MiniAppBridgeError.unauthorized("wallet is locked")
+        val sandwich = loadSandwich() ?: throw MiniAppBridgeError.unauthorized("wallet is locked")
 
-        // Server-issued challenge so the requestId returned to the dApp is real.
-        // Best-effort: a challenge failure (offline) does not block consent.
-        val requestId = runCatching {
-            withContext(Dispatchers.IO) { verifier.challenge(requiredClaims) }.requestId
-        }.getOrNull()
+        // Match the holder's credentials against the request filter. Nothing
+        // matches -> DENY with no sheet (mirrors iOS).
+        val filter = VerifierFilter(
+            issuers = issuers.takeIf { it.isNotEmpty() }?.let { VerifierFilterClause(mode = "allow", list = it) },
+            schemas = schemas.takeIf { it.isNotEmpty() }?.let { VerifierFilterClause(mode = "allow", list = it) },
+            requiredClaims = requiredClaims,
+        )
+        val candidates = withContext(Dispatchers.IO) { loadCredentials() }
+            .mapNotNull { e -> runCatching { ParsedCredential.parse(e.credentialJson) }.getOrNull()?.let { e to it } }
+        val matches = candidates.filter { MatchingEngine.matches(it.second, filter) }
+        if (matches.isEmpty()) {
+            return JSONObject().apply {
+                put("decision", "DENY")
+                put("reason", "no_matching_credential")
+                put("checks", JSONObject())
+                put("disclosed", JSONObject())
+            }.toString()
+        }
 
-        // User consent: review who is asking + which claims, pick a credential,
-        // confirm with the device biometric. Cancel throws userRejected (4001),
-        // which propagates straight out of handle() to a JS 4001.
+        // Server-issued challenge.
+        val ch = withContext(Dispatchers.IO) { verifier.challenge(requiredClaims) }
+
+        // User consent + credential pick (default most-recent). Cancel -> 4001.
+        val credArr = JSONArray()
+        matches.forEach { (e, _) ->
+            credArr.put(
+                JSONObject()
+                    .put("cid", e.cid)
+                    .put("label", e.nickname?.takeIf { it.isNotEmpty() } ?: e.schema),
+            )
+        }
         val payload = JSONObject().apply {
             put("appTitle", appTitle)
             putOpt("purpose", purpose)
@@ -104,22 +136,71 @@ class IdentityBridgeHandler(
             if (schemas.isNotEmpty()) put("schemas", JSONArray(schemas))
             if (issuers.isNotEmpty()) put("issuers", JSONArray(issuers))
             maxAgeSec?.let { put("maxAgeSec", it) }
+            put("credentials", credArr)
         }
         val sheetResult = gate.request(kind = "identity", payloadJson = payload.toString(), appTitle = appTitle)
+        val chosenCid = JSONObject(sheetResult).optStringOrNull("cid")
+        val chosen = (chosenCid?.let { cid -> matches.firstOrNull { it.first.cid == cid } } ?: matches.first()).second
 
-        // The sheet returns the disclosure it gathered (and a local decision).
-        // We hand back the iOS verdict envelope; offline=true flags that the
-        // authoritative server verify is not run on this build yet.
-        val approved = JSONObject(sheetResult)
-        val disclosed = approved.optJSONObject("disclosed") ?: JSONObject()
-        return JSONObject().apply {
-            put("decision", approved.optString("decision", "GRANT"))
-            put("reason", approved.optString("reason", "user_approved"))
-            put("checks", JSONObject().put("consent", true))
-            put("disclosed", disclosed)
-            requestId?.let { put("requestId", it) }
-            put("offline", true)
-        }.toString()
+        // Sign the presentation and verify. Server verdict is authoritative; a
+        // server failure falls back to a clearly-flagged offline local check.
+        val presentation = withContext(Dispatchers.IO) {
+            PresentationBuilder.build(
+                credential = chosen,
+                selectedClaims = requiredClaims.toSet(),
+                challenge = ch.challenge,
+                verifierDid = PresentationBuilder.OPEN_VERIFIER_DID,
+                pendingRequest = null,
+                sandwich = sandwich,
+            )
+        }
+        return try {
+            val resp = withContext(Dispatchers.IO) {
+                verifier.verify(ChallengeContext(ch.requestId, ch.issuedAt, ch.expiresAt), presentation)
+            }
+            // Best-effort disclosure history (mirrors iOS VerifierHistory.record);
+            // never fail the verify if the write fails.
+            runCatching {
+                withContext(Dispatchers.IO) {
+                    recordDisclosure(
+                        VerifierHistoryEntity(
+                            verifierDid = PresentationBuilder.OPEN_VERIFIER_DID,
+                            verifierName = appTitle,
+                            label = appTitle,
+                            credentialId = chosen.header.cid,
+                            credentialSchema = chosen.header.schema,
+                            disclosedKeysJson = JSONArray(requiredClaims).toString(),
+                            lastUsedAt = System.currentTimeMillis() / 1000L,
+                        ),
+                    )
+                }
+            }
+            JSONObject().apply {
+                put("decision", resp.decision)
+                put("reason", resp.reason)
+                put("checks", mapJsonValues(resp.checks))
+                put("disclosed", mapJsonValues(resp.disclosed ?: emptyMap()))
+                put("requestId", ch.requestId)
+                put("offline", false)
+            }.toString()
+        } catch (e: Exception) {
+            val local = PresentationVerifier.verifyOffline(presentation)
+            JSONObject().apply {
+                put("decision", local.decision.name)
+                put("reason", "offline_local_verify")
+                put("checks", JSONObject().put("overallPass", local.checks.overallPass))
+                put("disclosed", mapJsonValues(local.disclosed))
+                put("requestId", ch.requestId)
+                put("offline", true)
+            }.toString()
+        }
+    }
+
+    /** JsonValue map -> JSONObject for the verdict envelope. */
+    private fun mapJsonValues(m: Map<String, JsonValue?>): JSONObject {
+        val o = JSONObject()
+        for ((k, v) in m) o.put(k, v?.anyValue() ?: JSONObject.NULL)
+        return o
     }
 
     // MARK: -- identity.collect

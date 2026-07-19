@@ -23,6 +23,17 @@
 // Re-download only happens when the version is absent from the cache, so
 // opening an installed app offline serves the cached copy.
 //
+// Cache-first (ADR-0060): a NORMAL open serves the locally cached bundle for
+// the pinned manifest hash WITHOUT touching the network. We key the cache dir
+// on the pinned hash, so we can locate the verified bundle from the pin alone
+// (no live manifest fetch). This is what keeps an installed app working after
+// its bundle is re-published upstream with a new hash: the old, pinned version
+// keeps serving until the user explicitly updates it (see MiniAppInstallRegistry
+// computeUpdates / applyUpdate). The integrity check against the pinned hash
+// runs only at DOWNLOAD time (install or update), never on every open. A small
+// manifest sidecar written at download time lets a cache-first open recover the
+// entry path + version offline.
+//
 // The store also exposes byte lookup by request path (bytesFor) so the
 // WebView asset loader can serve verified files without re-reading the
 // manifest. Path traversal is rejected on the read path too.
@@ -35,7 +46,10 @@ import java.net.HttpURLConnection
 import java.net.URL
 import java.security.MessageDigest
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
+import java.util.concurrent.ConcurrentHashMap
 import org.json.JSONObject
 
 /** Wire format of a mini app's manifest.json (decoded with org.json). */
@@ -180,12 +194,47 @@ class MiniAppBundleStore(context: Context) {
         manifestUrl: String,
         manifestSha256: String,
     ): MiniAppBundle = withContext(Dispatchers.IO) {
+        val pinnedSha = manifestSha256.lowercase()
+
+        // 0. Cache-first: serve the verified bundle for this exact pinned hash
+        //    with NO network. This is the normal-open path. It also means a
+        //    bundle re-published upstream (new hash) never breaks the installed,
+        //    pinned version: opening the app keeps working on the old bundle
+        //    until the user explicitly updates it.
+        cachedBundle(installedAppId, appId, pinnedSha)?.let { return@withContext it }
+
+        // De-duplicate concurrent downloads of the SAME pinned bundle (an
+        // install/update prefetch racing the open that triggered it); without
+        // this they clobber the shared temp dir and one surfaces a spurious
+        // "index.html failed its integrity check" (a Retry, running alone, works).
+        val mutex = downloadMutexes.getOrPut("$installedAppId|$pinnedSha") { Mutex() }
+        mutex.withLock {
+            // Re-check under the lock: a racing call may have just finished it.
+            cachedBundle(installedAppId, appId, pinnedSha)
+                ?: downloadBundle(installedAppId, appId, manifestUrl, pinnedSha)
+        }
+    }
+
+    private val downloadMutexes = ConcurrentHashMap<String, Mutex>()
+
+    /** Download + verify + cache the pinned bundle. Serialized per
+     *  (installedAppId, pinnedSha) by ensureBundle so concurrent calls coalesce
+     *  instead of clobbering the shared temp dir. */
+    @Throws(MiniAppBundleException::class)
+    private suspend fun downloadBundle(
+        installedAppId: String,
+        appId: String,
+        manifestUrl: String,
+        pinnedSha: String,
+    ): MiniAppBundle {
         val manifestUri = runCatching { URL(manifestUrl) }.getOrNull()
             ?: throw MiniAppBundleException.badManifestUrl()
 
-        // 1. Fetch + pin the manifest.
+        // 1. Fetch + pin the manifest. A mismatch HERE is a real tamper /
+        //    misconfiguration at download time (the pin does not match the
+        //    bytes we just fetched), so it is correctly fatal.
         val manifestData = fetch(manifestUri)
-        if (hexSha256(manifestData) != manifestSha256.lowercase()) {
+        if (hexSha256(manifestData) != pinnedSha) {
             throw MiniAppBundleException.manifestHashMismatch()
         }
         val manifest = runCatching { MiniAppManifest.parse(String(manifestData, Charsets.UTF_8)) }
@@ -196,12 +245,12 @@ class MiniAppBundleStore(context: Context) {
         // Key the cache dir by version AND the manifest sha (parity with iOS), so
         // switching channels or a same-version re-publish never serves a stale
         // bundle: a different manifest -> a different dir -> a fresh download.
-        val cacheKey = sanitizeComponent(manifest.version) + "-" + manifestSha256.lowercase().take(12)
+        val cacheKey = sanitizeComponent(manifest.version) + "-" + pinnedSha.take(12)
         val versionDir = File(appDir, cacheKey)
 
         // Already cached + complete? Serve it without touching the network.
         if (File(versionDir, manifest.entryPath).exists()) {
-            return@withContext MiniAppBundle(appId, manifest.version, versionDir, manifest.entryPath)
+            return MiniAppBundle(appId, manifest.version, versionDir, manifest.entryPath)
         }
 
         // 2. Download into a temp dir, verifying each file, then move into
@@ -238,6 +287,11 @@ class MiniAppBundleStore(context: Context) {
             throw MiniAppBundleException.fileHashMismatch(manifest.entryPath)
         }
 
+        // Persist the (already pin-verified) manifest bytes alongside the files
+        // so a later cache-first open can recover the entry path + version
+        // without any network fetch.
+        runCatching { File(tmpDir, META_FILE_NAME).writeBytes(manifestData) }
+
         // 3. Swap temp -> versionDir.
         versionDir.deleteRecursively()
         appDir.mkdirs()
@@ -247,12 +301,46 @@ class MiniAppBundleStore(context: Context) {
             tmpDir.deleteRecursively()
         }
 
-        MiniAppBundle(appId, manifest.version, versionDir, manifest.entryPath)
+        return MiniAppBundle(appId, manifest.version, versionDir, manifest.entryPath)
     }
 
     /** Remove every cached version of an app (called on uninstall). */
     fun evict(installedAppId: String) {
         runCatching { appCacheDir(installedAppId).deleteRecursively() }
+    }
+
+    /**
+     * Locate an already-downloaded, complete bundle for the pinned manifest
+     * hash, WITHOUT any network. Version dirs are named "<version>-<sha12>", so
+     * the pinned hash alone identifies the directory. Returns null when the
+     * pinned version is not cached (first open, or a fresh update pin).
+     */
+    private fun cachedBundle(installedAppId: String, appId: String, pinnedSha: String): MiniAppBundle? {
+        val appDir = appCacheDir(installedAppId)
+        if (!appDir.exists()) return null
+        val suffix = "-" + pinnedSha.take(12)
+        val dirs = appDir.listFiles()?.filter { it.isDirectory && it.name.endsWith(suffix) } ?: return null
+        for (dir in dirs) {
+            // Prefer the persisted manifest sidecar; fall back to the default
+            // entry path for bundles cached before the sidecar existed.
+            val meta = readMeta(dir)
+            val entryPath = meta?.entryPath ?: "index.html"
+            val version = meta?.version ?: dir.name.removeSuffix(suffix)
+            if (File(dir, entryPath).exists()) {
+                return MiniAppBundle(appId, version, dir, entryPath)
+            }
+        }
+        return null
+    }
+
+    /**
+     * Decode the manifest sidecar written at download time. null for legacy
+     * caches that predate it.
+     */
+    private fun readMeta(versionDir: File): MiniAppManifest? {
+        val f = File(versionDir, META_FILE_NAME)
+        if (!f.isFile) return null
+        return runCatching { MiniAppManifest.parse(f.readText(Charsets.UTF_8)) }.getOrNull()
     }
 
     // ---- helpers ----
@@ -303,6 +391,15 @@ class MiniAppBundleStore(context: Context) {
     }
 
     companion object {
+        /**
+         * Sidecar written inside each version dir at download time: the raw
+         * manifest bytes. Lets a cache-first open recover the entry path +
+         * version without re-fetching the manifest. Leading dot keeps it out of
+         * the way; it is never listed in manifest.files so a bundle can never
+         * legitimately ship this name.
+         */
+        private const val META_FILE_NAME = ".maknoon-manifest.json"
+
         @Volatile
         private var instance: MiniAppBundleStore? = null
 

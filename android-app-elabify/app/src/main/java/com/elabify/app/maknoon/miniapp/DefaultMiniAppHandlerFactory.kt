@@ -40,9 +40,11 @@ package com.elabify.app.maknoon.miniapp
 
 import android.content.Context
 import androidx.fragment.app.FragmentActivity
+import com.elabify.musnad.data.MaknoonStore
 import com.elabify.musnad.identity.IdentitySandwich
 import com.elabify.musnad.identity.IdentityStore
 import com.elabify.musnad.wallet.PrefsEthereumStore
+import com.elabify.app.maknoon.ui.wallet.ethereum.EthereumStores
 import com.elabify.musnad.wallet.ethereum.EthereumSettings
 import com.elabify.musnad.wallet.ethereum.EthereumWalletStore
 import com.elabify.musnad.wallet.walletPrefs
@@ -81,6 +83,9 @@ class DefaultMiniAppHandlerFactory(
      *  approval-sheet host reads them back by token. Shared per host. */
     val commerceCoordinator: MiniAppCommerceCoordinator = MiniAppCommerceCoordinator(),
     val paymentCoordinator: MiniAppPaymentCoordinator = MiniAppPaymentCoordinator(),
+    /** Bridge -> host navigation (e.g. open the wallet after a swap). Shared with
+     *  AppsScreen, which collects it and performs the pop + tab switch. */
+    val navCoordinator: MiniAppNavCoordinator = MiniAppNavCoordinator(),
     /** Supplies the visible activity for BiometricPrompt; null degrades device
      *  auth to { ok:false, reason:"unavailable" }, matching iOS. */
     private val activityProvider: () -> FragmentActivity? = { null },
@@ -111,6 +116,7 @@ class DefaultMiniAppHandlerFactory(
         val web3Env = MiniAppWeb3Environment.of(
             walletStore = ethStore,
             settings = ethSettings,
+            deviceResolver = { id -> com.elabify.musnad.devices.DeviceRegistry(appContext).find(id) },
         ) { loadSandwichOrNull() }
 
         // The commerce / merchant slice's cross-cutting context, fully real:
@@ -144,14 +150,35 @@ class DefaultMiniAppHandlerFactory(
 
             // ---- per-use (gate + the bridge enforces the grant) ----
             ScanBridgeHandler(appTitle = displayName, gate = gate),                // "scan"
-            Web3BridgeHandler(env = web3Env, gate = gate, appTitle = displayName), // "evm"
+            Web3BridgeHandler(
+                env = web3Env, gate = gate, appTitle = displayName,       // "evm"
+                onBroadcast = { walletId, hash, senderAddr, recipient, wei, net ->
+                    // Record on the SHARED store the UI reads (web3Env uses a throwaway).
+                    val shared = EthereumStores.walletStore(appContext)
+                    shared.markPendingOutbound(
+                        senderWalletId = walletId, txHash = hash, senderAddress = senderAddr,
+                        recipientAddress = recipient, weiValue = wei,
+                    )
+                    shared.setCurrentNetwork(net, walletId)
+                },
+            ),
             IdentityBridgeHandler(                                                 // "identity"
                 store = IdentityStore(appContext),
                 appTitle = displayName,
                 installedAppId = spec.installedAppId,
                 gate = gate,
                 verifierBaseUrl = MiniAppHosts.VERIFIER_BASE_URL,
+                loadCredentials = { MaknoonStore.open(appContext).credentials().all() },
+                recordDisclosure = { e -> MaknoonStore.open(appContext).verifierHistory().insert(e) },
             ),
+            PoolAccessBridgeHandler(                                               // "poolAccess"
+                env = web3Env,
+                gate = gate,
+                appTitle = displayName,
+                loadCredentials = { MaknoonStore.open(appContext).credentials().all() },
+            ),
+            PoolRegistryBridgeHandler(),                                           // "pools" (wallet.ethereum.read)
+            OpenWalletBridgeHandler(nav = navCoordinator),                         // "walletView" (wallet.ethereum.read)
             PaymentBridgeHandler(                                                  // "payment"
                 appTitle = displayName,
                 coordinator = paymentCoordinator,

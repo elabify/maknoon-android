@@ -20,6 +20,7 @@ import com.elabify.musnad.wallet.ethereum.MultiChainNative
 import com.elabify.musnad.wallet.ethereum.EthereumRPCClient
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import org.json.JSONObject
 import wallet.core.jni.Hash
 
 /** Registry addresses + RPC endpoint. Bundled Sepolia defaults; override via the
@@ -82,11 +83,12 @@ object OnChainVerifier {
         anchorBatchRoot: String?,
         anchorRPCURL: String? = null,
         anchorRevocationRegistry: String? = null,
+        anchorBatchTxHash: String? = null,
     ): OnChainVerdict = withContext(Dispatchers.IO) {
         // Reuse the reference pass, then layer headerSigValid on with the full header.
         val ref = verifyReference(
             config, header.iss, header.cid, header.iat, cscaCertIdHex,
-            anchorBatchRoot, anchorRPCURL, anchorRevocationRegistry,
+            anchorBatchRoot, anchorRPCURL, anchorRevocationRegistry, anchorBatchTxHash,
         )
         val pk = ref.issuerPubkey
         val headerSigValid: OnChainTier = when {
@@ -115,6 +117,7 @@ object OnChainVerifier {
         anchorBatchRoot: String?,
         anchorRPCURL: String? = null,
         anchorRevocationRegistry: String? = null,
+        anchorBatchTxHash: String? = null,
     ): ReferenceResult = withContext(Dispatchers.IO) {
         MultiChainNative.ensure() // keccak256 (selector) needs the native lib
         val rpc = EthereumRPCClient.orNull(config.rpcURL)
@@ -146,16 +149,17 @@ object OnChainVerifier {
                 notRevoked = if (it) OnChainTier.Fail("Credential has been revoked on-chain") else OnChainTier.Pass
             } ?: run { notRevoked = OnChainTier.Unknown("Could not read the revocation registry") }
 
-            if (!anchorBatchRoot.isNullOrEmpty()) {
-                runCatching {
-                    val data = selector("isRootRecent(string,bytes32,uint256)") + word(0x60L) +
-                        bytes32(anchorBatchRoot) + word(ROOT_WINDOW_SEC) + stringTail(did)
-                    decodeBool(anchorRpc.ethCall(revRegistry, data))
-                }.getOrNull()?.let {
-                    reached = true
-                    rootCurrent = if (it) OnChainTier.Pass
-                    else OnChainTier.Fail("Credential anchor root is not current on-chain (batch may be stale or unanchored)")
-                } ?: run { rootCurrent = OnChainTier.Unknown("Could not read the anchor root on-chain") }
+            if (!anchorBatchRoot.isNullOrEmpty() && !anchorBatchTxHash.isNullOrEmpty()) {
+                // ADR-0022 amendment: a v2 batch root is valid if it was genuinely
+                // anchored by the issuer (not merely "recent"). Confirm the anchor
+                // tx emitted RevocationRegistry RootUpdated(did, root) from the
+                // expected registry. Matches the server's wasRootAnchored.
+                runCatching { anchorRpc.getTransactionReceipt(anchorBatchTxHash) }
+                    .getOrNull()?.let { receipt ->
+                        reached = true
+                        rootCurrent = if (rootWasAnchored(receipt, revRegistry, did, anchorBatchRoot)) OnChainTier.Pass
+                        else OnChainTier.Fail("Credential anchor root was not published in the anchor transaction on-chain")
+                    } ?: run { rootCurrent = OnChainTier.Unknown("Could not read the anchor transaction on-chain") }
             }
         }
 
@@ -205,6 +209,44 @@ object OnChainVerifier {
 
     private fun selector(signature: String): ByteArray =
         Hash.keccak256(signature.toByteArray(Charsets.US_ASCII)).copyOfRange(0, 4)
+
+    /** Full keccak256 of a UTF-8 string as 0x-hex (event-signature topic0 + an
+     *  indexed dynamic-string topic, which is keccak of the value bytes). */
+    private fun keccakHex(s: String): String =
+        "0x" + Hash.keccak256(s.toByteArray(Charsets.UTF_8)).joinToString("") { "%02x".format(it) }
+
+    /** Normalize a hex value to a 32-byte (0x + 64 lowercase) topic form. */
+    private fun topic32(hex: String): String {
+        var h = hex.removePrefix("0x").removePrefix("0X").lowercase()
+        if (h.length > 64) h = h.takeLast(64)
+        if (h.length < 64) h = "0".repeat(64 - h.length) + h
+        return "0x$h"
+    }
+
+    /** True iff `receipt` has a RevocationRegistry RootUpdated log from `registry`
+     *  binding this issuer `did` + `batchRoot`. Topics only: topic0 = keccak256 of
+     *  the event signature, topic1 = keccak256(utf8(did)) (indexed string),
+     *  topic2 = the indexed bytes32 root. */
+    private fun rootWasAnchored(receipt: JSONObject, registry: String, did: String, batchRoot: String): Boolean {
+        val topic0 = keccakHex("RootUpdated(string,string,bytes32,uint256,uint256)").lowercase()
+        val topic1 = keccakHex(did).lowercase()
+        val wantRoot = topic32(batchRoot)
+        val reg = registry.lowercase()
+        val logs = receipt.optJSONArray("logs") ?: return false
+        for (i in 0 until logs.length()) {
+            val log = logs.optJSONObject(i) ?: continue
+            if (log.optString("address").lowercase() != reg) continue
+            val topics = log.optJSONArray("topics") ?: continue
+            if (topics.length() < 3) continue
+            if (topics.getString(0).lowercase() == topic0 &&
+                topics.getString(1).lowercase() == topic1 &&
+                topic32(topics.getString(2)) == wantRoot
+            ) {
+                return true
+            }
+        }
+        return false
+    }
 
     /** 32-byte big-endian word for a uint / offset. */
     private fun word(value: Long): ByteArray {

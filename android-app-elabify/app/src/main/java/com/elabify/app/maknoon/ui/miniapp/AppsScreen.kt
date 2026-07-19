@@ -59,6 +59,7 @@ import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.CreditCard
+import androidx.compose.material.icons.filled.Download
 import androidx.compose.material.icons.automirrored.filled.HelpOutline
 import androidx.compose.material.icons.filled.Link
 import androidx.compose.material.icons.filled.Lock
@@ -118,6 +119,8 @@ import com.elabify.app.maknoon.R
 import com.elabify.app.maknoon.miniapp.CapabilityTier
 import com.elabify.app.maknoon.miniapp.DAppCompatibility
 import com.elabify.app.maknoon.miniapp.DefaultMiniAppHandlerFactory
+import com.elabify.app.maknoon.ui.wallet.ethereum.EthereumStores
+import com.elabify.musnad.wallet.ethereum.EthereumNetwork
 import com.elabify.app.maknoon.miniapp.MiniAppCapabilityRegistry
 import com.elabify.app.maknoon.miniapp.MiniAppCatalogEntry
 import com.elabify.app.maknoon.miniapp.MiniAppCatalogFetcher
@@ -146,7 +149,7 @@ import kotlinx.coroutines.withContext
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun AppsScreen(resetKey: Int = 0) {
+fun AppsScreen(resetKey: Int = 0, onNavigateToWallet: (String) -> Unit = {}) {
     val context = LocalContext.current
     // The hosting activity, used so device.authenticate can present a
     // BiometricPrompt (it needs a FragmentActivity).
@@ -186,6 +189,24 @@ fun AppsScreen(resetKey: Int = 0) {
     var detailFor by remember { mutableStateOf<MiniAppInstallRegistry.InstalledApp?>(null) }
     var showSettings by remember { mutableStateOf(false) }
     var showBrowse by remember { mutableStateOf(false) }
+
+    // window.maknoon.walletView.open: leave the mini app and open the exact
+    // Ethereum wallet + chain the tx used (e.g. after a swap). Set the shared
+    // store's active wallet + network, then pop the host and switch to the
+    // Wallet tab, which auto-resyncs and shows the pending tx.
+    val openWalletReq by handlerFactory.navCoordinator.openWallet.collectAsState()
+    LaunchedEffect(openWalletReq) {
+        val req = openWalletReq ?: return@LaunchedEffect
+        val shared = EthereumStores.walletStore(context)
+        req.address?.let { addr -> shared.walletId(forAddress = addr)?.let { shared.setActive(it) } }
+        val activeId = shared.activeWallet?.id
+        if (req.chainId != null && activeId != null) {
+            EthereumNetwork.fromChainId(req.chainId)?.let { shared.setCurrentNetwork(it, activeId) }
+        }
+        handlerFactory.navCoordinator.consume(req)
+        launched = null
+        onNavigateToWallet("ethereum")
+    }
 
     // Re-tap-to-home: re-tapping the Apps tab while already on it closes any
     // launched app / detail / sheet, returning to the apps grid (iOS parity).
@@ -279,13 +300,34 @@ fun AppsScreen(resetKey: Int = 0) {
     if (current != null) {
         // System back returns to the list rather than leaving the tab.
         BackHandler(enabled = true) { launched = null }
+        // Granted set is preserved across an in-app update, so it is keyed on the
+        // install id (not the entry), matching iOS.
         val granted = remember(current.installedAppId) {
             registry.grantedCapabilities(current.installedAppId).ifEmpty { current.entry.permissions }
+        }
+        // The newer entry available for this install, if any (drives the banner).
+        var updateEntry by remember(current.installedAppId) { mutableStateOf<MiniAppCatalogEntry?>(null) }
+        var updateDismissed by remember(current.installedAppId) { mutableStateOf(false) }
+        // Set when the user taps Update: the newer entry to load in place of the
+        // install-time snapshot for the rest of this session. applyUpdate swaps the
+        // persisted pin; this just drives the reload (iOS effectiveEntry).
+        var effectiveEntry by remember(current.installedAppId) { mutableStateOf<MiniAppCatalogEntry?>(null) }
+        // The entry currently in effect: the newer one adopted this session, else
+        // the install-time snapshot.
+        val activeEntry = effectiveEntry ?: current.entry
+        // Refresh the catalog in the background so the "update available" banner
+        // can appear during/after loading even without visiting the Apps browse.
+        // Only fetches the small catalog.json; the bundle stays cache-first and is
+        // never re-fetched here.
+        LaunchedEffect(current.installedAppId) {
+            MiniAppCatalogFetcher.fetch()?.let { live ->
+                updateEntry = registry.computeUpdates(live)[current.installedAppId]
+            }
         }
         Scaffold(
             topBar = {
                 TopAppBar(
-                    title = { Text(current.entry.title) },
+                    title = { Text(activeEntry.title) },
                     navigationIcon = {
                         IconButton(onClick = { launched = null }) {
                             Icon(
@@ -300,13 +342,47 @@ fun AppsScreen(resetKey: Int = 0) {
             // Open-time compatibility recheck: the host app version can change
             // after install, so re-evaluate the installed entry's bounds against
             // the CURRENT host and warn (non-blocking) if it's now out of range.
-            val openCompat = remember(current.installedAppId) {
+            val openCompat = remember(activeEntry) {
                 DAppCompatibility.evaluate(
-                    current.entry.requiresMaknoonVersion, current.entry.supersededAtMaknoonVersion,
+                    activeEntry.requiresMaknoonVersion, activeEntry.supersededAtMaknoonVersion,
                 )
             }
             var compatWarnDismissed by remember(current.installedAppId) { mutableStateOf(false) }
             Column(modifier = Modifier.fillMaxSize().padding(padding)) {
+                // Non-blocking "update available" notice. The installed version
+                // keeps working; tapping Update adopts + re-downloads the newer
+                // bundle for the rest of this session (iOS parity).
+                val pendingUpdate = updateEntry
+                if (pendingUpdate != null && !updateDismissed) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.12f))
+                            .padding(horizontal = Spacing.md, vertical = Spacing.sm),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+                    ) {
+                        Icon(Icons.Filled.Download, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(16.dp))
+                        Text(
+                            stringResource(R.string.app_update_available),
+                            style = MaterialTheme.typography.labelMedium,
+                            color = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.weight(1f),
+                        )
+                        TextButton(onClick = {
+                            // Adopt the update: swap the persisted pin (preserving
+                            // grants), then reload this session with the newer entry.
+                            // The old bundle stays cached, so this is safe offline.
+                            registry.applyUpdate(current.installedAppId, pendingUpdate)?.let { adopted ->
+                                effectiveEntry = adopted
+                                updateDismissed = true
+                                updateEntry = null
+                                refreshKey++ // installed list reflects the new pin
+                            }
+                        }) { Text(stringResource(R.string.app_update)) }
+                        TextButton(onClick = { updateDismissed = true }) { Text(stringResource(R.string.app_dismiss)) }
+                    }
+                }
                 if (openCompat.warnsAtOpen && !compatWarnDismissed) {
                     Row(
                         modifier = Modifier
@@ -326,8 +402,18 @@ fun AppsScreen(resetKey: Int = 0) {
                         TextButton(onClick = { compatWarnDismissed = true }) { Text(stringResource(R.string.app_dismiss)) }
                     }
                 }
+                // Re-key the host on the active manifest hash so adopting an update
+                // (a new bundle) tears down and rebuilds the WebView with the new
+                // files; the host's own LaunchedEffect keys on manifestSha256 too.
                 MiniAppHostScreen(
-                    spec = current.toLaunchSpec(granted),
+                    spec = MiniAppLaunchSpec(
+                        installedAppId = current.installedAppId,
+                        appId = activeEntry.appId,
+                        title = activeEntry.title,
+                        manifestUrl = activeEntry.manifestUrl,
+                        manifestSha256 = activeEntry.manifestSha256,
+                        grantedPermissions = granted,
+                    ),
                     handlerFactory = handlerFactory,
                     approvalSheetHost = approvalSheetHost,
                     modifier = Modifier.fillMaxSize(),
@@ -761,16 +847,6 @@ private fun StatusPill(text: String, color: Color) {
             .padding(horizontal = Spacing.sm, vertical = Spacing.xs),
     )
 }
-
-private fun MiniAppInstallRegistry.InstalledApp.toLaunchSpec(granted: Set<String>): MiniAppLaunchSpec =
-    MiniAppLaunchSpec(
-        installedAppId = installedAppId,
-        appId = entry.appId,
-        title = entry.title,
-        manifestUrl = entry.manifestUrl,
-        manifestSha256 = entry.manifestSha256,
-        grantedPermissions = granted,
-    )
 
 // MARK: -- catalog list (iOS BrowseAppStoreView equivalent)
 

@@ -217,7 +217,13 @@ private fun MainTabs() {
                         initialChain = walletDeepLinkChain,
                         onInitialChainConsumed = { walletDeepLinkChain = null },
                     )
-                    Tab.APPS -> AppsScreen(resetKey = appsResetKey)
+                    Tab.APPS -> AppsScreen(
+                        resetKey = appsResetKey,
+                        onNavigateToWallet = { chain ->
+                            walletDeepLinkChain = chain
+                            selected = Tab.WALLET
+                        },
+                    )
                 }
             }
         }

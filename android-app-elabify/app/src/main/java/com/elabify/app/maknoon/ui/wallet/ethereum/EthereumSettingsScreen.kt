@@ -104,7 +104,7 @@ internal fun EthereumSettingsScreen(onCustomNetworks: () -> Unit, onDone: () -> 
                 Icon(Icons.Filled.Public, contentDescription = null); Spacer(Modifier.width(6.dp)); Text(stringResource(R.string.eth_manage_networks))
             }
 
-            Text(stringResource(R.string.common_network), style = MaterialTheme.typography.titleSmall)
+            Text(stringResource(R.string.eth_chain), style = MaterialTheme.typography.titleSmall)
             FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 EthereumNetwork.displayOrdered.forEach { n ->
                     FilterChip(selected = network == n, onClick = { network = n; loadDrafts() }, label = { Text(n.displayName) })

@@ -72,7 +72,8 @@ internal fun EthereumTokenDetailScreen(
     val tokenStore = remember { EthereumStores.tokenStore(context) }
     val resolved = remember { resolveCurrentNetwork(context) }
     val descriptor = remember(walletId) { walletStore.wallets.firstOrNull { it.id == walletId } }
-    val token = remember(tokenId) { tokenStore.tokens(resolved).firstOrNull { it.id == tokenId } }
+    // Wallet-scoped lookup (ADR-0060) so a wallet's own added token resolves here.
+    val token = remember(tokenId) { tokenStore.tokens(resolved, walletId).firstOrNull { it.id == tokenId } }
 
     var rawBalanceHex by remember { mutableStateOf<String?>(null) }
     var loading by remember { mutableStateOf(true) }

@@ -542,7 +542,15 @@ private fun providerShim(): String = """
     },
     scan: function (opts) { return call("scan", "scan.read", opts || {}); },
     commerce: { collectAndCharge: function (opts) { return call("commerce", "collectAndCharge", opts || {}); } },
-    merchant: { getIdentity: function () { return call("merchant", "merchant.getIdentity", null); } }
+    merchant: { getIdentity: function () { return call("merchant", "merchant.getIdentity", null); } },
+    poolAccess: { grant: function (opts) { return call("poolAccess", "poolAccess.grant", opts || {}); } },
+    // Read the Access Issuer's public pool registry (GET /v1/pools). The sandbox
+    // blocks fetch/XHR, so this network read runs natively. list({ issuerUrl,
+    // caip2? }) -> { v, pools:[...] }.
+    pools: { list: function (opts) { return call("pools", "pools.list", opts || {}); } },
+    // Leave the mini app and open the user's Ethereum wallet on the chain a tx
+    // used (navigation only; no data returned). open({ chainId?, address? }).
+    walletView: { open: function (opts) { return call("walletView", "walletView.open", opts || {}); } }
   };
 
   Object.defineProperty(window, "ethereum", { value: ethereum, configurable: false, writable: false });

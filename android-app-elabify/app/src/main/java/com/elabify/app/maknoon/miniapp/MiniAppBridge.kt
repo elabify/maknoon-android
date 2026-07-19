@@ -81,6 +81,14 @@ class MiniAppBridgeError(
 interface MiniAppNamespaceHandler {
     val namespace: String
     val requiredPermission: String?
+
+    /**
+     * Permission the app must hold for a SPECIFIC method. Lets one handler
+     * require different tokens per method (e.g. Web3BridgeHandler gates reads,
+     * writes, and signing separately). Defaults to [requiredPermission].
+     */
+    fun requiredPermissionFor(method: String): String? = requiredPermission
+
     suspend fun handle(method: String, argsJson: String): String
 }
 
@@ -148,7 +156,7 @@ class MiniAppBridge(
             sink.reject(cb, errorEnvelope(MiniAppBridgeError.unsupported("namespace $ns")))
             return
         }
-        val needed = handler.requiredPermission
+        val needed = handler.requiredPermissionFor(m)
         if (needed != null && !granted.contains(needed)) {
             sink.reject(cb, errorEnvelope(MiniAppBridgeError.unauthorized("app lacks '$needed' permission")))
             return

@@ -15,7 +15,9 @@ package com.elabify.app.maknoon.ui.wallet.ethereum
 import android.content.Intent
 import android.net.Uri
 import androidx.compose.foundation.background
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -67,9 +69,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.elabify.app.maknoon.R
@@ -91,13 +95,16 @@ import com.elabify.app.maknoon.ui.wallet.common.WalletActionsMenu
 import com.elabify.app.maknoon.ui.wallet.common.WalletChainScaffold
 import com.elabify.app.maknoon.ui.wallet.common.WalletChipItem
 import com.elabify.app.maknoon.ui.wallet.common.WalletPickerChip
+import com.elabify.musnad.wallet.ethereum.EthereumNetworkID
 import com.elabify.musnad.wallet.ethereum.EthereumToken
+import com.elabify.musnad.wallet.ethereum.EthereumTokenCatalog
 import com.elabify.musnad.wallet.ethereum.EthereumTx
 import com.elabify.musnad.wallet.ethereum.EthereumWallet
 import com.elabify.musnad.wallet.ethereum.EthereumWalletDescriptor
 import com.elabify.musnad.wallet.ethereum.EthereumWalletKind
 import com.elabify.musnad.wallet.ethereum.PendingEthereumTx
 import com.elabify.musnad.wallet.ethereum.ResolvedNetwork
+import java.math.BigInteger
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -246,6 +253,7 @@ private fun EthereumDashboard(
     val walletStore = remember { EthereumStores.walletStore(context) }
     val settings = remember { EthereumStores.settings(context) }
     val tokenStore = remember { EthereumStores.tokenStore(context) }
+    val registry = remember { EthereumStores.registry(context) }
     val customs = remember { EthereumStores.customs(context) }
 
     var stateRev by remember { mutableStateOf(0) }
@@ -279,8 +287,40 @@ private fun EthereumDashboard(
                         wallet.recentTransactions(net.explorerAPIURL, net.explorerAPIKey, net.chainId, perPage = 25)
                     }.getOrDefault(emptyList())
                     walletStore.dropConfirmedPending(descriptor.id, txs.map { it.hash }.toSet())
+                    // Auto-discover reputable ERC-20s this wallet has received,
+                    // scoped to (wallet, chain) with a 0.0001-token dust floor
+                    // (ADR-0060). Best-effort: an explorer/discovery hiccup never
+                    // fails the sync. Runs before the balance loop so a newly
+                    // discovered token gets its balance in the same pass.
+                    runCatching {
+                        val builtin = (net.networkID as? EthereumNetworkID.Builtin)?.network
+                        if (builtin != null) {
+                            registry.refreshIfStale(settings.tokenCatalogURL)
+                            val transfers = wallet.recentTokenTransfers(
+                                net.explorerAPIURL, net.explorerAPIKey, net.chainId, perPage = 100)
+                            val seenContracts = HashSet<String>()
+                            for (tr in transfers) {
+                                val contract = tr.contractAddress.lowercase()
+                                if (!seenContracts.add(contract)) continue
+                                if (tokenStore.find(builtin, contract, descriptor.id) != null) continue
+                                val token = registry.find(builtin, contract)?.let {
+                                    EthereumToken.create(builtin, it.contract, it.symbol, it.name, it.decimals, curated = true)
+                                } ?: EthereumTokenCatalog.find(builtin, contract) ?: continue
+                                // Dust floor: skip when balance < 0.0001 token, via
+                                // the exact integer compare bal*10000 < 10^decimals.
+                                // Fail-open: a failed read still adds the token.
+                                val dust = runCatching { wallet.tokenBalance(token, net.rpcURL) }.getOrNull()
+                                    ?.let { it.bigInteger.multiply(BigInteger.valueOf(10000)) < BigInteger.TEN.pow(token.decimals) }
+                                    ?: false
+                                if (dust) continue
+                                tokenStore.add(token, descriptor.id)
+                            }
+                        }
+                    }.onFailure { android.util.Log.w("EthDiscover", "auto-discovery: $it") }
                     val balances = HashMap<String, String>()
-                    for (token in tokenStore.tokens(net)) {
+                    // Wallet-scoped token list (ADR-0060): curated chain-wide
+                    // defaults plus just this wallet's added/discovered tokens.
+                    for (token in tokenStore.tokens(net, descriptor.id)) {
                         runCatching { wallet.tokenBalance(token, net.rpcURL) }
                             .onFailure { android.util.Log.w("EthTokBal", "fail ${token.symbol} @ ${net.rpcURL} : $it") }
                             .getOrNull()?.let { balances[token.contractAddress] = it.hex }
@@ -383,10 +423,20 @@ private fun EthereumDashboard(
 
                 TokensSection(
                     network = resolved,
-                    tokens = tokenStore.tokens(resolved),
+                    // Wallet-scoped (ADR-0060): the curated chain-wide defaults
+                    // merged with just this wallet's added/discovered tokens.
+                    tokens = tokenStore.tokens(resolved, activeWallet.id),
                     balances = tokenBalances,
                     onAddToken = { onAddToken(null) },
                     onTokenTap = { token -> onTokenDetail(activeWallet.id, token.id) },
+                    // Remove scoped to this wallet (ADR-0060); bump stateRev to
+                    // recompute the list. Removing the balance entry is optional:
+                    // the token drops from the list so its stale balance is unused.
+                    onRemoveToken = { token ->
+                        tokenStore.remove(token, activeWallet.id)
+                        tokenBalances.remove(token.contractAddress)
+                        stateRev++
+                    },
                 )
 
                 RecentTransactions(
@@ -474,6 +524,7 @@ internal fun TestnetPill() {
     }
 }
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun TokensSection(
     network: ResolvedNetwork,
@@ -481,7 +532,10 @@ private fun TokensSection(
     balances: SnapshotStateMap<String, String>,
     onAddToken: () -> Unit,
     onTokenTap: (EthereumToken) -> Unit,
+    onRemoveToken: (EthereumToken) -> Unit,
 ) {
+    val clipboard = LocalClipboardManager.current
+    var menuTokenId by remember { mutableStateOf<String?>(null) }
     Column(Modifier.fillMaxWidth().padding(horizontal = 16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Text(stringResource(R.string.walletc_tokens), style = MaterialTheme.typography.titleMedium)
@@ -501,11 +555,31 @@ private fun TokensSection(
                 Surface(
                     shape = RoundedCornerShape(10.dp),
                     color = MaterialTheme.colorScheme.surfaceVariant,
-                    modifier = Modifier.fillMaxWidth().clickable { onTokenTap(token) },
+                    modifier = Modifier.fillMaxWidth().combinedClickable(
+                        onClick = { onTokenTap(token) },
+                        onLongClick = { menuTokenId = token.id },
+                    ),
                 ) {
                     Row(Modifier.padding(horizontal = 12.dp, vertical = 6.dp), verticalAlignment = Alignment.CenterVertically) {
                         EthereumTokenRow(token = token, rawBalanceHex = balances[token.contractAddress], modifier = Modifier.weight(1f))
                         Icon(Icons.AutoMirrored.Filled.ArrowForward, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(16.dp))
+                        // Long-press the row for a context menu (parity with iOS).
+                        DropdownMenu(expanded = menuTokenId == token.id, onDismissRequest = { menuTokenId = null }) {
+                            DropdownMenuItem(
+                                text = { Text(stringResource(R.string.eth_copy_contract_address)) },
+                                onClick = {
+                                    clipboard.setText(AnnotatedString(token.contractAddress))
+                                    menuTokenId = null
+                                },
+                            )
+                            DropdownMenuItem(
+                                text = { Text(stringResource(R.string.common_remove)) },
+                                onClick = {
+                                    onRemoveToken(token)
+                                    menuTokenId = null
+                                },
+                            )
+                        }
                     }
                 }
             }

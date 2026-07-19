@@ -12,6 +12,7 @@
 
 package com.elabify.app.maknoon.ui.miniapp
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -25,6 +26,7 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -93,12 +95,25 @@ fun MiniAppIdentitySheet(
     val purpose = payload.optString("purpose").takeUnless { it.isEmpty() }
     val requiredClaims = remember(payloadJson) { stringList(payload.optJSONArray("requiredClaims")) }
     val maxAgeSec = if (payload.has("maxAgeSec") && !payload.isNull("maxAgeSec")) payload.optLong("maxAgeSec") else null
+    // Matched credentials the handler offers (cid -> label). The user picks one;
+    // the handler builds the presentation from the chosen cid.
+    val credentials = remember(payloadJson) {
+        val arr = payload.optJSONArray("credentials")
+        buildList {
+            if (arr != null) for (i in 0 until arr.length()) {
+                val o = arr.optJSONObject(i) ?: continue
+                val cid = o.optString("cid")
+                if (cid.isNotEmpty()) add(cid to o.optString("label"))
+            }
+        }
+    }
 
     val context = LocalContext.current
     val activity = context as? FragmentActivity
     val scope = rememberCoroutineScope()
     var working by remember { mutableStateOf(false) }
     var authError by remember { mutableStateOf<String?>(null) }
+    var selectedCid by remember(payloadJson) { mutableStateOf(credentials.firstOrNull()?.first) }
 
     Column(
         modifier = Modifier
@@ -129,6 +144,27 @@ fun MiniAppIdentitySheet(
             )
         }
 
+        // Credential picker: only shown when more than one credential matches
+        // (a single match is used directly). The label is data from the handler.
+        if (credentials.size > 1) {
+            Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                credentials.forEach { (cid, label) ->
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable { selectedCid = cid },
+                    ) {
+                        RadioButton(selected = selectedCid == cid, onClick = { selectedCid = cid })
+                        Text(
+                            label.ifEmpty { cid.take(8) },
+                            style = MaterialTheme.typography.bodyMedium,
+                        )
+                    }
+                }
+            }
+        }
+
         authError?.let {
             Text(it, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
         }
@@ -150,16 +186,14 @@ fun MiniAppIdentitySheet(
                         val ok = consent(activity, appTitle)
                         working = false
                         if (ok) {
-                            // The disclosure the user approved. The on-device
-                            // credential store is not yet ported (see handoff),
-                            // so disclosed is empty here; the handler flags the
-                            // verdict offline. When the presentation stack lands,
-                            // this carries the selected credential's claims.
-                            val disclosed = JSONObject()
+                            // Return the chosen credential id; the handler builds
+                            // the signed presentation from it and gets the
+                            // authoritative disclosure back from the verifier.
                             val result = JSONObject().apply {
                                 put("decision", "GRANT")
                                 put("reason", "user_approved")
-                                put("disclosed", disclosed)
+                                put("disclosed", JSONObject())
+                                selectedCid?.let { put("cid", it) }
                             }
                             onApprove(result.toString())
                         } else {

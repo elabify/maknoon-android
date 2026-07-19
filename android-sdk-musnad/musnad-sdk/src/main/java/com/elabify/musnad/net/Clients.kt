@@ -19,6 +19,11 @@ data class ChallengeResponse(
     val challenge: String,
     val issuedAt: Long,
     val expiresAt: Long,
+    /** The DID the server minted this challenge under. The holder must sign the
+     *  challenge against THIS (challengeSig is checked against the server's own
+     *  verifier DID), which can differ from an issuer/audience DID. Null for
+     *  back-compat with servers that do not echo it. */
+    val verifierDid: String? = null,
 )
 
 /** The challenge context echoed back with the presentation on POST /v1/verify.
@@ -131,6 +136,7 @@ class VerifierClient(
             challenge = o.getString("challenge"),
             issuedAt = o.getLong("issuedAt"),
             expiresAt = o.getLong("expiresAt"),
+            verifierDid = if (o.isNull("verifierDid")) null else o.optString("verifierDid").ifEmpty { null },
         )
     }
 

@@ -32,10 +32,13 @@ import android.content.SharedPreferences
 import java.net.HttpURLConnection
 import java.net.URL
 import java.time.Instant
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.json.JSONArray
 import org.json.JSONObject
@@ -214,15 +217,21 @@ object MiniAppCatalogFetcher {
         return out
     }
 
-    /** Permission tokens from `capabilities[].name` (preferred) or `permissions`. */
+    /**
+     * Permission tokens from `capabilities[].name` (preferred) or `permissions`.
+     * Legacy flat "evm" is expanded to wallet.ethereum.{read,write,sign}
+     * (ADR-0057 back-compat) so old catalog entries keep working.
+     */
     private fun permissionsOf(o: JSONObject): Set<String> {
         o.optJSONArray("capabilities")?.let { caps ->
             val s = (0 until caps.length()).mapNotNull { caps.optJSONObject(it)?.optString("name") }
                 .filter { it.isNotEmpty() }.map { it.lowercase() }.toSet()
-            if (s.isNotEmpty()) return s
+            if (s.isNotEmpty()) return MiniAppCapabilityRegistry.expandLegacyCapabilities(s)
         }
         val perms = o.optJSONArray("permissions") ?: return emptySet()
-        return (0 until perms.length()).map { perms.getString(it).lowercase() }.toSet()
+        return MiniAppCapabilityRegistry.expandLegacyCapabilities(
+            (0 until perms.length()).map { perms.getString(it).lowercase() }.toSet(),
+        )
     }
 
     /** Map an iOS SF-symbol icon name to an Android icon token. */
@@ -287,6 +296,11 @@ class MiniAppInstallRegistry(
     private val prefs: SharedPreferences =
         appContext.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
 
+    // Best-effort background scope for eager bundle prefetch (install / update),
+    // so the first open is offline-safe. Detached + supervised: a failed
+    // prefetch never crashes the caller (the open path re-downloads if cold).
+    private val prefetchScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+
     /** A snapshot of an installed app (the iOS InstalledApp.entry + metadata). */
     data class InstalledApp(
         val installedAppId: String,
@@ -331,6 +345,83 @@ class MiniAppInstallRegistry(
         )
         persist(current)
         settings.setGrantedCapabilities(installedAppId, granted.map { it.lowercase() }.toSet())
+        // Download the bits now so the first open works offline and never has to
+        // hit the network (which is what breaks after an upstream re-publish).
+        prefetchBundle(entry, installedAppId)
+    }
+
+    /**
+     * Given freshly-fetched catalog entries, return the newer entry available
+     * for each installed app: the pinned manifest hash differs from a live
+     * same-store/same-id (preferring same-channel) entry and the live version is
+     * not a downgrade. Mirrors iOS AppStoreRegistry.recomputeUpdates. Pure over
+     * the passed-in entries + persisted installs.
+     */
+    fun computeUpdates(liveEntries: List<MiniAppCatalogEntry>): Map<String, MiniAppCatalogEntry> {
+        val out = HashMap<String, MiniAppCatalogEntry>()
+        for (inst in installedApps()) {
+            val pinned = inst.entry.manifestSha256.lowercase()
+            val live = liveEntry(liveEntries, inst.entry.appId, inst.entry.channel) ?: continue
+            if (live.manifestSha256.lowercase() == pinned) continue // same bundle
+            // Ignore downgrades: only offer an update when the live version is
+            // not older than what is installed (missing/unparseable versions are
+            // treated as offerable, since the hash already differs).
+            if (compareVersions(live.version, inst.entry.version) < 0) continue
+            out[inst.installedAppId] = live
+        }
+        return out
+    }
+
+    /**
+     * Adopt the newer catalog entry for an installed app (user tapped "Update").
+     * Swaps the pinned snapshot so the next open downloads + serves the new
+     * bundle, PRESERVING the user's existing capability grants (unlike install(),
+     * which resets them), and eagerly prefetches the new bundle. Returns the
+     * adopted entry. The old bundle stays cached and keeps working until this is
+     * called. Mirrors iOS AppStoreRegistry.applyUpdate.
+     */
+    fun applyUpdate(installedAppId: String, newer: MiniAppCatalogEntry): MiniAppCatalogEntry? {
+        val current = installedApps()
+        val idx = current.indexOfFirst { it.installedAppId == installedAppId }
+        if (idx < 0) return null
+        val updated = current.toMutableList()
+        updated[idx] = current[idx].copy(entry = newer)
+        persist(updated)
+        // Grants live in the settings store keyed by installedAppId; leaving them
+        // untouched preserves the user's prior consent across the update.
+        prefetchBundle(newer, installedAppId)
+        return newer
+    }
+
+    /**
+     * The current catalog entry matching an installed app's id and channel.
+     * Prefers a same-channel match, falling back to any same-id entry.
+     */
+    private fun liveEntry(
+        entries: List<MiniAppCatalogEntry>,
+        appId: String,
+        channel: String?,
+    ): MiniAppCatalogEntry? =
+        entries.firstOrNull { it.appId == appId && (it.channel ?: "") == (channel ?: "") }
+            ?: entries.firstOrNull { it.appId == appId }
+
+    /**
+     * Best-effort background download + verify + cache of an entry's bundle, so
+     * a later open serves it offline (and, for a fresh install, so the bits are
+     * on the phone before the first open). Failures are non-fatal.
+     */
+    private fun prefetchBundle(entry: MiniAppCatalogEntry, installedAppId: String) {
+        if (entry.manifestUrl.isBlank() || entry.manifestSha256.isBlank()) return
+        prefetchScope.launch {
+            runCatching {
+                MiniAppBundleStore.shared.ensureBundle(
+                    installedAppId = installedAppId,
+                    appId = entry.appId,
+                    manifestUrl = entry.manifestUrl,
+                    manifestSha256 = entry.manifestSha256,
+                )
+            }
+        }
     }
 
     /** Replace the granted capability set for an install (review/revoke UI). */

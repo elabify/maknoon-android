@@ -15,7 +15,9 @@ package com.elabify.app.maknoon.ui.wallet.tron
 import android.content.Intent
 import android.net.Uri
 import androidx.compose.foundation.background
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -67,8 +69,10 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -397,6 +401,13 @@ private fun TronDashboard(
                     balances = tokenBalances,
                     onAddToken = { onAddToken(null) },
                     onTokenTap = { token -> onTokenDetail(activeWallet.id, token.id) },
+                    // Network-wide remove (TRC-20 tokens are not wallet-scoped),
+                    // mirroring iOS; bump stateRev to recompute the in-memory list.
+                    onRemoveToken = { token ->
+                        tokenStore.remove(token)
+                        tokenBalances.remove(token.contract)
+                        stateRev++
+                    },
                 )
 
                 val unknown = tokenStore.unknownContracts(activeNetwork)
@@ -462,13 +473,17 @@ private fun EmptyWalletPrompt(onAddWallet: () -> Unit) {
     }
 }
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun TokensSection(
     tokens: List<TronTRC20Token>,
     balances: SnapshotStateMap<String, String>,
     onAddToken: () -> Unit,
     onTokenTap: (TronTRC20Token) -> Unit,
+    onRemoveToken: (TronTRC20Token) -> Unit,
 ) {
+    val clipboard = LocalClipboardManager.current
+    var menuTokenId by remember { mutableStateOf<String?>(null) }
     Column(Modifier.fillMaxWidth().padding(horizontal = 16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Text(stringResource(R.string.walletc_tokens), style = MaterialTheme.typography.titleMedium)
@@ -484,11 +499,31 @@ private fun TokensSection(
                 Surface(
                     shape = RoundedCornerShape(10.dp),
                     color = MaterialTheme.colorScheme.surfaceVariant,
-                    modifier = Modifier.fillMaxWidth().clickable { onTokenTap(token) },
+                    modifier = Modifier.fillMaxWidth().combinedClickable(
+                        onClick = { onTokenTap(token) },
+                        onLongClick = { menuTokenId = token.id },
+                    ),
                 ) {
                     Row(Modifier.padding(horizontal = 12.dp, vertical = 6.dp), verticalAlignment = Alignment.CenterVertically) {
                         TronTRC20TokenRow(token = token, rawBalance = balances[token.contract], modifier = Modifier.weight(1f))
                         Icon(Icons.AutoMirrored.Filled.ArrowForward, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(16.dp))
+                        // Long-press the row for a context menu (parity with iOS).
+                        DropdownMenu(expanded = menuTokenId == token.id, onDismissRequest = { menuTokenId = null }) {
+                            DropdownMenuItem(
+                                text = { Text(stringResource(R.string.eth_copy_contract_address)) },
+                                onClick = {
+                                    clipboard.setText(AnnotatedString(token.contract))
+                                    menuTokenId = null
+                                },
+                            )
+                            DropdownMenuItem(
+                                text = { Text(stringResource(R.string.common_remove)) },
+                                onClick = {
+                                    onRemoveToken(token)
+                                    menuTokenId = null
+                                },
+                            )
+                        }
                     }
                 }
             }

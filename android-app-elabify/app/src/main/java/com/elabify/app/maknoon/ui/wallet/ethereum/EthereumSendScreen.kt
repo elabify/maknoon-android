@@ -153,7 +153,9 @@ internal fun EthereumSendScreen(walletId: UUID, preselectTokenId: String?, onDon
     val resolved = remember { resolveCurrentNetwork(context) }
 
     val descriptor = remember(walletId) { walletStore.wallets.firstOrNull { it.id == walletId } }
-    val availableTokens = remember { tokenStore.tokens(resolved) }
+    // Wallet-scoped token list (ADR-0060): the curated chain-wide defaults merged
+    // with just this wallet's added/discovered tokens, matching iOS EthereumSendView.
+    val availableTokens = remember { tokenStore.tokens(resolved, walletId) }
     val isHardware = descriptor?.kind is EthereumWalletKind.Hardware
     // Pre-sign device-ready sheet (ADR-0033) + whether this hardware wallet is a
     // host-typed hidden (passphrase) wallet that must re-supply its passphrase
