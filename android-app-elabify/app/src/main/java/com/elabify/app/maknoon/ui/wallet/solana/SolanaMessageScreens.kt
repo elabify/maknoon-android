@@ -55,7 +55,7 @@ import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.dp
 import com.elabify.app.maknoon.R
-import com.elabify.app.maknoon.ui.wallet.common.authorizeSend
+import com.elabify.app.maknoon.ui.wallet.common.authorizeSignature
 import com.elabify.musnad.devices.DeviceRegistry
 import com.elabify.musnad.wallet.solana.SolanaMessageSigning
 import com.elabify.musnad.wallet.solana.SolanaWalletDescriptor
@@ -141,7 +141,7 @@ internal fun SolanaSignMessageScreen(
                         try {
                             when (val kind = active.kind) {
                                 is SolanaWalletKind.Software -> {
-                                    if (!authorizeSend(context, "Solana")) return@launch
+                                    if (!authorizeSignature(context, "Solana")) return@launch
                                     val sandwich = withContext(Dispatchers.IO) { env.loadSandwich() }
                                         ?: throw IllegalStateException("Unlock Maknoon first; signing needs your wallet's private key.")
                                     signing = true
@@ -150,7 +150,7 @@ internal fun SolanaSignMessageScreen(
                                             message = message,
                                             account = account,
                                             mnemonicWords = sandwich.recoveryWords(),
-                                            passphrase = null,
+                                            passphrase = sandwich.bip39Passphrase(),
                                         )
                                     }
                                     resultAddress = addr; resultSig = sig

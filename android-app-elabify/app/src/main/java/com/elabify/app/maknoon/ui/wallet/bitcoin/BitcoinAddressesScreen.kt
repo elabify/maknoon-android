@@ -101,7 +101,7 @@ internal fun BitcoinAddressesScreen(
         rows = withContext(Dispatchers.IO) {
             runCatching {
                 val words = loadRecoveryWords(context)
-                val e = BitcoinWalletEngine.open(descriptor, env.filesDirPath, words, null)
+                val e = BitcoinWalletEngine.open(descriptor, env.filesDirPath, words, loadBip39Passphrase(context))
                 val infos = e.revealedAddresses(kc, 25L)
                 val outputs = e.listOutput().filter { it.keychain == kc }
                 val unspent = e.listUnspent().filter { it.keychain == kc && !it.isSpent }

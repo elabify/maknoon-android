@@ -1,0 +1,37 @@
+{
+  "_comment": "Cross-platform wallet-derivation known-answer vectors (ADR-0064). Proves software-wallet address derivation folds the identity BIP-39 passphrase IDENTICALLY on iOS and Android for all four networks. Reference values were generated from the iOS build (the canonical implementation; iOS moves real funds and is on-device verified). The iOS copy (inline in MaknoonTests/WalletDerivationKATTests.swift) and this Android asset MUST stay byte-identical. entropyHex is the 32-byte identity entropy; mnemonic is BIP-39(entropyHex) (32 zero bytes -> the 24-word abandon..art). Each vector fixes the receive address at (passphrase, account): eth = m/44'/60'/<account>'/0/0 (EIP-55), sol = m/44'/501'/<account>'/0' (base58), tron = m/44'/195'/<account>'/0/0 (base58check). btc = BIP84 native-segwit mainnet m/84'/0'/<account>'/0/0 (bech32); present for account 0 only. The empty-passphrase vectors are a harness/back-compat sanity check; the TREZOR vectors are the parity gate that a passphrase-dropping derivation fails.",
+  "entropyHex": "0000000000000000000000000000000000000000000000000000000000000000",
+  "mnemonic": "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon art",
+  "vectors": [
+    {
+      "passphrase": "",
+      "account": 0,
+      "eth": "0xF278cF59F82eDcf871d630F28EcC8056f25C1cdb",
+      "sol": "3Cy3YNTFywCmxoxt8n7UH6hg6dLo5uACowX3CFceaSnx",
+      "tron": "TEfhiqsW1SdN44DeHrAWVmbyr8ZbvChrtS",
+      "btc": "bc1qzmtrqsfuaf6l6kkcsseumq26ukaphfj9skkug6"
+    },
+    {
+      "passphrase": "",
+      "account": 1,
+      "eth": "0x94142B4f665316D3304C3a595ec83aC9C8046598",
+      "sol": "5frqxtii9LeGq2bz3dSNokvZcEooF483MzeU24JrhcTA",
+      "tron": "TUeQNhjUcQwjB2epWHip6E6UJ7uhUJLUWV"
+    },
+    {
+      "passphrase": "TREZOR",
+      "account": 0,
+      "eth": "0x2b5D7A0E9d3EC34D629D07c6bDE5c41fb613c655",
+      "sol": "FqmSsV7HEX93rzs3pTGAdxhSuvdk1bay6VQQaTPBGuUo",
+      "tron": "TUxz2kwj8gAZocscfj8cxseDdv4M2apZZz",
+      "btc": "bc1q8ee9jp2ga509lae7xdcu88j0elzlyv0khhryaq"
+    },
+    {
+      "passphrase": "TREZOR",
+      "account": 1,
+      "eth": "0x7aBb15A014B82491c56E7fA27C88314Fc303B471",
+      "sol": "7qb6VxCcazkFim8batGkdwVhQsv8RdT9LJy1sbyLoSEQ",
+      "tron": "TE6fHnNAUikRCv9deWskVU1Xrf9FL14Dqr"
+    }
+  ]
+}

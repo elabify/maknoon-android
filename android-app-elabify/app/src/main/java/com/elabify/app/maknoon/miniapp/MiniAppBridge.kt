@@ -204,8 +204,22 @@ class ApprovalRequest internal constructor(
     val appTitle: String,
     private val deferred: CompletableDeferred<String>,
 ) {
+    /** When true, the sheet must STAY up after the handler resumes (a device
+     *  signature is in flight). The gate does not auto-clear a held request; the
+     *  handler calls [ApprovalGate.release] once the sign completes or fails. */
+    internal var held = false
+        private set
+
     /** Approve the request, resuming the handler with [resultJson]. */
     fun approve(resultJson: String) {
+        deferred.complete(resultJson)
+    }
+
+    /** Approve but keep the sheet up (hardware-sign flow): the handler gets
+     *  [resultJson] and starts the BLE sign while this sheet shows a "waiting for
+     *  your device" spinner, then calls [ApprovalGate.release] when done. */
+    fun approveAndHold(resultJson: String) {
+        held = true
         deferred.complete(resultJson)
     }
 
@@ -251,9 +265,17 @@ class ApprovalGate {
         try {
             return deferred.await()
         } finally {
-            // Clear only if this request is still the active one.
-            if (_active.value === req) _active.value = null
+            // Clear only if this request is still the active one AND it is not
+            // held. A held request (hardware sign) stays up until the handler
+            // calls [release] after the device signature completes.
+            if (_active.value === req && !req.held) _active.value = null
         }
+    }
+
+    /** Dismiss a held request's sheet once the handler's device sign is done
+     *  (see [ApprovalRequest.approveAndHold]). No-op if nothing is held. */
+    fun release() {
+        _active.value?.let { if (it.held) _active.value = null }
     }
 }
 

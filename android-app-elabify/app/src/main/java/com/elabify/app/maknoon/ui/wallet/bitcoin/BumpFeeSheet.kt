@@ -254,7 +254,7 @@ private suspend fun signBump(
         val account = descriptor.softwareAccountOrNull()
         val signed = if (isSoftware && account != null) {
             val words = loadRecoveryWords(context) ?: throw BitcoinWalletException.SandwichRequired
-            BitcoinSigningHelpers.signSoftware(unsigned, words, null, account, descriptor.network)
+            BitcoinSigningHelpers.signSoftware(unsigned, words, loadBip39Passphrase(context), account, descriptor.network)
         } else {
             // Hardware RBF: sign the replacement PSBT on the bound device over
             // the shared withHardwareDevice path, identical to the send screen

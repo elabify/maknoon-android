@@ -24,19 +24,14 @@ object SolanaDescriptors {
     fun derivationPath(account: Long): String = "m/44'/501'/$account'/0'"
 
     /** Derive the base58 Solana address for `account` from the sandwich
-     *  seed. Mirrors iOS addressFromSandwich.
-     *
-     *  `passphrase` is the BIP39 recovery passphrase used to derive the
-     *  seed. The Android IdentitySandwich keeps its passphrase private,
-     *  so the UI/holder layer must pass it (it already holds it after a
-     *  biometric unlock). Defaults to "" for the common passphrase-free
-     *  identity. See openQuestions. */
+     *  seed. Mirrors iOS addressFromSandwich: the identity BIP-39 passphrase
+     *  is folded into derivation (ADR-0064), read from the sandwich itself
+     *  ("" for a passphrase-free identity). */
     fun addressFromSandwich(
         sandwich: IdentitySandwich,
         account: Long,
-        passphrase: String = "",
     ): String {
-        return SolanaPrimitives.addressFor(sandwich.recoveryWords(), passphrase, account)
+        return SolanaPrimitives.addressFor(sandwich.recoveryWords(), sandwich.bip39Passphrase(), account)
     }
 
     /** Validate a Solana address as a 32-byte base58 pubkey. Returns
@@ -57,12 +52,12 @@ object SolanaDescriptors {
         lamports: Long,
         recentBlockhashBase58: String,
         priorityFeeMicroLamports: Long,
-        passphrase: String = "",
     ): String {
         if (parseAddress(recipientBase58) == null) {
             throw SolanaDescriptorException("Not a valid Solana address: $recipientBase58")
         }
-        val seed = SolanaPrimitives.privateSeed(sandwich.recoveryWords(), passphrase, account)
+        // Fold the identity passphrase into derivation, matching iOS (ADR-0064).
+        val seed = SolanaPrimitives.privateSeed(sandwich.recoveryWords(), sandwich.bip39Passphrase(), account)
         val signerBase58 = SolanaPrimitives.base58Encode(SolanaPrimitives.publicKey(seed))
         val instructions = transferInstructions(
             signerBase58 = signerBase58,

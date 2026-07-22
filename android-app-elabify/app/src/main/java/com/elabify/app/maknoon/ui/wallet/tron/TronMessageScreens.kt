@@ -52,7 +52,7 @@ import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.dp
 import com.elabify.app.maknoon.R
-import com.elabify.app.maknoon.ui.wallet.common.authorizeSend
+import com.elabify.app.maknoon.ui.wallet.common.authorizeSignature
 import com.elabify.musnad.devices.DeviceKind
 import com.elabify.musnad.devices.DeviceRegistry
 import com.elabify.musnad.wallet.tron.TronMessageSigning
@@ -149,7 +149,7 @@ internal fun TronSignMessageScreen(
                         try {
                             when (val kind = active.kind) {
                                 is TronWalletKind.Software -> {
-                                    if (!authorizeSend(context, "Tron")) return@launch
+                                    if (!authorizeSignature(context, "Tron")) return@launch
                                     val sandwich = loadTronSandwich(context)
                                         ?: throw IllegalStateException("Unlock Maknoon first; signing needs your wallet's private key.")
                                     signing = true
@@ -158,7 +158,7 @@ internal fun TronSignMessageScreen(
                                             message = message,
                                             account = account,
                                             mnemonicWords = sandwich.recoveryWords(),
-                                            passphrase = null,
+                                            passphrase = sandwich.bip39Passphrase(),
                                         )
                                     }
                                     resultAddress = addr; resultSig = sig

@@ -73,10 +73,13 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import com.elabify.app.maknoon.R
 import com.elabify.app.maknoon.ui.devices.AddHardwareDeviceFlow
+import com.elabify.app.maknoon.ui.devices.DiscoverHardwareWalletsScreen
+import com.elabify.app.maknoon.ui.devices.persistDiscoveredSelection
 import com.elabify.app.maknoon.ui.iddocument.TapIDDocumentFlow
 import com.elabify.app.maknoon.ui.wallet.bitcoin.BitcoinWalletEnv
 import com.elabify.app.maknoon.ui.wallet.common.PassphraseField
 import com.elabify.musnad.devices.DeviceRegistry
+import com.elabify.musnad.devices.RegisteredDevice
 import com.elabify.musnad.identity.IdentitySandwich
 import com.elabify.musnad.identity.IdentityStore
 import kotlinx.coroutines.Dispatchers
@@ -86,7 +89,7 @@ import kotlinx.coroutines.withContext
 private enum class Step {
     WELCOME, CREATE_PASSPHRASE, BACKUP,
     PASSPORT_SCAN, PASSPORT_SCAN_TAP,
-    RECOMMEND_WALLET, RECOMMEND_WALLET_HW,
+    RECOMMEND_WALLET, RECOMMEND_WALLET_HW, RECOMMEND_WALLET_HW_DISCOVER,
     RESTORE, RESTORE_DONE,
 }
 
@@ -118,6 +121,10 @@ fun OnboardingScreen(onComplete: () -> Unit) {
     }
 
     var step by remember { mutableStateOf(Step.WELCOME) }
+    // The freshly-registered hardware device to sweep for existing wallets, handed
+    // back by AddHardwareDeviceFlow so onboarding shows the SAME discover screen as
+    // the Devices flow (Trezor passphrase handling lives in that screen).
+    var hwDiscoverDevice by remember { mutableStateOf<RegisteredDevice?>(null) }
     var passphrase by remember { mutableStateOf("") }
     var confirm by remember { mutableStateOf("") }
     var busy by remember { mutableStateOf(false) }
@@ -185,9 +192,47 @@ fun OnboardingScreen(onComplete: () -> Unit) {
         )
         Step.RECOMMEND_WALLET_HW -> AddHardwareDeviceFlow(
             registry = deviceRegistry,
-            onFinished = { _ -> onComplete() },
+            // A Ledger/Trezor hands back a non-null device to sweep; show the
+            // discover-wallets screen (as the Devices flow does) instead of
+            // discarding it. Otherwise finish onboarding.
+            onFinished = { discoverTarget ->
+                if (discoverTarget != null) {
+                    hwDiscoverDevice = discoverTarget
+                    step = Step.RECOMMEND_WALLET_HW_DISCOVER
+                } else {
+                    onComplete()
+                }
+            },
             onCancel = { step = Step.RECOMMEND_WALLET },
         )
+        Step.RECOMMEND_WALLET_HW_DISCOVER -> {
+            val dev = hwDiscoverDevice
+            if (dev == null) {
+                onComplete()
+            } else {
+                DiscoverHardwareWalletsScreen(
+                    registry = deviceRegistry,
+                    device = dev,
+                    onDone = { selected ->
+                        if (selected.isEmpty()) {
+                            onComplete()
+                        } else {
+                            scope.launch {
+                                withContext(Dispatchers.IO) {
+                                    persistDiscoveredSelection(
+                                        context = context.applicationContext,
+                                        registry = deviceRegistry,
+                                        device = dev,
+                                        selected = selected,
+                                    )
+                                }
+                                onComplete()
+                            }
+                        }
+                    },
+                )
+            }
+        }
         else -> Column(
         modifier = Modifier
             .fillMaxSize()
@@ -368,6 +413,13 @@ fun OnboardingScreen(onComplete: () -> Unit) {
                 ) { Text(if (restoreBytes == null) "Choose backup file" else "Backup file selected") }
 
                 if (restoreBytes != null) {
+                    Banner(
+                        title = "Restoring replaces everything",
+                        variant = BannerVariant.WARNING,
+                        body = "Restoring this backup replaces everything on this device with the " +
+                            "backup's contents: your recovery phrase / identity, all verified " +
+                            "credentials, wallets, and settings. This cannot be undone.",
+                    )
                     PassphraseField(
                         value = passphrase, onValueChange = { passphrase = it },
                         label = "Password",
@@ -448,7 +500,8 @@ fun OnboardingScreen(onComplete: () -> Unit) {
             }
 
             // Full-screen sub-flows handled by the outer `when`; never reached here.
-            Step.PASSPORT_SCAN_TAP, Step.RECOMMEND_WALLET_HW -> Unit
+            Step.PASSPORT_SCAN_TAP, Step.RECOMMEND_WALLET_HW,
+            Step.RECOMMEND_WALLET_HW_DISCOVER -> Unit
         }
 
         if (busy) {

@@ -62,6 +62,8 @@ import com.elabify.app.maknoon.miniapp.MiniAppBundleStore
 import com.elabify.app.maknoon.miniapp.MiniAppNamespaceHandler
 import java.io.ByteArrayInputStream
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
 import org.json.JSONObject
 
 /**
@@ -186,7 +188,17 @@ private fun MiniAppWebView(
     approvalSheetHost: MiniAppApprovalSheetHost,
     modifier: Modifier,
 ) {
-    val scope = rememberCoroutineScope()
+    // Bridge dispatch scope. Deliberately NOT rememberCoroutineScope(): that is
+    // cancelled whenever this composable leaves composition (rotation, tab switch,
+    // navigation), which cancels an in-flight bridge call (e.g. pools.list)
+    // mid-flight and orphans its JS promise, so the dapp hangs with no result and
+    // no error (Android-only; iOS dispatches on an unstructured Task that survives
+    // view teardown). This session scope is tied to the mini-app (installedAppId)
+    // and is NOT cancelled on transient disposal, so in-flight calls run to
+    // completion (bounded by the HTTP client's ~30s timeout) and settle. (ADR-0062)
+    val scope = remember(spec.installedAppId) {
+        CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
+    }
     val pendingApproval by gate.active.collectAsState()
 
     AndroidView(

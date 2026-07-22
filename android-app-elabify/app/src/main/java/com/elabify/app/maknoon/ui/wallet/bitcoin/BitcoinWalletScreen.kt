@@ -258,7 +258,7 @@ private fun BitcoinDashboard(
         val opened = withContext(Dispatchers.IO) {
             runCatching {
                 val words = loadRecoveryWords(context)
-                BitcoinWalletEngine.openWithResult(descriptor, env.filesDirPath, words, null)
+                BitcoinWalletEngine.openWithResult(descriptor, env.filesDirPath, words, loadBip39Passphrase(context))
             }
         }
         opened.onFailure { error = "Open failed: ${it.message ?: it}" }

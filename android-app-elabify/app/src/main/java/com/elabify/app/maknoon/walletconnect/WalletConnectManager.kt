@@ -418,13 +418,13 @@ object WalletConnectManager {
                 val msgParam = if (pending.method == "personal_sign") params.optString(0) else params.optString(1)
                 val bytes = dataFromHex(msgParam) ?: msgParam.toByteArray(Charsets.UTF_8)
                 EthereumDescriptors.signPersonalMessage(
-                    words = words, account = account, message = bytes,
+                    words = words, passphrase = sandwich.bip39Passphrase(), account = account, message = bytes,
                     derivationPath = descriptor.derivationPath,
                 )
             }
             "eth_signTypedData", "eth_signTypedData_v3", "eth_signTypedData_v4" ->
                 EthereumDescriptors.signTypedData(
-                    words = words, account = account, typedDataJson = typedDataJson(params),
+                    words = words, passphrase = sandwich.bip39Passphrase(), account = account, typedDataJson = typedDataJson(params),
                     derivationPath = descriptor.derivationPath,
                 )
             "eth_sendTransaction", "eth_signTransaction" ->

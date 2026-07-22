@@ -26,3 +26,18 @@ suspend fun authorizeSend(context: Context, chainDisplayName: String): Boolean {
         subtitle = "Confirm it's you to sign and broadcast.",
     )
 }
+
+/**
+ * Prompt for biometric / device-credential confirmation before signing a MESSAGE
+ * on [chainDisplayName]. Message signing neither sends nor broadcasts, so the copy
+ * must NOT mention send/broadcast (that is [authorizeSend]'s job). Same fail-open
+ * behavior when there is no FragmentActivity to host the prompt.
+ */
+suspend fun authorizeSignature(context: Context, chainDisplayName: String): Boolean {
+    val activity = context as? FragmentActivity ?: return true
+    return BiometricGate.authenticate(
+        activity,
+        title = "Authorize $chainDisplayName signature",
+        subtitle = "Confirm it's you to sign.",
+    )
+}

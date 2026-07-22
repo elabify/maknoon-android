@@ -38,6 +38,9 @@ import com.elabify.app.maknoon.miniapp.MiniAppCommerceCoordinator
 import com.elabify.app.maknoon.miniapp.MiniAppPaymentCoordinator
 import com.elabify.app.maknoon.miniapp.MiniAppPaymentRequest
 import com.elabify.app.maknoon.ui.components.QrCode
+import com.elabify.app.maknoon.ui.wallet.common.HardwareSignAppReadiness
+import com.elabify.app.maknoon.ui.wallet.common.HardwareSignReadySheet
+import com.elabify.musnad.devices.DeviceKind
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.json.JSONObject
@@ -71,6 +74,7 @@ class MiniAppApprovalSheetHostImpl(
     private fun dispatchNonIdentity(request: ApprovalRequest, onDismiss: () -> Unit) {
         when (request.kind) {
             "web3" -> web3ApprovalSheetHost.Sheet(request, onDismiss)
+            "hwsign" -> HardwareSignModal(request, onDismiss)
             "payment" -> PaymentReceiveModal(request, onDismiss)
             "commerce" -> CommerceMerchantModal(request, onDismiss)
             "pay" -> CommercePayModal(request, onDismiss)
@@ -215,6 +219,51 @@ class MiniAppApprovalSheetHostImpl(
                 qrRenderer = { payload -> QrCode(content = payload) },
             )
         }
+    }
+
+    // ---- hardware sign "Prepare Device" ("hwsign") ----
+
+    @Composable
+    private fun HardwareSignModal(request: ApprovalRequest, onDismiss: () -> Unit) {
+        val payload = remember(request.id) {
+            runCatching { JSONObject(request.payloadJson) }.getOrNull()
+        }
+        if (payload == null) {
+            LaunchedEffect(request.id) { request.cancel(); onDismiss() }
+            return
+        }
+        val kind = remember(request.id) {
+            runCatching { DeviceKind.valueOf(payload.optString("deviceKind")) }.getOrNull()
+                ?: DeviceKind.TREZOR
+        }
+        val label = payload.optString("deviceLabel")
+        val serial = payload.optString("deviceSerial")
+        val requiresHostPassphrase = payload.optBoolean("requiresHostPassphrase", false)
+        // Once the user confirms, keep the sheet up as a "waiting for your device"
+        // spinner until the handler finishes the BLE sign and the gate releases
+        // this held request; that way the mini-app's own progress text is not
+        // revealed until the signature is actually done.
+        var signing by remember(request.id) { mutableStateOf(false) }
+
+        HardwareSignReadySheet(
+            deviceKind = kind,
+            deviceLabel = label,
+            deviceSerialDisplay = serial,
+            readiness = HardwareSignAppReadiness.ethereum,
+            requiresHostPassphrase = requiresHostPassphrase,
+            signing = signing,
+            onContinue = { hostPassphrase ->
+                signing = true
+                request.approveAndHold(
+                    JSONObject().apply {
+                        if (hostPassphrase != null) put("passphrase", hostPassphrase)
+                    }.toString(),
+                )
+                // Do NOT dismiss here: the held request keeps the sheet up until
+                // the handler calls ApprovalGate.release() after signing.
+            },
+            onCancel = { request.cancel(); onDismiss() },
+        )
     }
 
     // ---- payer Verify & Pay ("pay") ----

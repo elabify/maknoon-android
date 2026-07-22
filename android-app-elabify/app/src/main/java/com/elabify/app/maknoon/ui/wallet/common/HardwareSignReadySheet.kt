@@ -33,6 +33,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Key
 import androidx.compose.material.icons.filled.Memory
 import androidx.compose.material3.Button
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -111,13 +112,18 @@ fun HardwareSignReadySheet(
     requiresHostPassphrase: Boolean,
     onContinue: (hostPassphrase: String?) -> Unit,
     onCancel: () -> Unit,
+    // When true, the user has confirmed and a BLE signature is in flight: show a
+    // "waiting for your device" spinner instead of the passphrase field + buttons,
+    // and ignore dismiss. Used by the mini-app hardware-sign flow to keep the
+    // sheet up across the device sign; send screens leave it false.
+    signing: Boolean = false,
 ) {
     // Re-typed each presentation; the sheet is rebuilt by the caller's show
     // flag so this never carries over between signings.
     var passphrase by remember { mutableStateOf("") }
     val passphraseReady = !requiresHostPassphrase || passphrase.trim().isNotEmpty()
 
-    ModalBottomSheet(onDismissRequest = onCancel) {
+    ModalBottomSheet(onDismissRequest = { if (!signing) onCancel() }) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
@@ -125,7 +131,10 @@ fun HardwareSignReadySheet(
                 .padding(bottom = 24.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
-            Text(stringResource(R.string.wallet_prepare_device), style = MaterialTheme.typography.titleLarge)
+            Text(
+                stringResource(if (signing) R.string.wallet_signing else R.string.wallet_prepare_device),
+                style = MaterialTheme.typography.titleLarge,
+            )
 
             // Device header: label + kind / serial.
             Row(verticalAlignment = Alignment.CenterVertically) {
@@ -143,6 +152,21 @@ fun HardwareSignReadySheet(
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
+            }
+
+            if (signing) {
+                // BLE signature in flight: spinner + "confirm on your device". The
+                // sheet stays up (non-dismissable) so the mini-app's own progress
+                // text is not revealed until the signature is done.
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    CircularProgressIndicator(modifier = Modifier.size(24.dp))
+                    Text(
+                        stringResource(R.string.wallet_waiting_for_device, deviceKind.displayName),
+                        style = MaterialTheme.typography.bodyMedium,
+                        modifier = Modifier.padding(start = 12.dp),
+                    )
+                }
+                return@Column
             }
 
             Text(

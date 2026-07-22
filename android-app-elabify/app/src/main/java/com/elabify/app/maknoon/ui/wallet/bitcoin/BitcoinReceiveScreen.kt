@@ -73,7 +73,7 @@ internal fun BitcoinReceiveScreen(
         val res = withContext(Dispatchers.IO) {
             runCatching {
                 val words = loadRecoveryWords(context)
-                val e = BitcoinWalletEngine.open(descriptor, env.filesDirPath, words, null)
+                val e = BitcoinWalletEngine.open(descriptor, env.filesDirPath, words, loadBip39Passphrase(context))
                 // Show the current unused address (non-advancing); opening the
                 // Receive screen must not burn through keychain indices.
                 val info = e.nextUnusedReceiveAddress()

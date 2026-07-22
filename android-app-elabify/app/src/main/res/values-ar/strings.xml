@@ -542,6 +542,9 @@
     <string name="app_requesting_proof">يطلب إثباتاً من محفظتك.</string>
     <string name="app_purpose">الغرض: %1$s</string>
     <string name="app_will_disclose">سيُفصح عن</string>
+    <string name="app_sending_to">الإرسال إلى</string>
+    <string name="app_wallet_shared_title">عنوان المحفظة المُشارَك</string>
+    <string name="app_wallet_shared_warning">تتم مشاركة هذه المحفظة مع جهة الإصدار وربطها بشكل دائم بهذه الهوية الموثّقة على السلسلة.</string>
     <string name="app_claim_indent">  %1$s</string>
     <string name="app_requires_fresh_screening">يتطلب فحصاً لا يزيد عمره عن %1$s.</string>
     <string name="app_approve">موافقة</string>
@@ -899,6 +902,8 @@
     <string name="eth_last_sync">آخر مزامنة %1$s</string>
     <string name="eth_identity_locked">الهوية مقفلة</string>
     <string name="eth_identity_locked_body">افتح القفل من علامة تبويب الهوية لقراءة هذه المحفظة البرمجية.</string>
+    <string name="eth_wallet_orphaned">المحفظة تخص هوية مختلفة</string>
+    <string name="eth_wallet_orphaned_body">أُنشئت هذه المحفظة ضمن هوية مختلفة (مثلاً استُعيدت من نسخة احتياطية لا تتضمن عبارة الاسترداد الخاصة بها)، لذا لا يمكنها توقيع المعاملات. لاستخدامها، استعِد النسخة الاحتياطية التي أنشأتها — لاحظ أن الاستعادة تستبدل كل شيء على هذا الجهاز (عبارة الاسترداد، وبيانات الاعتماد، والمحافظ، والإعدادات). وإلا يمكنك إزالتها؛ تبقى أموالها على السلسلة.</string>
     <string name="eth_no_wallet_yet">لا توجد محفظة Ethereum بعد</string>
     <string name="eth_add_an_ethereum_wallet">إضافة محفظة Ethereum</string>
     <string name="eth_tokens_builtin_only">تُدار رموز ERC-20 لكل شبكة مدمجة. بدّل إلى سلسلة مدمجة لإضافة الرموز.</string>
@@ -1185,6 +1190,8 @@
     <string name="wallet_manage_wallets_ellipsis">إدارة المحافظ…</string>
     <string name="wallet_verify_message">التحقق من رسالة</string>
     <string name="wallet_prepare_device">تجهيز الجهاز</string>
+    <string name="wallet_signing">جارٍ التوقيع</string>
+    <string name="wallet_waiting_for_device">في انتظار جهاز %1$s… أكّد على الجهاز.</string>
     <string name="wallet_hidden_wallet">محفظة مخفية</string>
     <string name="wallet_hidden_wallet_passphrase">عبارة مرور المحفظة المخفية</string>
     <string name="wallet_reenter_hidden_passphrase">أعد إدخال عبارة مرور هذه المحفظة المخفية للتوقيع على مفتاح الأمان. لا يتم حفظها أبدًا.</string>
@@ -1219,6 +1226,8 @@
     <string name="passport_share_qr">مشاركة رمز QR</string>
     <string name="passport_action_share">مشاركة</string>
     <string name="passport_action_advanced">متقدم</string>
+    <string name="passport_show_details">إظهار بيانات الجواز</string>
+    <string name="passport_hide_details">إخفاء بيانات الجواز</string>
     <string name="passport_issued_by">صادر عن %1$s</string>
     <string name="passport_number_label">رقم الجواز</string>
     <string name="passport_field_surname">اسم العائلة</string>

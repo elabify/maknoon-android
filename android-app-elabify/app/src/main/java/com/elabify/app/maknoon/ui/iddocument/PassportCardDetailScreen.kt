@@ -12,6 +12,11 @@
 
 package com.elabify.app.maknoon.ui.iddocument
 
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -41,6 +46,8 @@ import androidx.compose.material.icons.filled.QrCode
 import androidx.compose.material.icons.filled.QuestionMark
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.filled.Tune
+import androidx.compose.material.icons.filled.Visibility
+import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -52,9 +59,13 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ImageBitmap
@@ -155,6 +166,20 @@ private fun HeroCard(
     val palette = CardPalette.forSchema("elabify://schema/global/passport/v1")
     val fg = palette.foreground
     val shape = RoundedCornerShape(22.dp)
+    // In-app privacy mask. Defaults to ON (blurred) each time the passport opens:
+    // the photo + all personal fields are blurred until the holder taps the
+    // eyeball. VIEW-ONLY: never affects the Share image or QR (PassportShare
+    // draws its own bitmap independently of this card).
+    var revealed by remember { mutableStateOf(false) }
+    val maskBlur = if (revealed) 0.dp else 9.dp
+    // Pulse the eyeball while masked so it reads as the "tap to reveal" control.
+    val pulse = rememberInfiniteTransition(label = "eyePulse")
+    val eyeAlpha by pulse.animateFloat(
+        initialValue = 1f,
+        targetValue = 0.3f,
+        animationSpec = infiniteRepeatable(tween(850), RepeatMode.Reverse),
+        label = "eyeAlpha",
+    )
     // The launcher icon is an adaptive-icon XML, which painterResource cannot
     // load (it supports vectors / raster only). Render it to a bitmap instead.
     val context = LocalContext.current
@@ -184,6 +209,19 @@ private fun HeroCard(
                 Text("v${doc.schemaVersion}", fontSize = 11.sp, fontWeight = FontWeight.SemiBold, color = fg)
             }
             Spacer(Modifier.weight(1f))
+            // Privacy toggle, immediately left of the Maknoon logo. Off (eye with
+            // slash) = blurred, the default; tap to reveal the underlying data.
+            IconButton(onClick = { revealed = !revealed }, modifier = Modifier.size(28.dp)) {
+                Icon(
+                    if (revealed) Icons.Filled.Visibility else Icons.Filled.VisibilityOff,
+                    contentDescription = stringResource(
+                        if (revealed) R.string.passport_hide_details else R.string.passport_show_details,
+                    ),
+                    tint = fg.copy(alpha = if (revealed) 1f else eyeAlpha),
+                    modifier = Modifier.size(22.dp),
+                )
+            }
+            Spacer(Modifier.width(8.dp))
             maknoonLogo?.let { logo ->
                 Image(
                     bitmap = logo,
@@ -204,8 +242,9 @@ private fun HeroCard(
             }
             Spacer(Modifier.weight(1f))
             Column(horizontalAlignment = Alignment.End) {
+                // Label stays visible; only the value is blurred.
                 Text(stringResource(R.string.passport_number_label), fontSize = 9.sp, fontWeight = FontWeight.SemiBold, color = fg.copy(alpha = 0.7f))
-                Text(doc.documentNumber, fontSize = 15.sp, fontWeight = FontWeight.SemiBold, fontFamily = FontFamily.Monospace, color = fg)
+                Text(doc.documentNumber, fontSize = 15.sp, fontWeight = FontWeight.SemiBold, fontFamily = FontFamily.Monospace, color = fg, modifier = Modifier.blur(maskBlur))
             }
         }
 
@@ -215,6 +254,7 @@ private fun HeroCard(
                 modifier = Modifier
                     .width(88.dp)
                     .height(108.dp)
+                    .blur(maskBlur)
                     .clip(RoundedCornerShape(11.dp))
                     .background(fg.copy(alpha = 0.12f))
                     .border(0.5.dp, fg.copy(alpha = 0.3f), RoundedCornerShape(11.dp)),
@@ -226,23 +266,15 @@ private fun HeroCard(
                     Text(monogram(doc), fontSize = 30.sp, fontWeight = FontWeight.Bold, color = fg.copy(alpha = 0.8f))
                 }
             }
-            // SelectionContainer so the holder can long-press to select + copy
-            // any attribute value (iOS textSelection parity).
-            SelectionContainer(modifier = Modifier.weight(1f)) {
-                Column(verticalArrangement = Arrangement.spacedBy(7.dp)) {
-                    Field(stringResource(R.string.passport_field_surname), cleanName(doc.latinSurname ?: doc.surname), fg)
-                    Field(stringResource(R.string.passport_field_given_names), cleanName(doc.latinGivenNames ?: doc.givenNames), fg)
-                    Row(horizontalArrangement = Arrangement.spacedBy(18.dp)) {
-                        Field(stringResource(R.string.passport_field_nationality), issuerCode(doc.nationality), fg)
-                        doc.sex?.takeIf { it.isNotEmpty() }?.let { Field(stringResource(R.string.passport_field_sex), it.uppercase(), fg) }
-                        Field(stringResource(R.string.passport_field_dob), isoDate(doc.dateOfBirth, DateKind.BIRTH), fg)
-                    }
-                    Row(horizontalArrangement = Arrangement.spacedBy(18.dp)) {
-                        Field(stringResource(R.string.passport_field_issued), issueDate(doc.dg12) ?: "—", fg)
-                        Field(stringResource(R.string.passport_field_expires), isoDate(doc.dateOfExpiry, DateKind.EXPIRY), fg)
-                    }
-                    doc.formattedPlaceOfBirth?.takeIf { it.isNotEmpty() }?.let { Field(stringResource(R.string.passport_field_place_of_birth), it, fg) }
-                }
+            // Revealed: SelectionContainer so the holder can long-press to select +
+            // copy any attribute value (iOS textSelection parity). Masked: a plain
+            // blurred Box (no selection, so a blurred value can't be copied out).
+            if (revealed) {
+                SelectionContainer(modifier = Modifier.weight(1f)) { PassportFields(doc, fg, masked = false) }
+            } else {
+                // No SelectionContainer while masked, so the blurred values can't
+                // be selected/copied; only the values blur, labels stay visible.
+                Box(modifier = Modifier.weight(1f)) { PassportFields(doc, fg, masked = true) }
             }
         }
 
@@ -273,9 +305,31 @@ private val TightText = TextStyle(
     ),
 )
 
+/** The personal-attribute column (surname … place of birth). Extracted so the
+ *  masked path can render it inside a blurred, non-selectable Box and the
+ *  revealed path inside a SelectionContainer. */
 @Composable
-private fun Field(label: String, value: String, fg: Color) {
+private fun PassportFields(doc: IDDocument, fg: Color, masked: Boolean) {
+    Column(verticalArrangement = Arrangement.spacedBy(7.dp)) {
+        Field(stringResource(R.string.passport_field_surname), cleanName(doc.latinSurname ?: doc.surname), fg, masked)
+        Field(stringResource(R.string.passport_field_given_names), cleanName(doc.latinGivenNames ?: doc.givenNames), fg, masked)
+        Row(horizontalArrangement = Arrangement.spacedBy(18.dp)) {
+            Field(stringResource(R.string.passport_field_nationality), issuerCode(doc.nationality), fg, masked)
+            doc.sex?.takeIf { it.isNotEmpty() }?.let { Field(stringResource(R.string.passport_field_sex), it.uppercase(), fg, masked) }
+            Field(stringResource(R.string.passport_field_dob), isoDate(doc.dateOfBirth, DateKind.BIRTH), fg, masked)
+        }
+        Row(horizontalArrangement = Arrangement.spacedBy(18.dp)) {
+            Field(stringResource(R.string.passport_field_issued), issueDate(doc.dg12) ?: "—", fg, masked)
+            Field(stringResource(R.string.passport_field_expires), isoDate(doc.dateOfExpiry, DateKind.EXPIRY), fg, masked)
+        }
+        doc.formattedPlaceOfBirth?.takeIf { it.isNotEmpty() }?.let { Field(stringResource(R.string.passport_field_place_of_birth), it, fg, masked) }
+    }
+}
+
+@Composable
+private fun Field(label: String, value: String, fg: Color, masked: Boolean) {
     Column(verticalArrangement = Arrangement.spacedBy(1.dp)) {
+        // The attribute label stays visible; only the value is blurred.
         Text(
             label,
             fontSize = 9.sp,
@@ -291,6 +345,7 @@ private fun Field(label: String, value: String, fg: Color) {
             fontWeight = FontWeight.SemiBold,
             color = fg,
             style = TightText,
+            modifier = Modifier.blur(if (masked) 9.dp else 0.dp),
         )
     }
 }

@@ -5,6 +5,7 @@
 
 package com.elabify.musnad.wallet
 
+import com.elabify.musnad.identity.IdentitySandwich
 import org.bitcoindevkit.Descriptor
 import org.bitcoindevkit.DescriptorSecretKey
 import org.bitcoindevkit.KeychainKind
@@ -25,6 +26,14 @@ object BitcoinWallet {
         .revealNextAddress(KeychainKind.EXTERNAL)
         .address
         .toString()
+
+    /** BIP84 receive address #0 (account 0) derived from a sandwich, folding
+     *  the identity BIP-39 passphrase read from the sandwich itself (ADR-0064).
+     *  The KAT asserts this matches iOS. */
+    fun firstReceiveAddressFromSandwich(
+        sandwich: IdentitySandwich,
+        network: Network = Network.BITCOIN,
+    ): String = firstReceiveAddress(sandwich.recoveryWords(), network, sandwich.bip39Passphrase())
 
     private fun buildWallet(words: List<String>, network: Network, passphrase: String?): Wallet {
         val mnemonic = Mnemonic.fromString(words.joinToString(" "))

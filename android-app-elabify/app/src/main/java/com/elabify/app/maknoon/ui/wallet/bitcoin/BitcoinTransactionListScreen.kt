@@ -62,7 +62,7 @@ internal fun BitcoinTransactionListScreen(
         val loaded = withContext(Dispatchers.IO) {
             runCatching {
                 val words = loadRecoveryWords(context)
-                val e = BitcoinWalletEngine.open(descriptor, env.filesDirPath, words, null)
+                val e = BitcoinWalletEngine.open(descriptor, env.filesDirPath, words, loadBip39Passphrase(context))
                 val list = e.transactions()
                 val nets = HashMap<String, Long>()
                 for (t in list) nets[t.txidHex()] = e.netAmount(t.transaction)

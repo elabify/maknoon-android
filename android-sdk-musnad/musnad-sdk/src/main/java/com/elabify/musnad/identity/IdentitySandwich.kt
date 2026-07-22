@@ -71,6 +71,16 @@ class IdentitySandwich private constructor(
     fun recoveryWords(): List<String> = words
     fun hasPassphrase(): Boolean = passphrase.isNotEmpty()
 
+    /** The BIP-39 passphrase (the onboarding "Set a password" value), folded
+     *  into software-wallet derivation on EVERY chain so addresses match iOS
+     *  (ADR-0064). Empty for a passphrase-free identity, which is the standard
+     *  no-passphrase BIP-39 seed. Available in-memory whenever the sandwich
+     *  exists (only the entropy is sealed under 2FA), so this never throws; it
+     *  is as sensitive as [recoveryWords] (gate reveal at the UI). This is the
+     *  identity passphrase, NOT the Trezor hidden-wallet passphrase (a
+     *  hardware-only THP-session secret that never reaches software derivation). */
+    fun bip39Passphrase(): String = passphrase
+
     /** Produce a v3 encrypted backup of this identity (iOS byte-compatible).
      *  The blob is encrypted + signed by the master derived from the same
      *  entropy + passphrase; restore needs the passphrase. */

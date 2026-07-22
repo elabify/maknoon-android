@@ -38,6 +38,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.dp
 import androidx.fragment.app.FragmentActivity
 import com.elabify.app.maknoon.R
@@ -84,6 +85,19 @@ fun IdentityMiniAppSheets(
     }
 }
 
+private data class SheetCred(val cid: String, val label: String, val holder: String, val sdn: String?)
+
+/** The 0x the holder DID encodes (did:elabify:...:holder:0x…), so the user sees
+ *  which passport/identity is being disclosed; falls back to a shortened DID. */
+private fun holderShort(did: String): String {
+    val idx = did.indexOf("0x")
+    if (idx >= 0) {
+        val hex = did.substring(idx)
+        return if (hex.length > 14) hex.take(8) + "…" + hex.takeLast(6) else hex
+    }
+    return if (did.length <= 30) did else did.take(18) + "…" + did.takeLast(8)
+}
+
 @Composable
 fun MiniAppIdentitySheet(
     appTitle: String,
@@ -95,15 +109,26 @@ fun MiniAppIdentitySheet(
     val purpose = payload.optString("purpose").takeUnless { it.isEmpty() }
     val requiredClaims = remember(payloadJson) { stringList(payload.optJSONArray("requiredClaims")) }
     val maxAgeSec = if (payload.has("maxAgeSec") && !payload.isNull("maxAgeSec")) payload.optLong("maxAgeSec") else null
-    // Matched credentials the handler offers (cid -> label). The user picks one;
-    // the handler builds the presentation from the chosen cid.
+    // Pool-access disclosure context (empty/false for a plain identity.request).
+    val recipientHost = payload.optString("recipientHost").takeUnless { it.isEmpty() }
+    val walletAddress = payload.optString("walletAddress").takeUnless { it.isEmpty() }
+    val showsDisclosedValues = payload.optBoolean("showsDisclosedValues", false)
+    // Matched credentials the handler offers. The user picks one; the handler
+    // builds the presentation from the chosen cid.
     val credentials = remember(payloadJson) {
         val arr = payload.optJSONArray("credentials")
         buildList {
             if (arr != null) for (i in 0 until arr.length()) {
                 val o = arr.optJSONObject(i) ?: continue
                 val cid = o.optString("cid")
-                if (cid.isNotEmpty()) add(cid to o.optString("label"))
+                if (cid.isNotEmpty()) add(
+                    SheetCred(
+                        cid = cid,
+                        label = o.optString("label"),
+                        holder = o.optString("holder"),
+                        sdn = if (o.has("sdn")) o.optString("sdn") else null,
+                    ),
+                )
             }
         }
     }
@@ -113,7 +138,7 @@ fun MiniAppIdentitySheet(
     val scope = rememberCoroutineScope()
     var working by remember { mutableStateOf(false) }
     var authError by remember { mutableStateOf<String?>(null) }
-    var selectedCid by remember(payloadJson) { mutableStateOf(credentials.firstOrNull()?.first) }
+    var selectedCid by remember(payloadJson) { mutableStateOf(credentials.firstOrNull()?.cid) }
 
     Column(
         modifier = Modifier
@@ -128,12 +153,30 @@ fun MiniAppIdentitySheet(
             Text(stringResource(R.string.app_purpose, it), style = MaterialTheme.typography.bodySmall)
         }
 
+        // Who receives this disclosure.
+        recipientHost?.let {
+            Text(stringResource(R.string.app_sending_to), style = MaterialTheme.typography.titleSmall)
+            Text(it, style = MaterialTheme.typography.bodyMedium, fontFamily = FontFamily.Monospace)
+        }
+
         Text(stringResource(R.string.app_will_disclose), style = MaterialTheme.typography.titleSmall)
         Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
             requiredClaims.forEach { key ->
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Icon(Icons.Filled.CheckCircle, contentDescription = null)
                     Text(stringResource(R.string.app_claim_indent, key), style = MaterialTheme.typography.bodyMedium)
+                }
+            }
+            // Show the actual value being shared (expanded), not just the name, so
+            // the user sees exactly what the recipient learns.
+            if (showsDisclosedValues) {
+                credentials.firstOrNull { it.cid == selectedCid }?.sdn?.let { sdn ->
+                    Text(
+                        sdn,
+                        style = MaterialTheme.typography.bodySmall,
+                        fontFamily = FontFamily.Monospace,
+                        modifier = Modifier.padding(start = 24.dp),
+                    )
                 }
             }
         }
@@ -144,22 +187,38 @@ fun MiniAppIdentitySheet(
             )
         }
 
-        // Credential picker: only shown when more than one credential matches
-        // (a single match is used directly). The label is data from the handler.
-        if (credentials.size > 1) {
-            Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                credentials.forEach { (cid, label) ->
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clickable { selectedCid = cid },
-                    ) {
-                        RadioButton(selected = selectedCid == cid, onClick = { selectedCid = cid })
-                        Text(
-                            label.ifEmpty { cid.take(8) },
-                            style = MaterialTheme.typography.bodyMedium,
-                        )
+        // The EVM wallet address is ALSO shared + permanently linked to this KYC.
+        walletAddress?.let {
+            Text(stringResource(R.string.app_wallet_shared_title), style = MaterialTheme.typography.titleSmall)
+            Text(it, style = MaterialTheme.typography.bodyMedium, fontFamily = FontFamily.Monospace)
+            Text(
+                stringResource(R.string.app_wallet_shared_warning),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.error,
+            )
+        }
+
+        // Credential picker: always shown (even for a single match) so the holder
+        // 0x being disclosed is visible. label + holder are data from the handler.
+        Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+            credentials.forEach { c ->
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable { selectedCid = c.cid },
+                ) {
+                    RadioButton(selected = selectedCid == c.cid, onClick = { selectedCid = c.cid })
+                    Column {
+                        Text(c.label.ifEmpty { c.cid.take(8) }, style = MaterialTheme.typography.bodyMedium)
+                        if (c.holder.isNotEmpty()) {
+                            Text(
+                                holderShort(c.holder),
+                                style = MaterialTheme.typography.bodySmall,
+                                fontFamily = FontFamily.Monospace,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
                     }
                 }
             }

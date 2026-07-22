@@ -160,7 +160,7 @@ internal fun AddEthereumWalletScreen(
             creating = true; errorText = null
             val result = withContext(Dispatchers.IO) {
                 runCatching {
-                    val addr = EthereumDescriptors.address(words = sw.recoveryWords(), account = account)
+                    val addr = EthereumDescriptors.addressFromSandwich(sw, account)
                     walletStore.add(
                         EthereumWalletDescriptor(
                             label = baseLabel,

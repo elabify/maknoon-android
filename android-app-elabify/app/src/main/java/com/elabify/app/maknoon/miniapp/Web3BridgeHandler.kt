@@ -271,42 +271,57 @@ class Web3BridgeHandler(
             appTitle = appTitle,
         )
 
-        val signed = when (val kind = descriptor.kind) {
-            is EthereumWalletKind.Software -> {
-                val sandwich = env.sandwich()
-                    ?: throw MiniAppBridgeError.unauthorized("wallet is locked")
-                io {
-                    try {
-                        EthereumDescriptors.signPersonalMessage(
-                            words = sandwich.recoveryWords(),
-                            account = account,
-                            message = message,
-                            derivationPath = descriptor.derivationPath,
-                        )
-                    } catch (e: Throwable) {
-                        throw MiniAppBridgeError.internalError(e.message ?: "personal_sign failed")
+        // Hardware wallets: prepare the device + collect the hidden-wallet
+        // passphrase before the BLE sign (a null prompt hangs a hidden Trezor).
+        val hwHostPassphrase = (descriptor.kind as? EthereumWalletKind.Hardware)?.let { hw ->
+            val device = env.device(hw.deviceId)
+                ?: throw MiniAppBridgeError.unauthorized("the paired device for this wallet was not found")
+            gate.requestHardwareSign(device, descriptor.hidden, appTitle)
+        }
+
+        val signed = try {
+            when (val kind = descriptor.kind) {
+                is EthereumWalletKind.Software -> {
+                    val sandwich = env.sandwich()
+                        ?: throw MiniAppBridgeError.unauthorized("wallet is locked")
+                    io {
+                        try {
+                            EthereumDescriptors.signPersonalMessage(
+                                words = sandwich.recoveryWords(),
+                                passphrase = sandwich.bip39Passphrase(),
+                                account = account,
+                                message = message,
+                                derivationPath = descriptor.derivationPath,
+                            )
+                        } catch (e: Throwable) {
+                            throw MiniAppBridgeError.internalError(e.message ?: "personal_sign failed")
+                        }
+                    }
+                }
+                is EthereumWalletKind.Hardware -> {
+                    val device = env.device(kind.deviceId)
+                        ?: throw MiniAppBridgeError.unauthorized("the paired device for this wallet was not found")
+                    withContext(Dispatchers.IO) {
+                        try {
+                            signEthereumHardwareMessage(
+                                device = device,
+                                account = account,
+                                message = message,
+                                hidden = descriptor.hidden,
+                                derivationPath = descriptor.derivationPath,
+                                hostPassphrase = hwHostPassphrase,
+                            )
+                        } catch (e: MiniAppBridgeError) {
+                            throw e
+                        } catch (e: Throwable) {
+                            throw MiniAppBridgeError.internalError(e.message ?: "personal_sign failed")
+                        }
                     }
                 }
             }
-            is EthereumWalletKind.Hardware -> {
-                val device = env.device(kind.deviceId)
-                    ?: throw MiniAppBridgeError.unauthorized("the paired device for this wallet was not found")
-                withContext(Dispatchers.IO) {
-                    try {
-                        signEthereumHardwareMessage(
-                            device = device,
-                            account = account,
-                            message = message,
-                            hidden = descriptor.hidden,
-                            derivationPath = descriptor.derivationPath,
-                        )
-                    } catch (e: MiniAppBridgeError) {
-                        throw e
-                    } catch (e: Throwable) {
-                        throw MiniAppBridgeError.internalError(e.message ?: "personal_sign failed")
-                    }
-                }
-            }
+        } finally {
+            // Dismiss the held "waiting for your device" sheet after signing.
+            if (descriptor.kind is EthereumWalletKind.Hardware) gate.release()
         }
         return JSONObject.quote(signed)
     }
@@ -342,7 +357,17 @@ class Web3BridgeHandler(
             appTitle = appTitle,
         )
 
-        return io {
+        // Hardware wallets: prepare the device + collect the hidden-wallet
+        // passphrase on the UI dispatcher before the IO block opens BLE (a null
+        // prompt hangs a hidden Trezor at "verifying and granting access").
+        val hwHostPassphrase = (descriptor.kind as? EthereumWalletKind.Hardware)?.let { hw ->
+            val device = env.device(hw.deviceId)
+                ?: throw MiniAppBridgeError.unauthorized("the paired device for this wallet was not found")
+            gate.requestHardwareSign(device, descriptor.hidden, appTitle)
+        }
+
+        return try {
+        io {
             val wallet = EthereumWallet(descriptor)
             val nonce = wallet.pendingNonce(rpcURL)
             val gasLimit = providedGasLimit(tx.optStringOrNull("gas"))
@@ -386,7 +411,7 @@ class Web3BridgeHandler(
                         // Arbitrary contract calls (approve, swap) blind-sign on the
                         // device: the raw calldata shows on-screen, not a decoded amount.
                         val rawTx = wallet.prepareHardware(
-                            signer = EthereumDeviceSigner(device = device, account = account),
+                            signer = EthereumDeviceSigner(device = device, account = account, hostPassphrase = hwHostPassphrase),
                             to = to,
                             value = value,
                             gasLimit = gasLimit,
@@ -412,6 +437,10 @@ class Web3BridgeHandler(
             } catch (e: Throwable) {
                 throw MiniAppBridgeError.internalError(e.message ?: "eth_sendTransaction failed")
             }
+        }
+        } finally {
+            // Dismiss the held "waiting for your device" sheet after signing.
+            if (descriptor.kind is EthereumWalletKind.Hardware) gate.release()
         }
     }
 
@@ -456,42 +485,57 @@ class Web3BridgeHandler(
             appTitle = appTitle,
         )
 
-        val signed = when (val kind = descriptor.kind) {
-            is EthereumWalletKind.Software -> {
-                val sandwich = env.sandwich()
-                    ?: throw MiniAppBridgeError.unauthorized("wallet is locked")
-                io {
-                    try {
-                        EthereumDescriptors.signTypedData(
-                            words = sandwich.recoveryWords(),
-                            account = account,
-                            typedDataJson = json,
-                            derivationPath = descriptor.derivationPath,
-                        )
-                    } catch (e: Throwable) {
-                        throw MiniAppBridgeError.internalError(e.message ?: "eth_signTypedData_v4 failed")
+        // Hardware wallets: prepare the device + collect the hidden-wallet
+        // passphrase before the BLE sign (a null prompt hangs a hidden Trezor).
+        val hwHostPassphrase = (descriptor.kind as? EthereumWalletKind.Hardware)?.let { hw ->
+            val device = env.device(hw.deviceId)
+                ?: throw MiniAppBridgeError.unauthorized("the paired device for this wallet was not found")
+            gate.requestHardwareSign(device, descriptor.hidden, appTitle)
+        }
+
+        val signed = try {
+            when (val kind = descriptor.kind) {
+                is EthereumWalletKind.Software -> {
+                    val sandwich = env.sandwich()
+                        ?: throw MiniAppBridgeError.unauthorized("wallet is locked")
+                    io {
+                        try {
+                            EthereumDescriptors.signTypedData(
+                                words = sandwich.recoveryWords(),
+                                passphrase = sandwich.bip39Passphrase(),
+                                account = account,
+                                typedDataJson = json,
+                                derivationPath = descriptor.derivationPath,
+                            )
+                        } catch (e: Throwable) {
+                            throw MiniAppBridgeError.internalError(e.message ?: "eth_signTypedData_v4 failed")
+                        }
+                    }
+                }
+                is EthereumWalletKind.Hardware -> {
+                    val device = env.device(kind.deviceId)
+                        ?: throw MiniAppBridgeError.unauthorized("the paired device for this wallet was not found")
+                    withContext(Dispatchers.IO) {
+                        try {
+                            signEthereumHardwareTypedData(
+                                device = device,
+                                account = account,
+                                typedDataJson = json,
+                                hidden = descriptor.hidden,
+                                derivationPath = descriptor.derivationPath,
+                                hostPassphrase = hwHostPassphrase,
+                            )
+                        } catch (e: MiniAppBridgeError) {
+                            throw e
+                        } catch (e: Throwable) {
+                            throw MiniAppBridgeError.internalError(e.message ?: "eth_signTypedData_v4 failed")
+                        }
                     }
                 }
             }
-            is EthereumWalletKind.Hardware -> {
-                val device = env.device(kind.deviceId)
-                    ?: throw MiniAppBridgeError.unauthorized("the paired device for this wallet was not found")
-                withContext(Dispatchers.IO) {
-                    try {
-                        signEthereumHardwareTypedData(
-                            device = device,
-                            account = account,
-                            typedDataJson = json,
-                            hidden = descriptor.hidden,
-                            derivationPath = descriptor.derivationPath,
-                        )
-                    } catch (e: MiniAppBridgeError) {
-                        throw e
-                    } catch (e: Throwable) {
-                        throw MiniAppBridgeError.internalError(e.message ?: "eth_signTypedData_v4 failed")
-                    }
-                }
-            }
+        } finally {
+            // Dismiss the held "waiting for your device" sheet after signing.
+            if (descriptor.kind is EthereumWalletKind.Hardware) gate.release()
         }
         return JSONObject.quote(signed)
     }

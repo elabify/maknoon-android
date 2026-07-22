@@ -34,6 +34,9 @@ class MainActivity : FragmentActivity() {
         com.elabify.app.maknoon.ui.settings.TestnetAnchorSettings.init(applicationContext)
         // Shared multi-asset price cache (persists its snapshot to "UserDefaults").
         com.elabify.musnad.wallet.pricing.AssetPriceCache.init(applicationContext)
+        // ADR-0064 hard switch: delete EVM software wallets abandoned by the
+        // wallet-derivation passphrase-parity change (one-shot, pref-gated).
+        com.elabify.app.maknoon.ui.wallet.ethereum.WalletDerivationMigration.runIfNeeded(applicationContext)
         setContent {
             // Read the observable theme so a change in Settings > Display
             // recomposes here and applies live. Automatic follows the system.

@@ -9,9 +9,11 @@ package com.elabify.musnad.wallet.ethereum
 
 object EthereumTokenCatalog {
 
-    /** First-run seed: just USDC on every chain with an official deployment. */
-    fun firstRunSeed(network: EthereumNetwork): List<EthereumToken> =
-        reputable(network).filter { it.symbol == "USDC" }
+    /** No first-run seed (ADR-0060): a wallet starts with NO ERC-20 tokens.
+     *  Tokens appear only via auto-discovery (the wallet's own transfer history)
+     *  or manual add, both scoped per (wallet, chain). `reputable` below is the
+     *  discovery trust anchor (used to NAME a discovered contract), not seeded. */
+    fun firstRunSeed(network: EthereumNetwork): List<EthereumToken> = emptyList()
 
     /** Reputable token list used by auto-discover. */
     fun reputable(network: EthereumNetwork): List<EthereumToken> {

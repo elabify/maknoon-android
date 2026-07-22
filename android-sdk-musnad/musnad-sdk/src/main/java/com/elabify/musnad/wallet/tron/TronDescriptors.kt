@@ -57,18 +57,12 @@ object TronDescriptors {
     fun privateKey(sandwich: IdentitySandwich, account: Long): PrivateKey {
         ensureNative()
         val words = sandwich.recoveryWords().joinToString(" ")
-        val passphrase = if (sandwich.hasPassphrase()) recoverPassphrase(sandwich) else ""
-        val wallet = HDWallet(words, passphrase)
+        // Fold the identity passphrase into derivation, matching iOS (ADR-0064).
+        // bip39Passphrase() is "" for a passphrase-free identity, so this is the
+        // standard no-passphrase seed in that case.
+        val wallet = HDWallet(words, sandwich.bip39Passphrase())
         return wallet.getKey(derivationPath(account))
     }
-
-    // IdentitySandwich does not expose the passphrase string directly
-    // (it gates reveal behind biometrics at the UI). The HDWallet
-    // constructor needs it for passphrase-aware (hidden) wallets; the
-    // app layer supplies it through the send path. For the standard
-    // wallet (no passphrase) this returns "". Hidden-wallet support is
-    // an open question flagged in the structured output.
-    private fun recoverPassphrase(sandwich: IdentitySandwich): String = ""
 
     /** Carries the createtransaction envelope + the 65-byte R||S||V
      *  signature from the sign step to the broadcast call. Mirror of iOS

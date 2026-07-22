@@ -120,7 +120,7 @@ enum class EthereumNetwork(val rawValue: String) {
             if (isTestnet) return null
             return when (this) {
                 MAINNET, ARBITRUM, OPTIMISM, BASE, SCROLL, LINEA, ZKSYNC, POLYGON_ZK_EVM -> "ethereum"
-                POLYGON -> "matic-network"
+                POLYGON -> "polygon-ecosystem-token" // POL (ex-MATIC); the old matic-network id is dead
                 BNB -> "binancecoin"
                 AVALANCHE -> "avalanche-2"
                 MANTLE -> "mantle"

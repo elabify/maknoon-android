@@ -21,6 +21,12 @@ class EthereumWalletException(message: String) : Exception(message) {
         const val RPC_URL_INVALID = "Configured RPC URL is not a valid URL"
         const val HARDWARE_NOT_IMPLEMENTED =
             "Hardware-wallet Ethereum signing is not yet shipped. Use a software wallet for now."
+        // Orphaned wallet (ADR-0063): the descriptor's cached address is not
+        // derivable from the CURRENT identity seed, so signing would produce a
+        // different (unfunded) address and the node rejects with a cryptic
+        // "insufficient funds ... have 0". Fail fast with a clear message.
+        const val WRONG_IDENTITY =
+            "This wallet belongs to a different identity. Restore the backup that created it to use it."
     }
 }
 
@@ -135,12 +141,11 @@ class EthereumWallet(val descriptor: EthereumWalletDescriptor) {
         nonce: Long,
         payload: EthereumTxPlan.Payload,
         rpcURL: String,
-        passphrase: String = "",
         derivationPath: String? = descriptor.derivationPath,
     ): String = broadcast(
         prepareSoftware(
             sandwich, account, to, value, gasLimit, maxFeePerGas, maxPriorityFeePerGas,
-            chainId, nonce, payload, passphrase, derivationPath,
+            chainId, nonce, payload, derivationPath,
         ),
         rpcURL,
     )
@@ -162,9 +167,27 @@ class EthereumWallet(val descriptor: EthereumWalletDescriptor) {
         chainId: Long,
         nonce: Long,
         payload: EthereumTxPlan.Payload,
-        passphrase: String = "",
         derivationPath: String? = descriptor.derivationPath,
     ): String {
+        // Fold the identity passphrase into derivation, matching iOS (ADR-0064).
+        // "" for a passphrase-free identity (the standard no-passphrase seed).
+        val passphrase = sandwich.bip39Passphrase()
+        // Orphan guard (ADR-0063): the signer is derived from the CURRENT seed;
+        // if it doesn't match the descriptor's cached address, this wallet was
+        // created under a different identity (e.g. a mismatched backup restore)
+        // and cannot be signed for. Fail fast with a clear message instead of a
+        // downstream "insufficient funds ... have 0" from the node.
+        descriptor.cachedAddress?.takeIf { it.isNotEmpty() }?.let { cached ->
+            val signer = EthereumDescriptors.address(
+                words = sandwich.recoveryWords(),
+                passphrase = passphrase,
+                account = account,
+                derivationPath = derivationPath,
+            )
+            if (!signer.equals(cached, ignoreCase = true)) {
+                throw EthereumWalletException(EthereumWalletException.WRONG_IDENTITY)
+            }
+        }
         val plan = EthereumTxPlan(
             chainId = chainId,
             nonce = nonce,

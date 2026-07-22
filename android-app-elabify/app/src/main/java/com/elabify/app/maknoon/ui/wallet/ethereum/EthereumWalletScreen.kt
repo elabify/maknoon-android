@@ -270,6 +270,12 @@ private fun EthereumDashboard(
 
     val sandwich = remember { loadEthereumSandwich(context) }
     val showsLockedBanner = sandwich == null && (activeWallet?.kind is EthereumWalletKind.Software)
+    // ADR-0063: the active wallet's cached address is not derivable from the
+    // current identity seed (orphaned, e.g. mismatched backup restore) -> it
+    // can't sign, so warn + disable Send.
+    val orphaned = remember(stateRev, sandwich) {
+        activeWallet?.let { ethereumWalletOrphaned(it, sandwich) } ?: false
+    }
 
     fun refresh() {
         val descriptor = activeWallet ?: return
@@ -393,6 +399,20 @@ private fun EthereumDashboard(
                     onManage = onWallets,
                 )
 
+                if (orphaned) {
+                    Banner(
+                        title = stringResource(R.string.eth_wallet_orphaned),
+                        variant = BannerVariant.ERROR,
+                        body = stringResource(R.string.eth_wallet_orphaned_body),
+                        modifier = Modifier.padding(horizontal = Spacing.lg),
+                        trailing = {
+                            TextButton(onClick = {
+                                walletStore.remove(activeWallet.id); stateRev++
+                            }) { Text(stringResource(R.string.common_remove), color = MaknoonColors.error) }
+                        },
+                    )
+                }
+
                 activeWallet.address?.let { addr ->
                     AccountAddressBadge(accountIndex = accountIndexOf(activeWallet), address = addr)
                 }
@@ -409,7 +429,7 @@ private fun EthereumDashboard(
                 )
 
                 ActionButtons(
-                    sendEnabled = activeWallet.address != null,
+                    sendEnabled = activeWallet.address != null && !orphaned,
                     onSend = { onSend(activeWallet.id, null) },
                     onReceive = { onReceive(activeWallet.id) },
                     onExplorer = {

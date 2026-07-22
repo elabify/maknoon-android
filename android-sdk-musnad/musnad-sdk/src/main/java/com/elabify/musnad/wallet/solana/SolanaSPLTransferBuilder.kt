@@ -62,7 +62,6 @@ object SolanaSPLTransferBuilder {
         recipientHasATA: Boolean,
         recentBlockhashBase58: String,
         priorityFeeMicroLamports: Long,
-        passphrase: String = "",
     ): String {
         if (!SolanaPrimitives.isValidAddress(recipientOwnerBase58)) {
             throw SolanaSPLTransferException("Recipient address is not a valid Solana pubkey: $recipientOwnerBase58")
@@ -70,7 +69,8 @@ object SolanaSPLTransferBuilder {
         if (!SolanaPrimitives.isValidAddress(mintBase58)) {
             throw SolanaSPLTransferException("SPL mint is not a valid Solana pubkey: $mintBase58")
         }
-        val seed = SolanaPrimitives.privateSeed(sandwich.recoveryWords(), passphrase, account)
+        // Fold the identity passphrase into derivation, matching iOS (ADR-0064).
+        val seed = SolanaPrimitives.privateSeed(sandwich.recoveryWords(), sandwich.bip39Passphrase(), account)
         val signerBase58 = SolanaPrimitives.base58Encode(SolanaPrimitives.publicKey(seed))
         val instructions = buildSPLInstructions(
             signerBase58 = signerBase58,

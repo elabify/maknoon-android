@@ -56,7 +56,7 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.dp
 import com.elabify.app.maknoon.R
 import com.elabify.app.maknoon.ui.wallet.common.PassphraseField
-import com.elabify.app.maknoon.ui.wallet.common.authorizeSend
+import com.elabify.app.maknoon.ui.wallet.common.authorizeSignature
 import com.elabify.musnad.devices.DeviceRegistry
 import com.elabify.musnad.hardware.trezor.HardwarePassphraseRef
 import com.elabify.musnad.wallet.ethereum.EthereumDescriptors
@@ -159,14 +159,14 @@ internal fun EthereumSignMessageScreen(
                         try {
                             when (val kind = active.kind) {
                                 is EthereumWalletKind.Software -> {
-                                    if (!authorizeSend(context, "Ethereum")) return@launch
+                                    if (!authorizeSignature(context, "Ethereum")) return@launch
                                     val sandwich = loadEthereumSandwich(context)
                                         ?: throw IllegalStateException("Unlock Maknoon first; signing needs your wallet's private key.")
                                     signing = true
                                     signature = withContext(Dispatchers.IO) {
                                         EthereumDescriptors.signPersonalMessage(
                                             words = sandwich.recoveryWords(),
-                                            passphrase = "",
+                                            passphrase = sandwich.bip39Passphrase(),
                                             account = account,
                                             message = message.toByteArray(Charsets.UTF_8),
                                             derivationPath = active.derivationPath,

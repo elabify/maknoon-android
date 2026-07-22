@@ -330,7 +330,7 @@ private fun SoftwareAutoDiscovery(
                     withContext(Dispatchers.IO) {
                         BitcoinWalletDiscovery.scan(
                             mnemonicWords = words.joinToString(" "),
-                            passphrase = null,
+                            passphrase = loadBip39Passphrase(context),
                             networks = listOf(network),
                             electrumURL = { env.settings.electrumURL(it) },
                             onProgress = { p -> progress.add("Account ${p.account}: ${p.phase::class.simpleName}") },

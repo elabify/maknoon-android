@@ -66,8 +66,12 @@ android {
 
     defaultConfig {
         applicationId = "com.elabify.app.maknoon" // matches the iOS bundle id
-        minSdk = 33
-        targetSdk = 35
+        // Android 16 (API 36) floor, mirroring the iOS 26 floor (modern-only,
+        // GrapheneOS/Pixel-tested). minSdk == targetSdk == compileSdk == 36; Play
+        // requires targeting API 36. Older Android may be offered unofficially via
+        // GitHub releases with a lowered minSdk later (ADR-0066).
+        minSdk = 36
+        targetSdk = 36
         // Auto-derived in CI from github.run_number (monotonic, survives shallow
         // checkout) so a Play upload is never rejected for a duplicate code; the
         // release CI passes ANDROID_VERSION_CODE. Local builds fall back to a static

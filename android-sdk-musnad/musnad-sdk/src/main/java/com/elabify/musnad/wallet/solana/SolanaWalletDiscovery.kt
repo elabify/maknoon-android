@@ -54,12 +54,14 @@ object SolanaWalletDiscovery {
         sandwich: IdentitySandwich,
         network: SolanaNetwork,
         rpcURL: String,
-        passphrase: String = "",
         includeFirstAccountAlways: Boolean = false,
         onProgress: (Progress) -> Unit = {},
     ): List<DiscoveredAccount> {
         val rpc = SolanaRPCClient(endpoint = rpcURL)
         val words = sandwich.recoveryWords()
+        // Fold the identity passphrase into derivation, matching iOS (ADR-0064),
+        // so discovery scans the SAME addresses the wallet will derive.
+        val passphrase = sandwich.bip39Passphrase()
 
         val hits = ArrayList<DiscoveredAccount>()
         val seenAddresses = HashSet<String>()

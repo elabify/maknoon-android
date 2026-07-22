@@ -60,7 +60,7 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.dp
 import com.elabify.app.maknoon.R
 import com.elabify.app.maknoon.ui.wallet.common.PassphraseField
-import com.elabify.app.maknoon.ui.wallet.common.authorizeSend
+import com.elabify.app.maknoon.ui.wallet.common.authorizeSignature
 import com.elabify.musnad.devices.DeviceRegistry
 import com.elabify.musnad.hardware.trezor.HardwarePassphraseRef
 import com.elabify.musnad.wallet.bitcoin.Bip32Path
@@ -184,7 +184,7 @@ internal fun BitcoinSignMessageScreen(
                         try {
                             when (val kind = active.kind) {
                                 is BitcoinWalletKind.Software -> {
-                                    if (!authorizeSend(context, "Bitcoin")) return@launch
+                                    if (!authorizeSignature(context, "Bitcoin")) return@launch
                                     signing = true
                                     val words = withContext(Dispatchers.IO) { loadRecoveryWords(context) }
                                         ?: throw IllegalStateException("Unlock Maknoon first; signing needs your wallet's private key.")
@@ -195,7 +195,7 @@ internal fun BitcoinSignMessageScreen(
                                             scriptType = scriptType,
                                             network = active.network,
                                             mnemonicWords = words,
-                                            passphrase = null,
+                                            passphrase = loadBip39Passphrase(context),
                                         )
                                     }
                                     resultAddress = addr; resultSig = sig

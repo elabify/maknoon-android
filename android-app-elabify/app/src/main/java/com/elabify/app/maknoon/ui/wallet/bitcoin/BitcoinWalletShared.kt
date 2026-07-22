@@ -76,6 +76,13 @@ class BitcoinWalletEnv private constructor(
 fun loadRecoveryWords(context: Context): List<String>? =
     runCatching { IdentitySandwich.load(IdentityStore(context))?.recoveryWords() }.getOrNull()
 
+/** The identity BIP-39 passphrase, folded into software Bitcoin derivation so
+ *  addresses match iOS (ADR-0064). "" for a passphrase-free identity (the
+ *  standard no-passphrase seed) or when no identity exists. Loaded alongside
+ *  [loadRecoveryWords] at every software derive/sign/discover site. */
+fun loadBip39Passphrase(context: Context): String =
+    runCatching { IdentitySandwich.load(IdentityStore(context))?.bip39Passphrase() }.getOrNull() ?: ""
+
 // MARK: -- formatting helpers (shared across screens)
 
 /** 8-decimal BTC string from satoshis (no sign). */

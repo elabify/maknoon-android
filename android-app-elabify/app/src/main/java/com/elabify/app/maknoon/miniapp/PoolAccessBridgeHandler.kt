@@ -96,25 +96,8 @@ class PoolAccessBridgeHandler(
             return JSONObject().put("granted", false).put("reason", "no_passport_credential").toString()
         }
 
-        // 2. Consent (+ credential pick, default most-recent) via the identity sheet.
-        val credArr = JSONArray()
-        matches.forEach { (e, _) ->
-            credArr.put(
-                JSONObject()
-                    .put("cid", e.cid)
-                    .put("label", e.nickname?.takeIf { it.isNotEmpty() } ?: e.schema),
-            )
-        }
-        val payload = JSONObject()
-            .put("appTitle", appTitle)
-            .put("purpose", "Verify to access the pool")
-            .put("requiredClaims", JSONArray(requiredClaims))
-            .put("credentials", credArr)
-        val sheetResult = gate.request(kind = "identity", payloadJson = payload.toString(), appTitle = appTitle)
-        val chosenCid = JSONObject(sheetResult).optStringOrNull("cid")
-        val chosen = (chosenCid?.let { cid -> matches.firstOrNull { it.first.cid == cid } } ?: matches.first()).second
-
-        // 3. Resolve the active EVM wallet (software or hardware) for the control proof.
+        // 2. Resolve the active EVM wallet up front so the consent sheet can show
+        //    the address being shared and its permanent KYC association.
         val descriptor = env.activeWallet
             ?: throw MiniAppBridgeError.unauthorized("no active Ethereum wallet in this app")
         val walletAddress = descriptor.address?.takeIf { it.isNotEmpty() }
@@ -123,6 +106,39 @@ class PoolAccessBridgeHandler(
             is EthereumWalletKind.Software -> kind.account
             is EthereumWalletKind.Hardware -> kind.account
         }
+
+        // 3. Consent (+ credential pick) via the identity sheet, which now shows the
+        //    recipient host, the disclosed sdnScreen value (expanded), the holder 0x
+        //    per credential, and the wallet-address permanence warning.
+        val recipientHost = runCatching { java.net.URI(issuerUrl).host }.getOrNull() ?: issuerUrl
+        val credArr = JSONArray()
+        matches.forEach { (e, parsed) ->
+            val sdn = runCatching {
+                when (val v = JSONObject(e.credentialJson).optJSONObject("claims")?.opt(SDN_CLAIM)) {
+                    is JSONObject -> v.toString(2)
+                    null -> null
+                    else -> v.toString()
+                }
+            }.getOrNull()
+            credArr.put(
+                JSONObject()
+                    .put("cid", e.cid)
+                    .put("label", e.nickname?.takeIf { it.isNotEmpty() } ?: e.schema)
+                    .put("holder", parsed.header.sub)
+                    .apply { if (sdn != null) put("sdn", sdn) },
+            )
+        }
+        val payload = JSONObject()
+            .put("appTitle", appTitle)
+            .put("purpose", "Verify to access the pool")
+            .put("requiredClaims", JSONArray(requiredClaims))
+            .put("credentials", credArr)
+            .put("recipientHost", recipientHost)
+            .put("walletAddress", walletAddress)
+            .put("showsDisclosedValues", true)
+        val sheetResult = gate.request(kind = "identity", payloadJson = payload.toString(), appTitle = appTitle)
+        val chosenCid = JSONObject(sheetResult).optStringOrNull("cid")
+        val chosen = (chosenCid?.let { cid -> matches.firstOrNull { it.first.cid == cid } } ?: matches.first()).second
 
         // 4. Server challenge -> signed presentation (kept for the grant endpoint,
         //    not sent to /v1/verify). The challenge signature must bind the DID the
@@ -146,35 +162,49 @@ class PoolAccessBridgeHandler(
             holderDid = presentation.header.sub,
             verifierDid = issuerDid,
             nonce = presentation.challenge,
+            walletAddress = walletAddress,
         )
         // Signed by the active wallet, software or hardware; the Access Issuer
-        // verifies it identically (recover signer == wallet address).
-        val signature = withContext(Dispatchers.IO) {
-            try {
-                when (val kind = descriptor.kind) {
-                    is EthereumWalletKind.Software -> EthereumDescriptors.signTypedData(
-                        words = sandwich.recoveryWords(),
-                        account = account,
-                        typedDataJson = typedDataJson,
-                        derivationPath = descriptor.derivationPath,
-                    )
-                    is EthereumWalletKind.Hardware -> {
-                        val device = env.device(kind.deviceId)
-                            ?: throw MiniAppBridgeError.unauthorized("the paired device for this wallet was not found")
+        // verifies it identically (recover signer == wallet address). For a
+        // hardware wallet, prepare the device + collect the hidden-wallet
+        // passphrase BEFORE opening BLE (a null prompt is what made a hidden
+        // Trezor hang / throw "enter passphrase"); software wallets skip the sheet.
+        val hwDevice = (descriptor.kind as? EthereumWalletKind.Hardware)?.let { hw ->
+            env.device(hw.deviceId)
+                ?: throw MiniAppBridgeError.unauthorized("the paired device for this wallet was not found")
+        }
+        val hostPassphrase = hwDevice?.let { gate.requestHardwareSign(it, descriptor.hidden, appTitle) }
+        val signature = try {
+            withContext(Dispatchers.IO) {
+                try {
+                    if (hwDevice == null) {
+                        EthereumDescriptors.signTypedData(
+                            words = sandwich.recoveryWords(),
+                            passphrase = sandwich.bip39Passphrase(),
+                            account = account,
+                            typedDataJson = typedDataJson,
+                            derivationPath = descriptor.derivationPath,
+                        )
+                    } else {
                         signEthereumHardwareTypedData(
-                            device = device,
+                            device = hwDevice,
                             account = account,
                             typedDataJson = typedDataJson,
                             hidden = descriptor.hidden,
                             derivationPath = descriptor.derivationPath,
+                            hostPassphrase = hostPassphrase,
                         )
                     }
+                } catch (e: MiniAppBridgeError) {
+                    throw e
+                } catch (e: Throwable) {
+                    throw MiniAppBridgeError.internalError(e.message ?: "wallet-control signing failed")
                 }
-            } catch (e: MiniAppBridgeError) {
-                throw e
-            } catch (e: Throwable) {
-                throw MiniAppBridgeError.internalError(e.message ?: "wallet-control signing failed")
             }
+        } finally {
+            // Dismiss the held "waiting for your device" sheet once the sign
+            // completes or fails (no-op for the software path).
+            if (hwDevice != null) gate.release()
         }
 
         // 6. Submit to the verifier's grant endpoint (writes the on-chain grant).
@@ -214,9 +244,12 @@ class PoolAccessBridgeHandler(
         }.toString()
     }
 
-    /** The exact eth_signTypedData_v4 JSON the verifier's verifyWalletControl
-     *  re-derives: domain {name, version} only, WalletControl(holderDid, verifierDid, nonce). */
-    private fun walletControlTypedData(holderDid: String, verifierDid: String, nonce: String): String {
+    /** The exact eth_signTypedData_v4 JSON the issuer's verifyWalletControl
+     *  re-derives: domain {name, version}, WalletControl(holderDid, verifierDid,
+     *  nonce, walletAddress). walletAddress binds the signed intent to the exact
+     *  address being registered (defense-in-depth); the issuer also accepts the
+     *  legacy 3-field struct during rollout (ADR-0065 hardening). */
+    private fun walletControlTypedData(holderDid: String, verifierDid: String, nonce: String, walletAddress: String): String {
         val types = JSONObject()
             .put(
                 "EIP712Domain",
@@ -229,7 +262,8 @@ class PoolAccessBridgeHandler(
                 JSONArray()
                     .put(JSONObject().put("name", "holderDid").put("type", "string"))
                     .put(JSONObject().put("name", "verifierDid").put("type", "string"))
-                    .put(JSONObject().put("name", "nonce").put("type", "string")),
+                    .put(JSONObject().put("name", "nonce").put("type", "string"))
+                    .put(JSONObject().put("name", "walletAddress").put("type", "string")),
             )
         return JSONObject()
             .put("types", types)
@@ -237,7 +271,8 @@ class PoolAccessBridgeHandler(
             .put("domain", JSONObject().put("name", "MaknoonPoolAccess").put("version", "1"))
             .put(
                 "message",
-                JSONObject().put("holderDid", holderDid).put("verifierDid", verifierDid).put("nonce", nonce),
+                JSONObject().put("holderDid", holderDid).put("verifierDid", verifierDid)
+                    .put("nonce", nonce).put("walletAddress", walletAddress),
             )
             .toString()
     }

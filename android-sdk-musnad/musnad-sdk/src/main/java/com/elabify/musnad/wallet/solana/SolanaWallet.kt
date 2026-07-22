@@ -32,11 +32,6 @@ class SolanaWallet(
     val network: SolanaNetwork,
     rpcURL: String,
     private val sandwich: IdentitySandwich?,
-    /** BIP39 recovery passphrase for software derivation. The Android
-     *  IdentitySandwich keeps its passphrase private; the holder layer
-     *  passes it after a biometric unlock. "" for the common
-     *  passphrase-free identity. See openQuestions. */
-    private val passphrase: String = "",
 ) {
     private val rpc: SolanaRPCClient =
         SolanaRPCClient(endpoint = rpcURL.ifBlank { network.defaultRpcURL })
@@ -56,7 +51,7 @@ class SolanaWallet(
     fun address(): String = when (val k = descriptor.kind) {
         is SolanaWalletKind.Software -> {
             val s = sandwich ?: throw SolanaDescriptorException("Identity master unavailable")
-            SolanaDescriptors.addressFromSandwich(s, k.account, passphrase)
+            SolanaDescriptors.addressFromSandwich(s, k.account)
         }
         is SolanaWalletKind.Hardware -> k.publicKeyBase58
     }
@@ -127,7 +122,6 @@ class SolanaWallet(
             lamports = lamports,
             recentBlockhashBase58 = bh.blockhash,
             priorityFeeMicroLamports = priorityFeeMicroLamports,
-            passphrase = passphrase,
         )
     }
 
@@ -168,7 +162,6 @@ class SolanaWallet(
             recipientHasATA = recipientHasATA,
             recentBlockhashBase58 = bh.blockhash,
             priorityFeeMicroLamports = priorityFeeMicroLamports,
-            passphrase = passphrase,
         )
     }
 

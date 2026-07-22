@@ -252,7 +252,7 @@ class RealCommerceHolderContext(
                     ?: throw IllegalStateException("Identity is locked. Unlock and retry.")
                 EthereumDescriptors.signTransaction(
                     words = sandwich.recoveryWords(),
-                    passphrase = "",
+                    passphrase = sandwich.bip39Passphrase(),
                     account = kind.account,
                     plan = plan,
                     derivationPath = descriptor.derivationPath,
@@ -518,8 +518,9 @@ class RealCommerceHolderContext(
     override fun bitcoinBalanceSats(descriptor: BitcoinWalletDescriptor): Long {
         val env = BitcoinWalletEnv.create(appContext)
         val electrumURL = env.settings.electrumURL(descriptor.network)
+        val sandwich = sandwichLoader()
         val engine = BitcoinWalletEngine.open(
-            descriptor, env.filesDirPath, sandwichLoader()?.recoveryWords(), null,
+            descriptor, env.filesDirPath, sandwich?.recoveryWords(), sandwich?.bip39Passphrase(),
         )
         engine.sync(electrumURL)
         return engine.balance().total.toSat().toLong()
@@ -550,14 +551,14 @@ class RealCommerceHolderContext(
                 val sandwich = sandwichLoader()
                     ?: throw IllegalStateException("Identity is locked. Unlock and retry.")
                 val words = sandwich.recoveryWords()
-                val engine = BitcoinWalletEngine.open(descriptor, env.filesDirPath, words, null)
+                val engine = BitcoinWalletEngine.open(descriptor, env.filesDirPath, words, sandwich.bip39Passphrase())
                 engine.sync(electrumURL) // BDK needs the UTXO set before building the spend
                 val unsigned = engine.buildUnsignedPSBT(
                     toAddressString = recipient, amountSat = amountSat,
                     feeRateSatsPerVb = feeRateSatsPerVb, enableRbf = true, selectedUtxoOutpoints = null,
                 )
                 val signed = BitcoinSigningHelpers.signSoftware(
-                    unsignedBase64 = unsigned, recoveryWords = words, passphrase = null,
+                    unsignedBase64 = unsigned, recoveryWords = words, passphrase = sandwich.bip39Passphrase(),
                     account = kind.account, network = descriptor.network,
                 )
                 // signSoftware finalizes (tryFinalize), so the txid is derivable now.

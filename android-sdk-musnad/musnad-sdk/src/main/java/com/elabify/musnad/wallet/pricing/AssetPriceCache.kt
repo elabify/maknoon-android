@@ -69,7 +69,7 @@ object AssetPriceCache {
      *  so this is only the preload set. Mirrors iOS coinGeckoIds (+ tron). */
     val coinGeckoIds: List<String> = listOf(
         "bitcoin", "ethereum",
-        "matic-network", "binancecoin", "avalanche-2", "mantle", "hyperliquid",
+        "polygon-ecosystem-token", "binancecoin", "avalanche-2", "mantle", "hyperliquid",
         "solana", "tron",
         "tether", "usd-coin", "dai",
     )

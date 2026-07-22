@@ -578,6 +578,9 @@
     <string name="app_requesting_proof">is requesting proof from your wallet.</string>
     <string name="app_purpose">Purpose: %1$s</string>
     <string name="app_will_disclose">Will disclose</string>
+    <string name="app_sending_to">Sending to</string>
+    <string name="app_wallet_shared_title">Wallet address shared</string>
+    <string name="app_wallet_shared_warning">This wallet is shared with the issuer and permanently linked to this verified identity on-chain.</string>
     <string name="app_claim_indent">  %1$s</string>
     <string name="app_requires_fresh_screening">Requires a screening no older than %1$s.</string>
     <string name="app_approve">Approve</string>
@@ -948,6 +951,8 @@
 <string name="eth_last_sync">Last sync %1$s</string>
 <string name="eth_identity_locked">Identity is locked</string>
 <string name="eth_identity_locked_body">Unlock from the Identity tab to read this software wallet.</string>
+<string name="eth_wallet_orphaned">Wallet belongs to a different identity</string>
+<string name="eth_wallet_orphaned_body">This wallet was created under a different identity (for example, restored from a backup that did not include its recovery phrase), so it cannot sign transactions. To use it, restore the backup that created it — note that restoring replaces everything on this device (recovery phrase, credentials, wallets, and settings). Otherwise you can remove it; its funds stay on-chain.</string>
 <string name="eth_no_wallet_yet">No Ethereum wallet yet</string>
 <string name="eth_add_an_ethereum_wallet">Add an Ethereum wallet</string>
 <string name="eth_tokens_builtin_only">ERC-20 tokens are managed per built-in network. Switch to a built-in chain to add tokens.</string>
@@ -1242,6 +1247,8 @@
 <string name="wallet_manage_wallets_ellipsis">Manage wallets…</string>
 <string name="wallet_verify_message">Verify message</string>
 <string name="wallet_prepare_device">Prepare Device</string>
+<string name="wallet_signing">Signing</string>
+<string name="wallet_waiting_for_device">Waiting for your %1$s… confirm on the device.</string>
 <string name="wallet_hidden_wallet">Hidden wallet</string>
 <string name="wallet_hidden_wallet_passphrase">Hidden wallet passphrase</string>
 <string name="wallet_reenter_hidden_passphrase">Re-enter this hidden wallet\'s passphrase to sign on the security key. It is never saved.</string>
@@ -1276,6 +1283,8 @@
     <string name="passport_share_qr">Share QR</string>
     <string name="passport_action_share">Share</string>
     <string name="passport_action_advanced">Advanced</string>
+    <string name="passport_show_details">Show passport details</string>
+    <string name="passport_hide_details">Hide passport details</string>
     <string name="passport_issued_by">Issued by %1$s</string>
     <string name="passport_number_label">Passport No</string>
     <string name="passport_field_surname">Surname</string>

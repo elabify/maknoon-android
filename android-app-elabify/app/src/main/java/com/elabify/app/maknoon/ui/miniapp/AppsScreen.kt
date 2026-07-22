@@ -97,6 +97,7 @@ import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.key
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -402,22 +403,31 @@ fun AppsScreen(resetKey: Int = 0, onNavigateToWallet: (String) -> Unit = {}) {
                         TextButton(onClick = { compatWarnDismissed = true }) { Text(stringResource(R.string.app_dismiss)) }
                     }
                 }
-                // Re-key the host on the active manifest hash so adopting an update
-                // (a new bundle) tears down and rebuilds the WebView with the new
-                // files; the host's own LaunchedEffect keys on manifestSha256 too.
-                MiniAppHostScreen(
-                    spec = MiniAppLaunchSpec(
-                        installedAppId = current.installedAppId,
-                        appId = activeEntry.appId,
-                        title = activeEntry.title,
-                        manifestUrl = activeEntry.manifestUrl,
-                        manifestSha256 = activeEntry.manifestSha256,
-                        grantedPermissions = granted,
-                    ),
-                    handlerFactory = handlerFactory,
-                    approvalSheetHost = approvalSheetHost,
-                    modifier = Modifier.fillMaxSize(),
-                )
+                // Give the host a STABLE compositional identity keyed only on the
+                // app + active bundle hash, so it is NOT a positional sibling of the
+                // banners above it. Without this, a banner appearing/disappearing
+                // (e.g. the async "update available" check completing while the user
+                // interacts) shifts the host's slot in the Column, disposing +
+                // rebuilding the WebView mid-flight: the bridge's rememberCoroutineScope
+                // is cancelled (an in-flight pools.list never settles -> pools never
+                // load) and a fresh Web3BridgeHandler resets connected=false (the
+                // "disconnect"). Keying on manifestSha256 still rebuilds on an adopted
+                // update (intended). Mirrors iOS `.id(bundle.rootDir...)`. (ADR-0062)
+                key(current.installedAppId, activeEntry.manifestSha256) {
+                    MiniAppHostScreen(
+                        spec = MiniAppLaunchSpec(
+                            installedAppId = current.installedAppId,
+                            appId = activeEntry.appId,
+                            title = activeEntry.title,
+                            manifestUrl = activeEntry.manifestUrl,
+                            manifestSha256 = activeEntry.manifestSha256,
+                            grantedPermissions = granted,
+                        ),
+                        handlerFactory = handlerFactory,
+                        approvalSheetHost = approvalSheetHost,
+                        modifier = Modifier.fillMaxSize(),
+                    )
+                }
             }
         }
         return

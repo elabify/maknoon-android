@@ -17,6 +17,7 @@
 package com.elabify.musnad.wallet.ethereum
 
 import com.elabify.musnad.crypto.toHex
+import com.elabify.musnad.identity.IdentitySandwich
 import wallet.core.jni.CoinType
 import wallet.core.jni.Curve
 import wallet.core.jni.HDWallet
@@ -143,6 +144,18 @@ object EthereumDescriptors {
         val key = deriveKey(wallet, account, derivationPath)
         return CoinType.ETHEREUM.deriveAddress(key)
     }
+
+    /**
+     * Derive the EIP-55 address from a sandwich, folding the identity BIP-39
+     * passphrase read from the sandwich itself (ADR-0064). Mirrors iOS
+     * EthereumDescriptors.addressFromSandwich. "" passphrase for a
+     * passphrase-free identity (the standard no-passphrase seed).
+     */
+    fun addressFromSandwich(
+        sandwich: IdentitySandwich,
+        account: Long = 0,
+        derivationPath: String? = null,
+    ): String = address(sandwich.recoveryWords(), sandwich.bip39Passphrase(), account, derivationPath)
 
     /**
      * Sign an EIP-1559 transaction. Returns the 0x-prefixed signed raw tx hex

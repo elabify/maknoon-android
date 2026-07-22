@@ -197,7 +197,7 @@ internal fun EthereumSendScreen(walletId: UUID, preselectTokenId: String?, onDon
             walletStore.wallets.mapNotNull { w ->
                 runCatching {
                     val addr = w.address
-                        ?: (w.kind as? EthereumWalletKind.Software)?.let { sw -> sandwich?.let { com.elabify.musnad.wallet.ethereum.EthereumDescriptors.address(words = it.recoveryWords(), account = sw.account) } }
+                        ?: (w.kind as? EthereumWalletKind.Software)?.let { sw -> sandwich?.let { com.elabify.musnad.wallet.ethereum.EthereumDescriptors.addressFromSandwich(it, sw.account) } }
                         ?: return@mapNotNull null
                     com.elabify.app.maknoon.ui.settings.OwnWalletEntry(name = w.label, address = addr)
                 }.getOrNull()

@@ -18,10 +18,16 @@
 //     verbatim; scalar keys carry a JSON fragment ("usd" / true / "dark").
 //
 // Documented divergences (carried best-effort, not cross-platform):
-//   - appstore.* / miniapp.settings.v1 / yubikey.enrollments.v1 walletState keys:
-//     Android stores these in different shapes / a sealed blob, so they are NOT
-//     in the cross-platform walletState. Apps install state, mini-app settings,
-//     and YubiKey enrollments do not migrate across platforms (yet).
+//   - appstore.installed.v1 / appstore.userStores.v1 / miniapp.settings.v1 /
+//     yubikey.enrollments.v1 walletState keys: Android stores these in different
+//     shapes / a sealed blob, so they are NOT in the cross-platform walletState.
+//     Apps install state, custom stores, mini-app settings, and YubiKey
+//     enrollments do not migrate across platforms (yet).
+//   - EXCEPTIONS (do migrate): the two boolean display prefs "show beta apps"
+//     (appstore.showBetaApps.v1) and "show testnet anchors" (maknoon.showTestnetAnchors)
+//     ARE carried under their canonical iOS walletState keys and mapped to their
+//     Android stores (mini-app settings bucket / TestnetAnchorSettings) on capture
+//     + apply, so a cross-platform restore keeps them. See capture/applyWalletState.
 //   - SettingsBackup.devices: Android has no registeredAt / promotions storage,
 //     so those iOS fields are emitted with defaults (now / omitted) for iOS to
 //     consume and ignored on Android import. Hardware-wallet linkage rides in the
@@ -40,16 +46,22 @@ import com.elabify.app.maknoon.iddocument.PassiveAuthResult
 import com.elabify.app.maknoon.iddocument.SanctionsMatchDetail
 import com.elabify.app.maknoon.iddocument.SanctionsOutcome
 import com.elabify.app.maknoon.iddocument.SanctionsScreenResult
+import com.elabify.app.maknoon.miniapp.MiniAppCatalogSettings
+import com.elabify.app.maknoon.miniapp.MiniAppSettingsStore
 import com.elabify.app.maknoon.ui.settings.AddressBookEntry
 import com.elabify.app.maknoon.ui.settings.AddressBookNetwork
 import com.elabify.app.maknoon.ui.settings.AddressBookStore
 import com.elabify.app.maknoon.ui.settings.FiatPreferences
+import com.elabify.app.maknoon.ui.settings.TestnetAnchorSettings
 import com.elabify.musnad.data.CredentialEntity
 import com.elabify.musnad.data.DeviceEntity
 import com.elabify.musnad.data.IssuerEntity
 import com.elabify.musnad.data.MaknoonStore
 import com.elabify.musnad.identity.IdentityStore
+import com.elabify.app.maknoon.ui.wallet.ethereum.ethereumWalletOrphaned
 import com.elabify.musnad.identity.IdentitySandwich
+import com.elabify.musnad.wallet.PrefsEthereumStore
+import com.elabify.musnad.wallet.ethereum.EthereumWalletStore
 import com.elabify.musnad.backup.EncryptedBackup
 import com.elabify.musnad.wallet.lightning.LightningAccount
 import com.elabify.musnad.wallet.lightning.LightningAccountStore
@@ -110,16 +122,54 @@ object MaknoonBackupV4 {
         "networks.tron.currentNetwork.chainwide.v1", "networks.solana.tokens.ignored.v1",
     )
 
-    /** Scalar keys: stored in the "UserDefaults" prefs file; carried as JSON fragments. */
+    /** Scalar keys: stored in the "UserDefaults" prefs file; carried as JSON fragments.
+     *  These use the SAME key string on iOS and Android, so they round-trip directly. */
     private val SCALAR_KEYS = listOf(
         "app.fiatCurrencyCode", "app.fiatReferenceEnabled",
         "display.theme", "display.autoLock", "display.language",
+        // Network relay (privacy) toggle + self-host override (ADR-0065); identical
+        // keys on both platforms.
+        "app.relayEnabled", "app.relayHost",
     )
+
+    /** Scalar prefs that live in the "UserDefaults" file but under a DIFFERENT local
+     *  key than the canonical iOS backup key (ADR-0065). Carried on-wire under the
+     *  iOS key; read/written locally under the Android key. Map: canonical(iOS) ->
+     *  local(Android). */
+    private val SCALAR_REMAP = mapOf(
+        "app.priceCoinGeckoBaseURL" to "app.fiatCoinGeckoBaseURL",
+        "app.priceFxBaseURL" to "app.fiatFxBaseURL",
+    )
+
+    // Canonical (iOS) walletState keys for the two boolean display prefs Android
+    // keeps in a different shape; mapped explicitly on capture + apply so they
+    // survive a cross-platform restore. iOS carries these natively.
+    private const val KEY_SHOW_BETA_APPS = "appstore.showBetaApps.v1"
+    private const val KEY_SHOW_TESTNET_ANCHORS = "maknoon.showTestnetAnchors"
 
     private fun captureWalletState(context: Context): JSONObject {
         val out = JSONObject()
         captureFrom(context.getSharedPreferences(WALLET_PREFS, Context.MODE_PRIVATE), WALLET_BLOB_KEYS, out)
         captureFrom(context.getSharedPreferences(USER_DEFAULTS, Context.MODE_PRIVATE), SCALAR_KEYS, out)
+        // Two boolean display prefs Android stores in a different shape than iOS's
+        // flat walletState key: emit them under the canonical iOS keys as a JSON
+        // bool fragment (base64("true"/"false")) so they round-trip cross-platform.
+        runCatching {
+            val beta = MiniAppCatalogSettings(MiniAppSettingsStore(context)).showBetaApps()
+            out.put(KEY_SHOW_BETA_APPS, b64Utf8(beta.toString()))
+        }
+        runCatching {
+            TestnetAnchorSettings.init(context)
+            out.put(KEY_SHOW_TESTNET_ANCHORS, b64Utf8(TestnetAnchorSettings.showTestnetAnchors.toString()))
+        }
+        // Key-remapped scalars: read the Android local key, emit under the canonical
+        // iOS key (ADR-0065).
+        val ud = context.getSharedPreferences(USER_DEFAULTS, Context.MODE_PRIVATE).all
+        for ((canonical, local) in SCALAR_REMAP) {
+            val v = ud[local] ?: continue
+            val text = if (v is String && !looksLikeJsonDoc(v)) JSONObject.quote(v) else v.toString()
+            out.put(canonical, b64Utf8(text))
+        }
         return out
     }
 
@@ -159,22 +209,39 @@ object MaknoonBackupV4 {
         while (it.hasNext()) {
             val key = it.next()
             val text = runCatching { unb64Utf8(ws.getString(key)) }.getOrNull() ?: continue
-            val editor = when {
-                WALLET_BLOB_KEYS.contains(key) -> wallet
-                SCALAR_KEYS.contains(key) -> ud
+            // Two boolean prefs Android stores in a different shape than iOS's flat
+            // walletState key: map the canonical iOS key onto the Android store.
+            when (key) {
+                KEY_SHOW_BETA_APPS -> {
+                    val on = text.trim() == "true"
+                    runCatching { MiniAppCatalogSettings(MiniAppSettingsStore(context)).setShowBetaApps(on) }
+                    continue
+                }
+                KEY_SHOW_TESTNET_ANCHORS -> {
+                    val on = text.trim() == "true"
+                    runCatching { TestnetAnchorSettings.init(context); TestnetAnchorSettings.showTestnetAnchors = on }
+                    continue
+                }
+            }
+            // Route to the right prefs file + STORAGE key. Remapped scalars carry
+            // the canonical iOS key on-wire but persist under the Android local key.
+            val (editor, storageKey) = when {
+                WALLET_BLOB_KEYS.contains(key) -> wallet to key
+                SCALAR_KEYS.contains(key) -> ud to key
+                SCALAR_REMAP.containsKey(key) -> ud to SCALAR_REMAP.getValue(key)
                 else -> continue
             }
             // Discriminate by the parsed JSON type: a document goes back as the
             // raw JSON string; a fragment goes back as its typed primitive.
             val parsed = runCatching { JSONArray("[$text]").get(0) }.getOrNull()
             when (parsed) {
-                is JSONObject, is JSONArray -> editor.putString(key, text)
-                is String -> editor.putString(key, parsed)
-                is Boolean -> editor.putBoolean(key, parsed)
-                is Int -> editor.putLong(key, parsed.toLong())
-                is Long -> editor.putLong(key, parsed)
-                is Double -> editor.putLong(key, parsed.toLong())
-                else -> editor.putString(key, text)
+                is JSONObject, is JSONArray -> editor.putString(storageKey, text)
+                is String -> editor.putString(storageKey, parsed)
+                is Boolean -> editor.putBoolean(storageKey, parsed)
+                is Int -> editor.putLong(storageKey, parsed.toLong())
+                is Long -> editor.putLong(storageKey, parsed)
+                is Double -> editor.putLong(storageKey, parsed.toLong())
+                else -> editor.putString(storageKey, text)
             }
         }
         // commit (synchronous) so the wallet stores, created lazily on first
@@ -478,6 +545,26 @@ object MaknoonBackupV4 {
                     restored.add("Networks, RPC/explorer overrides, tokens, currency & display")
                 }
                 .onFailure { warnings.add("Wallet state: ${it.message ?: "could not import"}") }
+        }
+
+        // ADR-0063: after both the seed and the wallet descriptors are in place,
+        // flag any EVM software wallet whose cached address is NOT derivable from
+        // the restored seed (a mismatched/partial restore, e.g. the descriptor
+        // came from a different identity than the entropy). A clean full backup
+        // is self-consistent, so this stays silent for a normal restore. We only
+        // WARN -- never auto-delete a wallet.
+        runCatching {
+            val sw = IdentitySandwich.load(store)
+            val ethStore = EthereumWalletStore(
+                PrefsEthereumStore(ctx.getSharedPreferences(WALLET_PREFS, Context.MODE_PRIVATE)),
+            ).also { it.reload() }
+            val orphans = ethStore.wallets.count { ethereumWalletOrphaned(it, sw) }
+            if (orphans > 0) {
+                warnings.add(
+                    "$orphans Ethereum wallet(s) belong to a different identity and can't sign. " +
+                        "Restore the backup that created them, or remove them.",
+                )
+            }
         }
 
         json.optJSONObject("settings")?.let { settings ->

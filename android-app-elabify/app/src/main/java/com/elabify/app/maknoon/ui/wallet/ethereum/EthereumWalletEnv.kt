@@ -20,11 +20,14 @@ import com.elabify.musnad.identity.IdentitySandwich
 import com.elabify.musnad.identity.IdentityStore
 import com.elabify.musnad.wallet.PrefsEthereumStore
 import com.elabify.musnad.wallet.ethereum.CustomNetworkStore
+import com.elabify.musnad.wallet.ethereum.EthereumDescriptors
 import com.elabify.musnad.wallet.ethereum.EthereumNetwork
 import com.elabify.musnad.wallet.ethereum.EthereumNetworkID
 import com.elabify.musnad.wallet.ethereum.EthereumSettings
 import com.elabify.musnad.wallet.ethereum.EthereumTokenRegistry
 import com.elabify.musnad.wallet.ethereum.EthereumTokenStore
+import com.elabify.musnad.wallet.ethereum.EthereumWalletDescriptor
+import com.elabify.musnad.wallet.ethereum.EthereumWalletKind
 import com.elabify.musnad.wallet.ethereum.EthereumWalletStore
 import com.elabify.musnad.wallet.ethereum.ResolvedNetwork
 import com.elabify.musnad.wallet.walletPrefs
@@ -118,3 +121,25 @@ internal fun formatUnitsDecimal(rawDecimal: String, decimals: Int, maxDecimals: 
 
 /** EVM display name for an account index, mirroring "Account #N". */
 internal fun ethAccountLabel(account: Long): String = "Account #$account"
+
+/**
+ * ADR-0063: true when a SOFTWARE EVM wallet's cached address is not derivable
+ * from the current identity seed (an "orphaned" wallet, e.g. from a mismatched
+ * backup restore) -- it displays/reads balance for an address it cannot sign
+ * for. Conservative: returns false for hardware wallets, when no address is
+ * cached, or when the sandwich/seed is unavailable (2FA sealed), so we never
+ * false-flag a wallet we simply can't check right now.
+ */
+internal fun ethereumWalletOrphaned(
+    descriptor: EthereumWalletDescriptor,
+    sandwich: IdentitySandwich?,
+): Boolean {
+    val sw = descriptor.kind as? EthereumWalletKind.Software ?: return false
+    val cached = descriptor.cachedAddress?.takeIf { it.isNotEmpty() } ?: return false
+    val s = sandwich ?: return false
+    // Derive the SAME way the wallet signs (folding the identity passphrase,
+    // ADR-0064); otherwise a passphrase identity false-flags every wallet.
+    val derived = runCatching { EthereumDescriptors.addressFromSandwich(s, sw.account) }
+        .getOrNull() ?: return false
+    return !derived.equals(cached, ignoreCase = true)
+}

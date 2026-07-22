@@ -165,7 +165,7 @@ internal fun BitcoinSendScreen(
         val opened = withContext(Dispatchers.IO) {
             runCatching {
                 val words = loadRecoveryWords(context)
-                BitcoinWalletEngine.open(descriptor, env.filesDirPath, words, null)
+                BitcoinWalletEngine.open(descriptor, env.filesDirPath, words, loadBip39Passphrase(context))
             }.getOrNull()
         }
         engine = opened
@@ -193,7 +193,7 @@ internal fun BitcoinSendScreen(
         val resolved = withContext(Dispatchers.IO) {
             env.store.wallets.filter { it.network == net }.mapNotNull { w ->
                 runCatching {
-                    val e = BitcoinWalletEngine.open(w, env.filesDirPath, words, null)
+                    val e = BitcoinWalletEngine.open(w, env.filesDirPath, words, loadBip39Passphrase(context))
                     val addr = e.nextUnusedReceiveAddress().address.toString()
                     com.elabify.app.maknoon.ui.settings.OwnWalletEntry(name = w.label, address = addr)
                 }.getOrNull()
@@ -623,7 +623,7 @@ private suspend fun signBitcoin(
         val account = descriptor.softwareAccountOrNull()
         val signed = if (isSoftware && account != null) {
             val words = loadRecoveryWords(context) ?: throw BitcoinWalletException.SandwichRequired
-            BitcoinSigningHelpers.signSoftware(unsigned, words, null, account, descriptor.network)
+            BitcoinSigningHelpers.signSoftware(unsigned, words, loadBip39Passphrase(context), account, descriptor.network)
         } else {
             val hw = descriptor.kind as? BitcoinWalletKind.Hardware
                 ?: throw BitcoinWalletException.SendFailed("This wallet is not a hardware wallet.")

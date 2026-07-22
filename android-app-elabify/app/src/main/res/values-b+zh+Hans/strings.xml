@@ -542,6 +542,9 @@
     <string name="app_requesting_proof">正在向你的钱包请求证明。</string>
     <string name="app_purpose">目的：%1$s</string>
     <string name="app_will_disclose">将披露</string>
+    <string name="app_sending_to">发送至</string>
+    <string name="app_wallet_shared_title">共享的钱包地址</string>
+    <string name="app_wallet_shared_warning">此钱包将与签发方共享，并在链上与该已验证身份永久关联。</string>
     <string name="app_claim_indent">  %1$s</string>
     <string name="app_requires_fresh_screening">要求筛查时间不超过 %1$s。</string>
     <string name="app_approve">批准</string>
@@ -899,6 +902,8 @@
     <string name="eth_last_sync">上次同步 %1$s</string>
     <string name="eth_identity_locked">身份已锁定</string>
     <string name="eth_identity_locked_body">请从“身份”标签解锁以读取此软件钱包。</string>
+    <string name="eth_wallet_orphaned">钱包属于其他身份</string>
+    <string name="eth_wallet_orphaned_body">此钱包是在其他身份下创建的（例如从不含其恢复短语的备份中恢复），因此无法签署交易。若要使用它，请恢复创建它的备份——请注意，恢复会替换此设备上的所有内容（恢复短语、凭证、钱包和设置）。否则可将其移除；其链上资金仍会保留。</string>
     <string name="eth_no_wallet_yet">暂无 Ethereum 钱包</string>
     <string name="eth_add_an_ethereum_wallet">添加 Ethereum 钱包</string>
     <string name="eth_tokens_builtin_only">ERC-20 代币按内置网络管理。请切换到内置链以添加代币。</string>
@@ -1185,6 +1190,8 @@
     <string name="wallet_manage_wallets_ellipsis">管理钱包…</string>
     <string name="wallet_verify_message">验证消息</string>
     <string name="wallet_prepare_device">准备设备</string>
+    <string name="wallet_signing">正在签名</string>
+    <string name="wallet_waiting_for_device">正在等待您的 %1$s… 请在设备上确认。</string>
     <string name="wallet_hidden_wallet">隐藏钱包</string>
     <string name="wallet_hidden_wallet_passphrase">隐藏钱包密码短语</string>
     <string name="wallet_reenter_hidden_passphrase">重新输入此隐藏钱包的密码短语以在安全密钥上签名。它从不会被保存。</string>
@@ -1219,6 +1226,8 @@
     <string name="passport_share_qr">分享二维码</string>
     <string name="passport_action_share">分享</string>
     <string name="passport_action_advanced">高级</string>
+    <string name="passport_show_details">显示护照信息</string>
+    <string name="passport_hide_details">隐藏护照信息</string>
     <string name="passport_issued_by">签发机构 %1$s</string>
     <string name="passport_number_label">护照号</string>
     <string name="passport_field_surname">姓</string>

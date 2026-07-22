@@ -38,9 +38,8 @@ internal class SolanaEnv private constructor(
         runCatching { IdentitySandwich.load(identityStore) }.getOrNull()
 
     /** Open a live SolanaWallet facade for a descriptor on the chain-wide
-     *  current cluster, using any per-network RPC override. The passphrase
-     *  defaults to "" (the common passphrase-free identity); a future
-     *  biometric-unlock seam can thread the real passphrase through here. */
+     *  current cluster, using any per-network RPC override. Derivation folds
+     *  the identity passphrase from the sandwich itself (ADR-0064). */
     fun openWallet(descriptor: SolanaWalletDescriptor): SolanaWallet {
         val network = walletStore.currentNetwork
         val rpc = settings.rpcURL(network)
@@ -49,7 +48,6 @@ internal class SolanaEnv private constructor(
             network = network,
             rpcURL = rpc,
             sandwich = loadSandwich(),
-            passphrase = "",
         )
     }
 
