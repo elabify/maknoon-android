@@ -66,11 +66,13 @@ android {
 
     defaultConfig {
         applicationId = "com.elabify.app.maknoon" // matches the iOS bundle id
-        // Android 16 (API 36) floor, mirroring the iOS 26 floor (modern-only,
-        // GrapheneOS/Pixel-tested). minSdk == targetSdk == compileSdk == 36; Play
-        // requires targeting API 36. Older Android may be offered unofficially via
-        // GitHub releases with a lowered minSdk later (ADR-0066).
-        minSdk = 36
+        // Play requires TARGETING Android 16 (targetSdk 36); that is the store
+        // rule and it strands no devices. minSdk is independent and stays at 33
+        // (Android 13) so we keep the API 33-35 install base (~5.3k devices) that
+        // a minSdk-36 floor would have dropped. Floor is >= 31 so the passport
+        // mask blur works. See ADR-0066 (amended: target 36, but don't raise the
+        // install floor).
+        minSdk = 33
         targetSdk = 36
         // Auto-derived in CI from github.run_number (monotonic, survives shallow
         // checkout) so a Play upload is never rejected for a duplicate code; the
