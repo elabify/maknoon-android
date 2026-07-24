@@ -157,7 +157,7 @@ class MiniAppBridge(
             return
         }
         val needed = handler.requiredPermissionFor(m)
-        if (needed != null && !granted.contains(needed)) {
+        if (needed != null && !miniAppIsAuthorized(needed, granted)) {
             sink.reject(cb, errorEnvelope(MiniAppBridgeError.unauthorized("app lacks '$needed' permission")))
             return
         }
@@ -302,3 +302,9 @@ private class HostNamespaceHandler(
         else -> throw MiniAppBridgeError.unsupported("host.$method")
     }
 }
+
+/** The permission gate decision (ADR-0057): authorized when no permission is
+ *  required, or the app was granted the required token. Pure; unit-testable
+ *  without the WebView bridge. Mirrors iOS MiniAppBridge.isAuthorized. */
+internal fun miniAppIsAuthorized(needed: String?, granted: Set<String>): Boolean =
+    needed == null || granted.contains(needed)

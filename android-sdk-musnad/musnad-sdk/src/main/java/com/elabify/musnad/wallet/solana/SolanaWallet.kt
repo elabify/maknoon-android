@@ -297,8 +297,10 @@ class SolanaWallet(
      *  assertRentExemptForNativeTransfer. */
     fun assertRentExemptForNativeTransfer(recipient: String, lamports: Long) {
         if (lamports >= RENT_EXEMPT_MINIMUM_LAMPORTS) return
+        // Fail-open: if the existence probe errors, assume the account exists
+        // (default true) so a network hiccup never blocks a legitimate send.
         val exists = runCatching { rpc.accountExists(recipient) }.getOrDefault(true)
-        if (exists) return
+        if (!rentExemptBlocksNativeTransfer(lamports, exists)) return
         throw SolanaDescriptorException(
             "${recipient.take(6)}… is a brand-new account. Solana requires at least " +
                 "0.00089088 SOL to create it (rent exemption). Send at least that much, " +
@@ -312,3 +314,13 @@ class SolanaWallet(
         const val RENT_EXEMPT_MINIMUM_LAMPORTS: Long = 890_880L
     }
 }
+
+/** Pure rent-exempt decision for a native SOL transfer, split out so the
+ *  branches are unit-testable without an RPC. Blocks only when the recipient
+ *  is a brand-new account (does not yet exist) AND the amount is below the
+ *  rent-exempt minimum. A funded-enough amount, or an already-existing
+ *  recipient, never blocks. The caller supplies `recipientExists` with a
+ *  fail-open default (true) so an RPC error does not block a legitimate send.
+ *  Mirrors iOS SolanaWallet.rentExemptBlocksNativeTransfer. */
+internal fun rentExemptBlocksNativeTransfer(lamports: Long, recipientExists: Boolean): Boolean =
+    lamports < SolanaWallet.RENT_EXEMPT_MINIMUM_LAMPORTS && !recipientExists

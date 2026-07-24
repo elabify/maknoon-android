@@ -97,6 +97,23 @@ class EthereumWallet(val descriptor: EthereumWalletDescriptor) {
     fun broadcast(rawTx: String, rpcURL: String): String =
         requireClient(rpcURL).sendRawTransaction(rawTx)
 
+    /**
+     * True if [address] holds deployed bytecode (a contract), false for a
+     * regular wallet (EOA). Best-effort: any RPC failure returns false so a
+     * transient outage never blocks a send. Used by the send UI to warn before
+     * a token is transferred to a contract (the tokens would go to the contract).
+     */
+    fun isContract(address: String, rpcURL: String): Boolean {
+        return try {
+            val code = requireClient(rpcURL).getCode(address)
+            var body = code
+            if (body.startsWith("0x") || body.startsWith("0X")) body = body.substring(2)
+            body.isNotEmpty() && body.any { it != '0' }
+        } catch (_: Exception) {
+            false
+        }
+    }
+
     /** ERC-20 transfer events for the address (used by auto-discover). */
     fun recentTokenTransfers(
         explorerAPIURL: String?,

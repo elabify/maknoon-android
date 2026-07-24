@@ -80,7 +80,7 @@ android {
         // dev value. versionName/MARKETING stays at the release. Mirrors the iOS
         // CURRENT_PROJECT_VERSION=run_number approach (ADR-0048 0.6.3 hardening).
         versionCode = System.getenv("ANDROID_VERSION_CODE")?.toIntOrNull() ?: 11
-        versionName = "0.6.7"
+        versionName = "0.6.8"
         buildConfigField("String", "GIT_COMMIT", "\"${gitShortSha()}\"")
         // WalletConnect / Reown Cloud project id (ADR-0049). Public client id,
         // allowlisted by app id in Reown Cloud; not a secret.
@@ -201,6 +201,13 @@ dependencies {
     implementation(libs.androidx.activity.compose)
     implementation(libs.androidx.biometric) // BiometricPrompt + FragmentActivity
     implementation(libs.zxing.core) // QR generation for receive addresses
+
+    // JVM unit tests (pure Kotlin: EIP-681 parser + send guard). Run with
+    // ./gradlew :app:testDebugUnitTest. No Android framework / device needed.
+    // org.json is a real impl for the test classpath (the android.jar stub
+    // throws in unit tests) so the shared KAT JSON parses.
+    testImplementation(libs.junit)
+    testImplementation(libs.org.json)
 
     // WalletConnect (EVM-only, ADR-0049) via Reown WalletKit. Firebase + GMS are
     // stripped by the configureEach excludes above (foreground-only relay, no

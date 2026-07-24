@@ -101,6 +101,12 @@ class EthereumRPCClient(
         return callString("eth_call", JSONArray().put(call).put(block))
     }
 
+    /** Deployed bytecode at [address]. An EOA (regular wallet) returns "0x" or
+     *  "0x0"; a contract returns its non-empty bytecode. Used to guard against
+     *  sending tokens to a contract address (see EthereumWallet.isContract). */
+    fun getCode(address: String, block: String = "latest"): String =
+        callString("eth_getCode", JSONArray().put(address).put(block))
+
     /** Broadcast a fully signed transaction; returns the tx hash. */
     fun sendRawTransaction(rawHex: String): String {
         val hex = if (rawHex.startsWith("0x")) rawHex else "0x$rawHex"

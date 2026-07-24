@@ -29,6 +29,36 @@ object EthereumCallDataDecoder {
         }
     }
 
+    /**
+     * True when [data] is an ERC-20 transfer/transferFrom whose token recipient
+     * equals [to] (the call target): the tokens would be sent to the contract
+     * they are called on, which almost always loses them. Used to gate a
+     * blind-signed eth_sendTransaction from a mini-app / WalletConnect dApp.
+     * Pure + unit-tested. Mirrors iOS EthereumCallDataDecoder.transferTargetsCallee.
+     */
+    fun transferTargetsCallee(to: String, data: ByteArray): Boolean {
+        if (data.size < 4) return false
+        val selector = data.copyOfRange(0, 4).joinToString("") { "%02x".format(it.toInt() and 0xff) }
+        val args = data.copyOfRange(4, data.size)
+        val target = normalizeAddress(to)
+        return when (selector) {
+            "a9059cbb" -> { // transfer(address,uint256): recipient is word 0
+                if (args.size < 32) false
+                else normalizeAddress("0x" + args.copyOfRange(12, 32).joinToString("") { "%02x".format(it.toInt() and 0xff) }) == target
+            }
+            "23b872dd" -> { // transferFrom(address,address,uint256): recipient is word 1
+                if (args.size < 64) false
+                else normalizeAddress("0x" + args.copyOfRange(44, 64).joinToString("") { "%02x".format(it.toInt() and 0xff) }) == target
+            }
+            else -> false
+        }
+    }
+
+    private fun normalizeAddress(s: String): String {
+        val l = s.lowercase()
+        return if (l.startsWith("0x")) l else "0x$l"
+    }
+
     /** (address in first word, uint256 in second word as a decimal string). */
     private fun addressAndUint(args: ByteArray): Pair<String, String>? {
         if (args.size < 64) return null

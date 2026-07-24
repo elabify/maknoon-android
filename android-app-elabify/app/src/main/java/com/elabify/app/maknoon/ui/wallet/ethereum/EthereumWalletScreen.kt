@@ -303,7 +303,7 @@ private fun EthereumDashboard(
                         if (builtin != null) {
                             registry.refreshIfStale(settings.tokenCatalogURL)
                             val transfers = wallet.recentTokenTransfers(
-                                net.explorerAPIURL, net.explorerAPIKey, net.chainId, perPage = 100)
+                                net.explorerAPIURL, net.explorerAPIKey, net.chainId, perPage = 25)
                             val seenContracts = HashSet<String>()
                             for (tr in transfers) {
                                 val contract = tr.contractAddress.lowercase()
@@ -323,6 +323,25 @@ private fun EthereumDashboard(
                             }
                         }
                     }.onFailure { android.util.Log.w("EthDiscover", "auto-discovery: $it") }
+                    // Balance-scan the curated ("reputable") list too, independent
+                    // of the explorer transfer feed above, so popular tokens (USDC,
+                    // USDT, ...) are detected from balance alone even when the
+                    // explorer is slow, rate-limited, or times out (ADR-0060).
+                    // Fail-CLOSED: add only when the balance read succeeds and is
+                    // above the 0.0001-token dust floor, so a flaky RPC never
+                    // installs a token the wallet does not hold.
+                    runCatching {
+                        val builtin = (net.networkID as? EthereumNetworkID.Builtin)?.network
+                        if (builtin != null) {
+                            for (token in EthereumTokenCatalog.reputable(builtin)) {
+                                if (tokenStore.find(builtin, token.contractAddress, descriptor.id) != null) continue
+                                val bal = runCatching { wallet.tokenBalance(token, net.rpcURL) }.getOrNull() ?: continue
+                                val dust = bal.bigInteger.multiply(BigInteger.valueOf(10000)) < BigInteger.TEN.pow(token.decimals)
+                                if (dust) continue
+                                tokenStore.add(token, descriptor.id)
+                            }
+                        }
+                    }.onFailure { android.util.Log.w("EthDiscover", "balance-scan: $it") }
                     val balances = HashMap<String, String>()
                     // Wallet-scoped token list (ADR-0060): curated chain-wide
                     // defaults plus just this wallet's added/discovered tokens.

@@ -58,6 +58,7 @@ import com.elabify.app.maknoon.R
 import com.elabify.app.maknoon.ui.components.Banner
 import com.elabify.app.maknoon.ui.components.BannerVariant
 import com.elabify.app.maknoon.ui.miniapp.MiniAppQrScanner
+import com.elabify.app.maknoon.ui.miniapp.QrPhotoPickerButton
 import com.elabify.app.maknoon.ui.theme.MaknoonBrand
 import com.elabify.app.maknoon.ui.theme.Spacing
 import androidx.compose.foundation.layout.width
@@ -76,7 +77,9 @@ import com.elabify.app.maknoon.ui.wallet.common.WalletSelector
 import com.elabify.app.maknoon.ui.wallet.common.authorizeSend
 import com.elabify.musnad.wallet.solana.SolanaDescriptorException
 import com.elabify.musnad.wallet.solana.SolanaNameResolver
+import com.elabify.app.maknoon.ui.wallet.AddressNetworkGuard
 import com.elabify.musnad.wallet.solana.SolanaNetwork
+import com.elabify.musnad.wallet.solana.SolanaPrimitives
 import com.elabify.musnad.wallet.solana.SolanaSPLToken
 import com.elabify.musnad.wallet.solana.SolanaWallet
 import com.elabify.musnad.wallet.solana.SolanaWalletDescriptor
@@ -250,9 +253,15 @@ internal fun SolanaSendScreen(
     }
     // The address actually sent to: the resolved SNS owner, or the typed address.
     val effectiveRecipient: String = resolvedSNS ?: recipient.trim()
-    val recipientReady = if (SolanaNameResolver.looksLikeName(recipient)) resolvedSNS != null else recipient.isNotBlank()
+    val recipientResolvedOrValid =
+        if (SolanaNameResolver.looksLikeName(recipient)) resolvedSNS != null
+        else SolanaPrimitives.isValidAddress(recipient.trim())
 
-    val canSubmit = recipientReady && amount.isNotBlank()
+    val canSubmit = solanaSendReady(
+        recipientValidOrResolved = recipientResolvedOrValid,
+        amountInput = solAmountInput,
+        tokenDecimals = (asset as? SendAsset.Token)?.token?.decimals,
+    )
 
     // Pre-sign device-ready sheet + host-typed-hidden detection (Trezor).
     var showReadySheet by remember { mutableStateOf(false) }
@@ -420,6 +429,16 @@ internal fun SolanaSendScreen(
                         }
                         resolvedSNS != null -> Text(stringResource(R.string.sol_resolves_to, shortAddress(resolvedSNS!!)), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary)
                         snsError != null -> Text(snsError!!, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.error)
+                        recipient.isNotBlank() && !SolanaNameResolver.looksLikeName(recipient) &&
+                            AddressNetworkGuard.detect(recipient) != null -> Text(
+                            stringResource(
+                                R.string.wallet_wrong_network_address,
+                                AddressNetworkGuard.detect(recipient)!!.displayName,
+                                "Solana",
+                            ),
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.error,
+                        )
                         recipient.isNotBlank() && !SolanaNameResolver.looksLikeName(recipient) && !isValidSolanaAddress(recipient) -> Text(
                             stringResource(R.string.sol_invalid_address),
                             style = MaterialTheme.typography.labelSmall,
@@ -612,6 +631,14 @@ internal fun SolanaSendScreen(
                         .aspectRatio(1f)
                         .clip(RoundedCornerShape(20.dp)),
                 )
+                QrPhotoPickerButton(
+                    onCode = { code ->
+                        recipient = stripSolanaPrefix(code)
+                        showScanner = false
+                    },
+                    onNoQr = {},
+                    modifier = Modifier.fillMaxWidth(),
+                )
                 OutlinedButton(onClick = { showScanner = false }, modifier = Modifier.fillMaxWidth()) {
                     Text(stringResource(R.string.common_cancel))
                 }
@@ -660,20 +687,12 @@ private fun priorityFeeReviewValue(priorityFee: String): String {
 
 /** Strip a "solana:" URI prefix + query string from a scanned / pasted value
  *  (iOS stripSolanaPrefix). */
-private fun stripSolanaPrefix(s: String): String {
-    var out = s.trim()
-    if (out.lowercase().startsWith("solana:")) out = out.substring("solana:".length)
-    val q = out.indexOf('?')
-    if (q >= 0) out = out.substring(0, q)
-    return out
-}
+private fun stripSolanaPrefix(s: String): String =
+    com.elabify.app.maknoon.ui.wallet.PaymentURIStrip.solana(s)
 
-/** Lightweight base58 shape check for the recipient validation caption
- *  (mirrors the iOS SolanaDescriptors.parseAddress != nil gate at the UI
- *  layer; the engine re-validates on send). */
-private fun isValidSolanaAddress(s: String): Boolean {
-    val t = s.trim()
-    if (t.length !in 32..44) return false
-    val alphabet = "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz"
-    return t.all { it in alphabet }
-}
+/** Strict Solana address check for the recipient validation caption: a real
+ *  base58 decode to a 32-byte key (SolanaPrimitives), so the caption agrees
+ *  with the submit gate and a well-formed address from another network (Tron /
+ *  Bitcoin base58 decode to 25 bytes) is flagged, not just charset-checked. */
+private fun isValidSolanaAddress(s: String): Boolean =
+    SolanaPrimitives.isValidAddress(s.trim())

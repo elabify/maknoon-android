@@ -46,6 +46,18 @@ object IssuerSelection {
     const val CUSTOM_SENTINEL = "__custom__"
 
     /**
+     * Friendly, human name for an issuer/verifier host. The default Elabify
+     * issuer and verifier surface as "Musnad by Elabify" instead of a bare
+     * hostname; anything else (a custom or LAN issuer) shows its host so the
+     * user still sees exactly where their data is going. Mirrors iOS
+     * IssuerSelection.displayName(forHost:). ADR-0069.
+     */
+    fun issuerDisplayName(host: String): String {
+        val h = host.lowercase()
+        return if (h.contains("musnad") && h.endsWith("elabify.com")) "Musnad by Elabify" else host
+    }
+
+    /**
      * The base URL the issuance / sanctions calls should target. Returns null
      * when the user picked Custom and hasn't typed a parseable URL yet; callers
      * use that null to disable the submit action so we don't fire half-formed

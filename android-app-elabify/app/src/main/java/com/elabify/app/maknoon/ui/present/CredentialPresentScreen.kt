@@ -239,6 +239,11 @@ fun CredentialPresentScreen(
                     Spacer(Modifier.width(8.dp))
                     Text(stringResource(R.string.present_remove_credential))
                 }
+                Text(
+                    stringResource(R.string.present_remove_credential_note),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
             }
         }
     }

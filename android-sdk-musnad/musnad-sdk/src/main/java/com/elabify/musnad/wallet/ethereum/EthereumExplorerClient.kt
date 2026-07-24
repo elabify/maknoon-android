@@ -106,7 +106,7 @@ class EthereumExplorerClient private constructor(
     /** Recent ERC-20 transfers involving [address]. */
     fun recentTokenTransfers(address: String, page: Int = 1, perPage: Int = 100): List<EthereumTokenTransfer> {
         val url = buildURL("tokentx", address, page, perPage)
-        val data = fetchValidated(url, "tokentx")
+        val data = fetchValidated(url, "tokentx", readTimeoutSec = 20)
         val env = parseEnvelope(data, "tokentx")
         if (env.status != "1") {
             if (env.message?.contains("No transactions") == true) return emptyList()
@@ -145,9 +145,9 @@ class EthereumExplorerClient private constructor(
         return sb.toString()
     }
 
-    private fun fetchValidated(url: String, label: String): String {
+    private fun fetchValidated(url: String, label: String, readTimeoutSec: Long? = null): String {
         val text = try {
-            http.getJson(url)
+            http.getJson(url, readTimeoutSec)
         } catch (e: NetworkException) {
             throw EthereumExplorerException(host, e.status)
         } catch (e: Exception) {

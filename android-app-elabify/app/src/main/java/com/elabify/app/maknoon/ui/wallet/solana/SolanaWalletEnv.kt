@@ -136,6 +136,21 @@ private fun pow10(n: Int): Long {
     return r
 }
 
+/** True when a Solana send is submittable: the recipient is a valid base58
+ *  address (or a resolved SNS name) AND the amount parses to positive base
+ *  units. Pure; wired into SolanaSendScreen's submit gate so a malformed /
+ *  wrong-network address or an unparseable amount can never reach the Send
+ *  button (previously the gate only checked amount.isNotBlank()). */
+internal fun solanaSendReady(
+    recipientValidOrResolved: Boolean,
+    amountInput: String,
+    tokenDecimals: Int?,
+): Boolean {
+    val units = if (tokenDecimals != null) parseTokenToRaw(amountInput, tokenDecimals)
+    else parseSolToLamports(amountInput)
+    return recipientValidOrResolved && units != null && units > 0
+}
+
 /** Shorten a base58 address for compact rows: "AbCd…WxYz". */
 internal fun shortAddress(address: String, head: Int = 4, tail: Int = 4): String =
     if (address.length <= head + tail + 1) address

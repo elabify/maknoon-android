@@ -202,7 +202,7 @@ class IDDocumentReader {
         }
 
         android.util.Log.d("IDDocNfc", "read: PassportService open, attempting access control")
-        onProgress("Authenticating with passport…")
+        onProgress("Reading and checking the passport chip on this phone.")
         // PACE first (reads EF.CardAccess at the master file, no applet selection
         // needed). tryPACE returns false when the chip publishes no CardAccess,
         // so we fall through to BAC.
@@ -259,7 +259,7 @@ class IDDocumentReader {
         // about that accessor crashing the NFC thread applies to the AndyQ
         // library, but the principle stands: the issuer-side parser owns CMS
         // extraction, the DSC is embedded in the SOD anyway).
-        onProgress("Reading SOD…")
+        onProgress("Reading passport data on this phone.")
         val sodFile: SODFile = try {
             val raw = readRaw(service, PassportService.EF_SOD)
             android.util.Log.d("IDDocNfc", "read: SOD ${raw.size} bytes")
@@ -274,7 +274,7 @@ class IDDocumentReader {
         }
 
         // ---- DG1 (MRZ) ---------------------------------------------------
-        onProgress("Reading DG1…")
+        onProgress("Reading passport data on this phone.")
         val dg1File: DG1File = try {
             val raw = readRaw(service, PassportService.EF_DG1)
             rawChipData["dg1"] = raw
@@ -295,7 +295,7 @@ class IDDocumentReader {
         // (JPEG / JPEG2000) so the model carries portraitJpeg; the UI decodes
         // them to a Bitmap when it needs to render.
         var portraitJpeg: ByteArray? = null
-        onProgress("Reading DG2…")
+        onProgress("Reading passport data on this phone.")
         try {
             val raw = readRaw(service, PassportService.EF_DG2)
             rawChipData["dg2"] = raw
@@ -306,7 +306,7 @@ class IDDocumentReader {
 
         // ---- DG11 (additional personal details) --------------------------
         var dg11File: DG11File? = null
-        onProgress("Reading DG11…")
+        onProgress("Reading passport data on this phone.")
         try {
             val raw = readRaw(service, PassportService.EF_DG11)
             rawChipData["dg11"] = raw
@@ -316,7 +316,7 @@ class IDDocumentReader {
         }
 
         // ---- DG12 (additional document details) --------------------------
-        onProgress("Reading DG12…")
+        onProgress("Reading passport data on this phone.")
         try {
             val raw = readRaw(service, PassportService.EF_DG12)
             rawChipData["dg12"] = raw
@@ -328,7 +328,7 @@ class IDDocumentReader {
 
         // ---- DG15 (Active Authentication public key) ---------------------
         var dg15File: DG15File? = null
-        onProgress("Reading DG15…")
+        onProgress("Reading passport data on this phone.")
         try {
             val raw = readRaw(service, PassportService.EF_DG15)
             rawChipData["dg15"] = raw
@@ -346,7 +346,7 @@ class IDDocumentReader {
         var aaSignatureHex: String? = null
         var aaVerified: Boolean? = null
         if (dg15File != null) {
-            onProgress("Active authentication…")
+            onProgress("Reading and checking the passport chip on this phone.")
             try {
                 val challenge = ByteArray(8).also { SecureRandom().nextBytes(it) }
                 val response = service.doAA(

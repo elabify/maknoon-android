@@ -41,24 +41,30 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.ContactPage
+import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Link
 import androidx.compose.material.icons.filled.QrCode
 import androidx.compose.material.icons.filled.QuestionMark
+import androidx.compose.material.icons.filled.Remove
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.filled.Tune
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -87,6 +93,8 @@ import androidx.compose.ui.text.PlatformTextStyle
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.style.LineHeightStyle
 import androidx.compose.ui.unit.sp
+import android.view.WindowManager
+import androidx.fragment.app.FragmentActivity
 import com.elabify.app.maknoon.R
 import com.elabify.app.maknoon.iddocument.IDDocument
 import com.elabify.app.maknoon.iddocument.PassiveAuthResult
@@ -109,6 +117,16 @@ fun PassportCardDetailScreen(
     onBack: () -> Unit,
     passiveAuthRunning: Boolean = false,
 ) {
+    // FLAG_SECURE for the lifetime of this screen: the passport photo and all
+    // personal fields must not leak into a screenshot, screen recording, or the
+    // recents thumbnail. Cleared on dispose so navigating away (e.g. to the QR
+    // present route) restores normal behavior.
+    val secureContext = LocalContext.current
+    val secureWindow = (secureContext as? FragmentActivity)?.window
+    DisposableEffect(secureWindow) {
+        secureWindow?.setFlags(WindowManager.LayoutParams.FLAG_SECURE, WindowManager.LayoutParams.FLAG_SECURE)
+        onDispose { secureWindow?.clearFlags(WindowManager.LayoutParams.FLAG_SECURE) }
+    }
     Scaffold(
         topBar = {
             TopAppBar(
@@ -370,7 +388,12 @@ private fun GenuineSeal(r: PassiveAuthResult?, fg: Color, running: Boolean = fal
         PassiveAuthResult.Status.FAILED -> Triple(stringResource(R.string.passport_seal_failed), Color(0xFFF87171), false)
         else -> Triple(stringResource(R.string.passport_seal_unverified), Color.Gray, false)
     }
-    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(7.dp)) {
+    var showChipFacts by remember { mutableStateOf(false) }
+    Row(
+        modifier = Modifier.clickable { showChipFacts = true },
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(7.dp),
+    ) {
         Box(
             modifier = Modifier.size(21.dp).clip(CircleShape).background(color),
             contentAlignment = Alignment.Center,
@@ -383,6 +406,60 @@ private fun GenuineSeal(r: PassiveAuthResult?, fg: Color, running: Boolean = fal
             )
         }
         Text(label, fontSize = 15.sp, fontWeight = FontWeight.SemiBold, color = fg)
+        // Info affordance so the badge reads as tappable ("what was checked").
+        Icon(
+            Icons.Filled.Info,
+            contentDescription = stringResource(R.string.passport_facts_title),
+            tint = fg.copy(alpha = 0.7f),
+            modifier = Modifier.size(15.dp),
+        )
+    }
+    if (showChipFacts) {
+        ChipFactsDialog(r) { showChipFacts = false }
+    }
+}
+
+/// The single seal broken into the individual facts it stands for, so the badge
+/// never implies the holder was matched to the live person. Mirrors iOS
+/// PassportCardDetailView.chipFacts (ADR-0069): signature validity + tracing to
+/// a national passport authority, with no "holder match" line.
+private enum class ChipFactState { OK, NEUTRAL, FAIL }
+
+@Composable
+private fun ChipFactsDialog(r: PassiveAuthResult?, onDismiss: () -> Unit) {
+    val (sigValid, tracesAuthority) = when (r?.status) {
+        PassiveAuthResult.Status.VERIFIED -> ChipFactState.OK to ChipFactState.OK
+        // Validly signed, but the national signer isn't confirmed on this device
+        // (expired, or its CSCA isn't in the on-device trust list).
+        PassiveAuthResult.Status.INTEGRITY_ONLY -> ChipFactState.OK to ChipFactState.NEUTRAL
+        PassiveAuthResult.Status.FAILED -> ChipFactState.FAIL to ChipFactState.FAIL
+        else -> ChipFactState.NEUTRAL to ChipFactState.NEUTRAL
+    }
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        confirmButton = {
+            TextButton(onClick = onDismiss) { Text(stringResource(R.string.common_ok)) }
+        },
+        title = { Text(stringResource(R.string.passport_facts_title)) },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                ChipFactRow(stringResource(R.string.passport_fact_signature), sigValid)
+                ChipFactRow(stringResource(R.string.passport_fact_authority), tracesAuthority)
+            }
+        },
+    )
+}
+
+@Composable
+private fun ChipFactRow(label: String, state: ChipFactState) {
+    val (icon, tint, desc) = when (state) {
+        ChipFactState.OK -> Triple(Icons.Filled.Check, Color(0xFF34D399), "ok")
+        ChipFactState.FAIL -> Triple(Icons.Filled.Close, Color(0xFFF87171), "failed")
+        ChipFactState.NEUTRAL -> Triple(Icons.Filled.Remove, Color.Gray, "not checked")
+    }
+    Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.Top) {
+        Icon(icon, contentDescription = desc, tint = tint, modifier = Modifier.size(20.dp))
+        Text(label, fontSize = 15.sp, color = MaterialTheme.colorScheme.onSurface)
     }
 }
 

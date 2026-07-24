@@ -78,6 +78,11 @@ import com.elabify.app.maknoon.ui.theme.MaknoonColors
 import com.elabify.app.maknoon.ui.theme.Radii
 import com.elabify.app.maknoon.ui.theme.Spacing
 import com.elabify.app.maknoon.ui.theme.tint
+import com.elabify.app.maknoon.iddocument.IssuerSelection
+import android.view.WindowManager
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.ui.platform.LocalContext
+import androidx.fragment.app.FragmentActivity
 import java.text.DateFormat
 import java.util.Date
 
@@ -149,6 +154,15 @@ fun IDDocumentDetailScreen(
     currentFolderId: String? = null,
     onAssignFolder: (String?) -> Unit = {},
 ) {
+    // FLAG_SECURE for the lifetime of this screen: the document's chip-signed
+    // fields and photo must not leak into a screenshot, screen recording, or the
+    // recents thumbnail. Cleared on dispose so navigating away restores normal
+    // behavior. Mirrors PassportCardDetailScreen. ADR-0069.
+    val secureWindow = (LocalContext.current as? FragmentActivity)?.window
+    DisposableEffect(secureWindow) {
+        secureWindow?.setFlags(WindowManager.LayoutParams.FLAG_SECURE, WindowManager.LayoutParams.FLAG_SECURE)
+        onDispose { secureWindow?.clearFlags(WindowManager.LayoutParams.FLAG_SECURE) }
+    }
     var issuance by remember { mutableStateOf<DetailIssuance>(DetailIssuance.Idle) }
     var sanctions by remember { mutableStateOf<DetailSanctions>(DetailSanctions.Idle) }
     var nicknameDraft by remember(document.id) { mutableStateOf(document.nickname ?: "") }
@@ -508,11 +522,7 @@ private fun IssueVerifiedSection(
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
-            Text(
-                stringResource(R.string.id_uploaded_fields_note),
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
-            )
+            IssuanceConsentDisclosure()
             Button(onClick = onIssue, enabled = canIssue, modifier = Modifier.fillMaxWidth()) {
                 Icon(Icons.Filled.Verified, contentDescription = null)
                 Spacer(Modifier.width(8.dp))
@@ -524,7 +534,7 @@ private fun IssueVerifiedSection(
             verticalAlignment = Alignment.CenterVertically,
         ) {
             CircularProgressIndicator(modifier = Modifier.size(18.dp))
-            Text(stringResource(R.string.id_submitting_to_host, submittingHost), style = MaterialTheme.typography.bodyMedium)
+            Text(stringResource(R.string.id_submitting_to_host, IssuerSelection.issuerDisplayName(submittingHost)), style = MaterialTheme.typography.bodyMedium)
         }
         is DetailIssuance.PendingReview -> {
             val preVerified = issuance.proofPreVerified

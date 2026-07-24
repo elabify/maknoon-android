@@ -343,8 +343,8 @@ fun OnboardingScreen(onComplete: () -> Unit) {
             Step.PASSPORT_SCAN -> {
                 Text("Tap your Passport", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
                 Text(
-                    "Tap your passport and Maknoon reads its chip on-device and mints an identity " +
-                        "credential that you can present from your phone.",
+                    "Maknoon reads your passport's chip on this phone and creates a digital " +
+                        "identity that you control.",
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurface,
                 )
@@ -360,6 +360,17 @@ fun OnboardingScreen(onComplete: () -> Unit) {
                     shape = RoundedCornerShape(Radii.md),
                     onClick = { step = Step.RECOMMEND_WALLET },
                 ) { Text("Skip for now") }
+                Column(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalArrangement = Arrangement.spacedBy(Spacing.sm),
+                ) {
+                    CheckmarkBullet("Read here: your passport chip is read on this phone.")
+                    CheckmarkBullet("Stays here: the photo and chip data never leave this device.")
+                    CheckmarkBullet(
+                        "Sent only if you choose: nothing is shared unless you ask for a " +
+                            "verified credential later.",
+                    )
+                }
             }
 
             Step.RECOMMEND_WALLET -> {
@@ -543,6 +554,12 @@ private fun WelcomeStep(
             color = MaterialTheme.colorScheme.onSurface,
             textAlign = TextAlign.Center,
         )
+        Text(
+            "Your data lives on this phone. No account, no tracking.",
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            textAlign = TextAlign.Center,
+        )
     }
 
     Spacer(Modifier.height(Spacing.sm))
@@ -553,9 +570,9 @@ private fun WelcomeStep(
             .padding(horizontal = Spacing.sm),
         verticalArrangement = Arrangement.spacedBy(Spacing.md),
     ) {
-        CheckmarkBullet("Verify and share your passport as a digital identity")
-        CheckmarkBullet("Manage digital assets with a secure hardware wallet")
-        CheckmarkBullet("Privately use your identity and assets with those you verify and trust")
+        CheckmarkBullet("Verify and carry your passport as a digital identity")
+        CheckmarkBullet("Hold assets in a secure hardware wallet")
+        CheckmarkBullet("Share only what you choose, with people you trust")
     }
 
     Spacer(Modifier.height(Spacing.sm))
@@ -574,6 +591,12 @@ private fun WelcomeStep(
             shape = RoundedCornerShape(Radii.md),
             onClick = onRestore,
         ) { Text("Restore encrypted backup") }
+        Text(
+            "Use applications with your identity and assets in your wallets together.",
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            textAlign = TextAlign.Center,
+        )
     }
 }
 

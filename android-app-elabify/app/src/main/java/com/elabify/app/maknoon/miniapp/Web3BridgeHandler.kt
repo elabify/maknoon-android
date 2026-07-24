@@ -123,12 +123,7 @@ class Web3BridgeHandler(
      * sends need wallet.ethereum.write, signing needs wallet.ethereum.sign. So
      * an app that declared only read is genuinely denied writes and signing.
      */
-    override fun requiredPermissionFor(method: String): String? = when (method) {
-        "eth_sendTransaction" -> "wallet.ethereum.write"
-        "personal_sign", "eth_sign", "eth_signTypedData", "eth_signTypedData_v3", "eth_signTypedData_v4" ->
-            "wallet.ethereum.sign"
-        else -> "wallet.ethereum.read"
-    }
+    override fun requiredPermissionFor(method: String): String? = web3RequiredPermission(method)
 
     // The active EVM network for this session. Starts on Sepolia and can move
     // across the app's known EVM networks via wallet_switchEthereumChain.
@@ -332,6 +327,11 @@ class Web3BridgeHandler(
         // Contract calldata is allowed but never blind-signed: it is decoded for
         // the approval sheet when recognized, and shown verbatim otherwise.
         val dataBytes = dataFromHex(tx.optStringOrNull("data")) ?: ByteArray(0)
+        // Refuse a transfer/transferFrom whose token recipient is the call target
+        // (the token contract) - it would send the tokens to the contract itself.
+        if (EthereumCallDataDecoder.transferTargetsCallee(to, dataBytes)) {
+            throw MiniAppBridgeError.invalidParams("This transaction would send tokens to the token contract itself. Refused to prevent loss.")
+        }
         val value = weiOrZero(tx.optStringOrNull("value"))
         val descriptor = activeDescriptor()
         val account = accountOf(descriptor)
@@ -628,4 +628,18 @@ class Web3BridgeHandler(
         }
         return out
     }
+}
+
+/**
+ * Pure method -> permission-token mapping (ADR-0057), split out as a top-level
+ * function so the gate is unit-testable without constructing the handler or the
+ * WebView bridge. This is the security-critical table: a send needs write, any
+ * signing method needs sign, everything else needs only read. Mirrors iOS
+ * Web3BridgeHandler.requiredPermission(forMethod:).
+ */
+internal fun web3RequiredPermission(method: String): String? = when (method) {
+    "eth_sendTransaction" -> "wallet.ethereum.write"
+    "personal_sign", "eth_sign", "eth_signTypedData", "eth_signTypedData_v3", "eth_signTypedData_v4" ->
+        "wallet.ethereum.sign"
+    else -> "wallet.ethereum.read"
 }

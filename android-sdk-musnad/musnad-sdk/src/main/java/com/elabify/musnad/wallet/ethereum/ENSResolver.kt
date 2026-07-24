@@ -127,4 +127,22 @@ object EIP55 {
         }
         return out.toString()
     }
+
+    /**
+     * EIP-55 validation of a user-supplied address. All-lowercase or
+     * all-uppercase carries no checksum and is accepted (cannot be validated).
+     * A MIXED-case address must match the checksum exactly, so a mistyped
+     * (wrong-case) character is caught instead of being sent to a different,
+     * valid-looking address. Non-hex / wrong-length input returns false.
+     * Mirrors iOS EIP55.passesChecksum.
+     */
+    fun passesChecksum(address: String): Boolean {
+        val body = if (address.startsWith("0x") || address.startsWith("0X")) address.substring(2) else address
+        if (body.length != 40 || !body.all { it.isDigit() || it in 'a'..'f' || it in 'A'..'F' }) return false
+        val letters = body.filter { it.isLetter() }
+        val allLower = letters.all { it.isLowerCase() }
+        val allUpper = letters.all { it.isUpperCase() }
+        if (allLower || allUpper) return true
+        return checksum("0x$body") == "0x$body"
+    }
 }

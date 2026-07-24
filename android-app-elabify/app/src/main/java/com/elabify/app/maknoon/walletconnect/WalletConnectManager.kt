@@ -29,6 +29,7 @@ import com.elabify.musnad.wallet.ethereum.EthereumDescriptors
 import com.elabify.musnad.wallet.ethereum.EthereumGasEstimator
 import com.elabify.musnad.wallet.ethereum.EthereumNetwork
 import com.elabify.musnad.wallet.ethereum.EthereumNetworkID
+import com.elabify.musnad.wallet.ethereum.EthereumCallDataDecoder
 import com.elabify.musnad.wallet.ethereum.EthereumTxPlan
 import com.elabify.musnad.wallet.ethereum.EthereumWallet
 import com.elabify.musnad.wallet.ethereum.EthereumWalletDescriptor
@@ -495,6 +496,11 @@ object WalletConnectManager {
         val value = runCatching { EthereumWeiValue.fromHex(tx.optStringOrNull("value") ?: "0x0") }
             .getOrDefault(EthereumWeiValue.ZERO)
         val data = dataFromHex(tx.optStringOrNull("data")) ?: ByteArray(0)
+        // Refuse a transfer/transferFrom whose token recipient is the call target
+        // (the token contract) - it would send the tokens to the contract itself.
+        if (EthereumCallDataDecoder.transferTargetsCallee(to, data)) {
+            throw IllegalStateException("This transaction would send tokens to the token contract itself. Refused to prevent loss.")
+        }
         // WALLET-MANAGED nonce: ignore any dApp-supplied nonce (routinely stale).
         val nonce = wallet.pendingNonce(rpcURL)
         val gasLimit = parseHexLong(tx.optStringOrNull("gas") ?: tx.optStringOrNull("gasLimit"))

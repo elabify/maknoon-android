@@ -67,8 +67,10 @@ import com.elabify.app.maknoon.R
 import com.elabify.app.maknoon.ui.components.Banner
 import com.elabify.app.maknoon.ui.components.BannerVariant
 import com.elabify.app.maknoon.ui.miniapp.MiniAppQrScanner
+import com.elabify.app.maknoon.ui.miniapp.QrPhotoPickerButton
 import com.elabify.app.maknoon.ui.theme.Spacing
 import androidx.compose.foundation.layout.width
+import com.elabify.app.maknoon.ui.wallet.SelfSendGuard
 import com.elabify.app.maknoon.ui.wallet.common.AmountField
 import com.elabify.app.maknoon.ui.wallet.common.FiatReference
 import com.elabify.app.maknoon.ui.wallet.common.AssetOption
@@ -86,6 +88,7 @@ import com.elabify.app.maknoon.ui.wallet.common.HardwareSignAppReadiness
 import com.elabify.app.maknoon.ui.wallet.common.HardwareSignReadySheet
 import com.elabify.app.maknoon.ui.wallet.common.SendFormScaffold
 import com.elabify.app.maknoon.ui.wallet.common.WalletSelector
+import com.elabify.musnad.wallet.ethereum.EIP55
 import com.elabify.musnad.wallet.ethereum.ENSResolver
 import com.elabify.musnad.wallet.ethereum.EthereumGasEstimator
 import com.elabify.musnad.wallet.ethereum.EthereumToken
@@ -124,22 +127,19 @@ private fun isValidEthAddress(s: String): Boolean {
     val t = s.trim()
     if (!t.startsWith("0x") && !t.startsWith("0X")) return false
     val body = t.substring(2)
-    return body.length == 40 && body.all { it.isDigit() || it in 'a'..'f' || it in 'A'..'F' }
-}
-
-// EIP-681 stripping ("ethereum:0x…", optional "@chain" / "?query" suffix) so a
-// scanned or pasted payment URI resolves to the bare address. Mirrors the iOS
-// stripEthereumPrefix helper.
-private fun stripEthereumPrefix(s: String): String {
-    var out = s.trim()
-    if (out.lowercase().startsWith("ethereum:")) out = out.substring("ethereum:".length)
-    out.indexOf('?').let { if (it >= 0) out = out.substring(0, it) }
-    out.indexOf('@').let { if (it >= 0) out = out.substring(0, it) }
-    return out.trim()
+    if (body.length != 40 || !body.all { it.isDigit() || it in 'a'..'f' || it in 'A'..'F' }) return false
+    // EIP-55: a mixed-case address must match its checksum, so a mistyped
+    // (wrong-case) character is caught instead of sent to a different,
+    // valid-looking address. All-lower / all-upper carry no checksum.
+    return EIP55.passesChecksum(t)
 }
 
 // Native chain tint for Ethereum (iOS uses .indigo for the network chip).
 private val EthIndigo = Color(0xFF5856D6)
+
+// Shown (and enforced in submit) when a token transfer would go to a contract.
+private const val TOKEN_TO_CONTRACT_ERROR =
+    "This address is a token contract. Sending tokens here would lose them permanently. Enter the recipient's wallet address."
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -167,6 +167,13 @@ internal fun EthereumSendScreen(walletId: UUID, preselectTokenId: String?, onDon
     }
 
     var recipient by remember { mutableStateOf("") }
+    // Set when a scanned / pasted EIP-681 URI could not be applied (unknown
+    // token, or no valid recipient address in the code). Shown under the field.
+    var scanError by remember { mutableStateOf<String?>(null) }
+    // True when the current recipient is a contract address AND a token is
+    // selected (a token transfer to a contract loses the tokens). Resolved
+    // best-effort via eth_getCode when the recipient / token changes.
+    var recipientIsContract by remember { mutableStateOf(false) }
     var showContacts by remember { mutableStateOf(false) }
     var amount by remember { mutableStateOf("") }
     var selectedToken by remember { mutableStateOf(preselectTokenId?.let { id -> availableTokens.firstOrNull { it.id == id } }) }
@@ -258,11 +265,43 @@ internal fun EthereumSendScreen(walletId: UUID, preselectTokenId: String?, onDon
     val editable = state is EthSendState.Idle || state is EthSendState.Failed
     val selectedEstimate = estimates.firstOrNull { it.tier == tier }
 
+    // A token transfer to a contract sends the tokens to that contract, not a
+    // person, so block it. The pure `tokenSendBlocksContract` catches the token's
+    // own contract + any other installed token's contract instantly (no RPC);
+    // `recipientIsContract` is the best-effort eth_getCode result below.
+    val tok = selectedToken
+    // Delegates to the pure, unit-tested `tokenSendBlocksContract` (in
+    // EthereumPaymentUri.kt). recipientIsContract is the best-effort eth_getCode
+    // result computed below.
+    val tokenSendToContractBlocked = tok != null && effectiveRecipient != null &&
+        tokenSendBlocksContract(
+            recipient = effectiveRecipient,
+            isTokenSend = true,
+            selectedTokenContract = tok.contractAddress,
+            knownTokenContracts = availableTokens.map { it.contractAddress },
+            recipientHasCode = recipientIsContract,
+        )
+
+    // Probe the recipient with eth_getCode when a token is selected. Keyed on
+    // the resolved recipient + token so a changed input relaunches (cancelling
+    // the stale probe) and never applies an old result.
+    LaunchedEffect(effectiveRecipient, selectedToken?.id) {
+        recipientIsContract = false
+        val d = descriptor ?: return@LaunchedEffect
+        val r = effectiveRecipient ?: return@LaunchedEffect
+        if (selectedToken == null || !isValidEthAddress(r)) return@LaunchedEffect
+        val isContract = withContext(Dispatchers.IO) {
+            runCatching { EthereumWallet(d).isContract(r, resolved.rpcURL) }.getOrDefault(false)
+        }
+        recipientIsContract = isContract
+    }
+
     fun defaultGasUnits(): Long = if (selectedToken != null) 100_000 else 21_000
     fun gasUnitsUsed(): Long = gasUnits ?: defaultGasUnits()
     fun maxFeeWei(): EthereumWeiValue? = selectedEstimate?.let { it.maxFeePerGas * EthereumWeiValue.fromUInt64(gasUnitsUsed()) }
 
-    val canSubmit = effectiveRecipient != null && parsedAmount != null && selectedEstimate != null && editable
+    val canSubmit = effectiveRecipient != null && parsedAmount != null && selectedEstimate != null &&
+        editable && !tokenSendToContractBlocked
 
     fun availableCaption(): String? {
         val token = selectedToken
@@ -297,6 +336,11 @@ internal fun EthereumSendScreen(walletId: UUID, preselectTokenId: String?, onDon
 
     fun submit(hostPassphrase: String? = null) {
         val d = descriptor ?: return
+        // Safety backstop: refuse a token transfer to a contract even if the UI
+        // guard was somehow bypassed. Nothing is built / signed / sent.
+        if (tokenSendToContractBlocked) {
+            state = EthSendState.Failed(TOKEN_TO_CONTRACT_ERROR); return
+        }
         val hwKind = d.kind as? EthereumWalletKind.Hardware
         val sw = sandwich
         // Software wallets need the unlocked seed; hardware wallets sign on the
@@ -423,6 +467,39 @@ internal fun EthereumSendScreen(walletId: UUID, preselectTokenId: String?, onDon
         }
     }
 
+    // Apply a scanned / pasted value: parse it as an EIP-681 URI so a token
+    // payment (ethereum:0x<TOKEN>@<chain>/transfer?address=0x<RECIPIENT>&uint256=<amt>)
+    // sets the RECIPIENT to the address query param (not the token contract) and
+    // preselects the matching installed token + amount. A plain address / native
+    // request falls through to just setting the recipient. This replaces the old
+    // stripEthereumPrefix, which kept the URI target (the token contract) as the
+    // recipient.
+    fun applyScannedOrPastedUri(raw: String) {
+        scanError = null
+        val parsed = EthereumUriParser.parse(raw)
+        val contract = parsed.tokenContract
+        if (contract != null) {
+            val match = availableTokens.firstOrNull { it.contractAddress.equals(contract, ignoreCase = true) }
+            if (match == null) {
+                scanError = "This payment is for a token that is not added to this wallet. Add the token first, then scan again."
+                return
+            }
+            selectedToken = match
+            parsed.amountBaseUnits?.let { base ->
+                runCatching {
+                    amount = EthereumWeiValue.fromBigInteger(java.math.BigInteger(base))
+                        .units(match.decimals).stripTrailingZeros().toPlainString()
+                }
+            }
+        }
+        val r = parsed.recipient.trim()
+        if (isValidEthAddress(r) || ENSResolver.looksLikeName(r)) {
+            recipient = r
+        } else {
+            scanError = "The scanned code did not contain a valid recipient address."
+        }
+    }
+
     // Token AssetPicker model. The native coin is always the first option; each
     // installed ERC-20 follows. `id` "native" is the stable key we switch on.
     val nativeOption = AssetOption(id = "native", symbol = resolved.ticker, label = stringResource(R.string.eth_asset_native, resolved.ticker))
@@ -462,16 +539,19 @@ internal fun EthereumSendScreen(walletId: UUID, preselectTokenId: String?, onDon
         FormSection(header = stringResource(R.string.eth_pay_to)) {
             RecipientField(
                 value = recipient,
-                onValueChange = { recipient = it },
+                onValueChange = { recipient = it; scanError = null },
                 onPaste = {
                     val cm = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
-                    cm.primaryClip?.getItemAt(0)?.text?.let { recipient = stripEthereumPrefix(it.toString()) }
+                    cm.primaryClip?.getItemAt(0)?.text?.let { applyScannedOrPastedUri(it.toString()) }
                 },
                 onScanQr = { showScanner = true },
                 placeholder = stringResource(R.string.eth_recipient_placeholder),
                 onPickContact = { showContacts = true },
                 supporting = {
                     when {
+                        tokenSendToContractBlocked ->
+                            Text(TOKEN_TO_CONTRACT_ERROR, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.error)
+                        scanError != null -> Text(scanError!!, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.error)
                         ensResolving -> Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.xs)) {
                             CircularProgressIndicator(Modifier.size(14.dp), strokeWidth = 2.dp)
                             Text(stringResource(R.string.eth_resolving_ens), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -480,6 +560,10 @@ internal fun EthereumSendScreen(walletId: UUID, preselectTokenId: String?, onDon
                         ensError != null -> Text(ensError!!, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.error)
                         recipient.isNotEmpty() && !recipientIsAddress && !ENSResolver.looksLikeName(recipient) ->
                             Text(stringResource(R.string.eth_address_invalid), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.error)
+                        recipientIsAddress && descriptor?.address?.let {
+                            SelfSendGuard.isSelfSend(recipient, listOf(it), caseInsensitive = true)
+                        } == true ->
+                            Text(stringResource(R.string.eth_self_send_warning), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.tertiary)
                     }
                 },
             )
@@ -682,10 +766,18 @@ internal fun EthereumSendScreen(walletId: UUID, preselectTokenId: String?, onDon
                 MiniAppQrScanner(
                     continuous = false,
                     onCode = { code ->
-                        recipient = stripEthereumPrefix(code)
+                        applyScannedOrPastedUri(code)
                         showScanner = false
                     },
                     modifier = Modifier.fillMaxWidth().aspectRatio(1f).clip(RoundedCornerShape(20.dp)),
+                )
+                QrPhotoPickerButton(
+                    onCode = { code ->
+                        applyScannedOrPastedUri(code)
+                        showScanner = false
+                    },
+                    onNoQr = {},
+                    modifier = Modifier.fillMaxWidth(),
                 )
                 OutlinedButton(onClick = { showScanner = false }, modifier = Modifier.fillMaxWidth()) {
                     Text(stringResource(R.string.common_cancel))

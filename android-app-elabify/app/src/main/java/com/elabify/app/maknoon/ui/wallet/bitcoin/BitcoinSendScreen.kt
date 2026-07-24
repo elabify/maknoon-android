@@ -43,6 +43,8 @@ import com.elabify.app.maknoon.R
 import com.elabify.app.maknoon.ui.components.Banner
 import com.elabify.app.maknoon.ui.components.BannerVariant
 import com.elabify.app.maknoon.ui.theme.MaknoonColors
+import com.elabify.app.maknoon.ui.wallet.AddressFamily
+import com.elabify.app.maknoon.ui.wallet.AddressNetworkGuard
 import com.elabify.app.maknoon.ui.wallet.common.AssetOption
 import com.elabify.app.maknoon.ui.wallet.common.AssetPicker
 import com.elabify.app.maknoon.ui.wallet.common.AmountField
@@ -241,7 +243,11 @@ internal fun BitcoinSendScreen(
     }
     val estFeeSat = if (effectiveSatsPerVb > 0) estVbytes * effectiveSatsPerVb else null
     val totalCostSat = if (amountSats > 0 && estFeeSat != null) amountSats + estFeeSat else null
-    val canSubmit = address.isNotEmpty() && amountSats > 0 && effectiveSatsPerVb > 0
+    // Hard-block an address that clearly belongs to another network (e.g. a
+    // pasted Ethereum/Tron address) at the UI, instead of only failing later
+    // when BDK rejects it at build time.
+    val wrongNetwork = AddressNetworkGuard.crossNetworkMismatch(address, AddressFamily.BITCOIN)
+    val canSubmit = address.isNotEmpty() && wrongNetwork == null && amountSats > 0 && effectiveSatsPerVb > 0
 
     // Bitcoin's per-chain network tint (iOS uses .orange for the header chip
     // and the Network review row). MaknoonColors.warning is the design-token
@@ -287,6 +293,15 @@ internal fun BitcoinSendScreen(
                 onScanQr = { showScanner = true },
                 placeholder = stringResource(R.string.btc_bech32_placeholder),
                 onPickContact = { showContacts = true },
+                supporting = wrongNetwork?.let { fam ->
+                    {
+                        Text(
+                            stringResource(R.string.wallet_wrong_network_address, fam.displayName, "Bitcoin"),
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.error,
+                        )
+                    }
+                },
             )
             if (showScanner) {
                 BitcoinScanSheet(
@@ -706,13 +721,8 @@ private fun applyMax(maxSat: Long, denomination: String, fiatId: String, fiatUni
     else -> String.format("%.8f", maxSat / 100_000_000.0)
 }
 
-private fun stripBitcoinPrefix(s: String): String {
-    var out = s.trim()
-    if (out.lowercase().startsWith("bitcoin:")) out = out.substring("bitcoin:".length)
-    val q = out.indexOf('?')
-    if (q >= 0) out = out.substring(0, q)
-    return out
-}
+private fun stripBitcoinPrefix(s: String): String =
+    com.elabify.app.maknoon.ui.wallet.PaymentURIStrip.bitcoin(s)
 
 /**
  * Parse a scanned / pasted Bitcoin payload and apply it. Strips the `bitcoin:`
@@ -776,6 +786,15 @@ private fun BitcoinScanSheet(
                     .fillMaxWidth()
                     .aspectRatio(1f)
                     .clip(androidx.compose.foundation.shape.RoundedCornerShape(20.dp)),
+            )
+            com.elabify.app.maknoon.ui.miniapp.QrPhotoPickerButton(
+                onCode = { code ->
+                    if (done) return@QrPhotoPickerButton
+                    done = true
+                    onScanned(code)
+                },
+                onNoQr = {},
+                modifier = Modifier.fillMaxWidth(),
             )
             OutlinedButton(onClick = onDismiss, modifier = Modifier.fillMaxWidth()) { Text(stringResource(R.string.common_cancel)) }
         }

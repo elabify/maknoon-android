@@ -73,6 +73,30 @@ fun sunToTrx(sun: Long): Double = sun / SUN_PER_TRX
 /** TRX (Double) -> sun (Long), rounded. */
 fun trxToSun(trx: Double): Long = Math.round(trx * SUN_PER_TRX)
 
+/** Parse a user-entered amount string (whole token units) into exact integer
+ *  base units as a decimal string, scaling by 10^decimals. uint256-safe
+ *  (arbitrary precision, no Long overflow) and free of binary-Double rounding.
+ *  Null on malformed input, negatives, more than one dot, or more fractional
+ *  digits than the token supports (never silently truncates sub-unit
+ *  precision). Mirrors iOS TokenAmount.baseUnits and the shared
+ *  amount-scaling-kat.json. Use for both TRC-20 (pass token decimals) and
+ *  native TRX (pass 6). */
+fun tronTokenToRaw(text: String, decimals: Int): String? {
+    if (decimals < 0) return null
+    val t = text.trim()
+    if (t.isEmpty()) return null
+    val parts = t.split(".")
+    if (parts.size > 2) return null
+    val whole = parts[0].ifEmpty { "0" }
+    if (!whole.all { it in '0'..'9' }) return null
+    val fracRaw = if (parts.size == 2) parts[1] else ""
+    if (!fracRaw.all { it in '0'..'9' }) return null
+    if (fracRaw.length > decimals) return null
+    val frac = if (decimals == 0) "" else fracRaw.padEnd(decimals, '0')
+    val combined = (whole + frac).trimStart('0')
+    return combined.ifEmpty { "0" }
+}
+
 /** Short "T9yD…mGkn" form for a base58check address or txid. */
 fun shortHash(s: String): String =
     if (s.length > 12) "${s.take(6)}…${s.takeLast(4)}" else s
@@ -95,10 +119,5 @@ fun relativeSince(epochMs: Long?): String {
 
 /** Strip an optional `tron:` URI scheme + query string from a scanned /
  *  pasted recipient, mirroring iOS `stripTronPrefix`. */
-fun stripTronPrefix(s: String): String {
-    var out = s.trim()
-    if (out.lowercase().startsWith("tron:")) out = out.substring("tron:".length)
-    val q = out.indexOf('?')
-    if (q >= 0) out = out.substring(0, q)
-    return out
-}
+fun stripTronPrefix(s: String): String =
+    com.elabify.app.maknoon.ui.wallet.PaymentURIStrip.tron(s)

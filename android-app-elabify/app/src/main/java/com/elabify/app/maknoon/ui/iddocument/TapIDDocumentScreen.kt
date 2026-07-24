@@ -85,6 +85,7 @@ import com.elabify.app.maknoon.iddocument.IDDocument
 import com.elabify.app.maknoon.iddocument.IDDocumentKind
 import com.elabify.app.maknoon.iddocument.IDDocumentReadParameters
 import com.elabify.app.maknoon.iddocument.IDDocumentReadResult
+import com.elabify.app.maknoon.iddocument.IssuerSelection
 
 /// Outcome of the inline "get a verified credential" issuance call. Mirrors
 /// the iOS IssuanceState enum's terminal cases. The submit lambda returns
@@ -625,6 +626,7 @@ private fun MintedStep(
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
+                IssuanceConsentDisclosure()
                 Button(
                     onClick = onIssue,
                     enabled = canIssue,
@@ -647,7 +649,7 @@ private fun MintedStep(
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 CircularProgressIndicator(modifier = Modifier.size(18.dp))
-                Text(stringResource(R.string.id_submitting_to_host, submittingHost), style = MaterialTheme.typography.bodyMedium)
+                Text(stringResource(R.string.id_submitting_to_host, IssuerSelection.issuerDisplayName(submittingHost)), style = MaterialTheme.typography.bodyMedium)
             }
 
             is TapIssuance.SubmittedForAnchor -> {

@@ -65,9 +65,13 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import com.elabify.app.maknoon.ui.miniapp.MiniAppQrScanner
+import com.elabify.app.maknoon.ui.miniapp.QrPhotoPickerButton
 import com.elabify.app.maknoon.ui.settings.OwnWalletEntry
 import com.elabify.app.maknoon.ui.theme.Spacing
 import androidx.compose.foundation.layout.width
+import com.elabify.app.maknoon.ui.wallet.AddressFamily
+import com.elabify.app.maknoon.ui.wallet.AddressNetworkGuard
+import com.elabify.app.maknoon.ui.wallet.SelfSendGuard
 import com.elabify.app.maknoon.ui.wallet.common.AmountField
 import com.elabify.app.maknoon.ui.wallet.common.AssetOption
 import com.elabify.app.maknoon.ui.wallet.common.FiatReference
@@ -96,6 +100,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.math.BigDecimal
+import java.util.Locale
 import java.math.RoundingMode
 import java.util.UUID
 
@@ -252,10 +257,23 @@ internal fun TronSendScreen(walletId: UUID, preselectTokenId: String?, onDone: (
                 runCatching {
                     val wallet = TronWallet(d, network, rpcURL, sandwich)
                     val sender = wallet.resolvedAddress()
+                    // Tron rejects a self-transfer on-chain (only burns the fee),
+                    // so hard-block sending to your own address.
+                    if (SelfSendGuard.isSelfSend(recipient, listOf(sender), caseInsensitive = false)) {
+                        throw IllegalStateException(
+                            "You're sending to your own Tron address. Tron rejects a self-transfer, so this would only burn the fee. Enter the recipient's address.",
+                        )
+                    }
                     // Build the unsigned tx (same for software + hardware), then
                     // SIGN only (no broadcast) so the user confirms broadcast.
                     val (unsigned, rawOrSun) = if (token != null) {
-                        val rawAmount = BigDecimal(amt).multiply(BigDecimal.TEN.pow(token.decimals)).toBigInteger().toString()
+                        // Exact base units from the typed decimal string (no binary
+                        // Double). The fiat path formats the price-converted value to
+                        // the token's decimals first (inherently approximate).
+                        val rawAmount = (
+                            if (!fiatActive) tronTokenToRaw(amount, token.decimals)
+                            else tronTokenToRaw(String.format(Locale.US, "%.${token.decimals}f", amt), token.decimals)
+                        ) ?: throw IllegalStateException("Enter a valid ${token.symbol} amount")
                         wallet.prepareHardwareTRC20(
                             contractAddress = token.contract,
                             recipient = recipient,
@@ -264,7 +282,10 @@ internal fun TronSendScreen(walletId: UUID, preselectTokenId: String?, onDone: (
                             senderBase58 = sender,
                         ) to rawAmount
                     } else {
-                        val sunAmount = trxToSun(amt)
+                        val sunAmount = (
+                            if (!fiatActive) tronTokenToRaw(amount, 6)
+                            else tronTokenToRaw(String.format(Locale.US, "%.6f", amt), 6)
+                        )?.toLongOrNull() ?: throw IllegalStateException("Enter a valid amount")
                         wallet.prepareHardwareNative(
                             recipient = recipient,
                             sunAmount = sunAmount,
@@ -391,8 +412,11 @@ internal fun TronSendScreen(walletId: UUID, preselectTokenId: String?, onDone: (
                 onPickContact = { showContacts = true },
                 supporting = if (recipient.isNotEmpty() && !recipientValid) {
                     {
+                        val fam = AddressNetworkGuard.detect(recipient)
                         Text(
-                            stringResource(R.string.trx_invalid_tron_address),
+                            if (fam != null && fam != AddressFamily.TRON)
+                                stringResource(R.string.wallet_wrong_network_address, fam.displayName, "Tron")
+                            else stringResource(R.string.trx_invalid_tron_address),
                             style = MaterialTheme.typography.labelSmall,
                             color = MaterialTheme.colorScheme.error,
                         )
@@ -566,6 +590,14 @@ internal fun TronSendScreen(walletId: UUID, preselectTokenId: String?, onDone: (
                         showScanner = false
                     },
                     modifier = Modifier.fillMaxWidth().aspectRatio(1f).clip(RoundedCornerShape(20.dp)),
+                )
+                QrPhotoPickerButton(
+                    onCode = { code ->
+                        recipient = stripTronPrefix(code)
+                        showScanner = false
+                    },
+                    onNoQr = {},
+                    modifier = Modifier.fillMaxWidth(),
                 )
                 OutlinedButton(onClick = { showScanner = false }, modifier = Modifier.fillMaxWidth()) {
                     Text(stringResource(R.string.common_cancel))

@@ -30,9 +30,14 @@ class MaknoonHttp(private val client: OkHttpClient = defaultClient()) {
         return execute(req, c)
     }
 
-    fun getJson(url: String): String {
+    /** GET JSON. `readTimeoutSec` tightens (or loosens) the read timeout for a
+     *  single call: explorer feeds like Blockscout can take 40s+ on busy
+     *  addresses, so callers pass a short cap to fail fast instead of hanging
+     *  the wallet sync. */
+    fun getJson(url: String, readTimeoutSec: Long? = null): String {
         val req = Request.Builder().url(url).header("Accept", "application/json").get().build()
-        return execute(req)
+        val c = readTimeoutSec?.let { client.newBuilder().readTimeout(it, TimeUnit.SECONDS).build() } ?: client
+        return execute(req, c)
     }
 
     /** GET with a Bearer token (e.g. LNDHub access token). */

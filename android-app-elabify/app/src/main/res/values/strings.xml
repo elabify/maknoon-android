@@ -322,6 +322,7 @@
     <string name="devices_add_selected_wallets">Add selected wallets</string>
 
     <!-- present -->
+    <string name="present_remove_credential_note">Removes this credential from this phone. Elabify issuers do not keep, track, or share your identity information beyond processing your verification.</string>
     <string name="present_privacy_qr">Privacy QR</string>
     <string name="present_attribute_qr">Attribute QR</string>
     <string name="present_respond">Respond</string>
@@ -427,8 +428,8 @@
     <string name="present_could_not_verify">Could not verify</string>
 
     <!-- iddocument -->
-    <string name="id_anchoring_blurb">Your credential has been minted server-side and is being anchored. You can close this screen and continue using the app: the credential appears on the Identity tab as soon as the issuer\'s batch flushes. The pending pickup also shows at the top of the Identity tab with a cancel option.</string>
-    <string name="id_anchoring_blurb_short">Your verified credential is being anchored.</string>
+    <string name="id_anchoring_blurb">Your credential has been created and is being finalized. You can close this screen and keep using the app. It will appear on the Identity tab shortly; the pending item at the top of the tab has a cancel option. Your passport details are never written on-chain.</string>
+    <string name="id_anchoring_blurb_short">Your credential is being finalized in the background. Your passport details are never written on-chain. Only a private anchor (a code with no personal data) is recorded so apps can confirm the credential is valid.</string>
     <string name="id_cancel_scan">Cancel scan</string>
     <string name="id_change_document_type">Change document type</string>
     <string name="id_check_opensanctions">Check against OpenSanctions</string>
@@ -446,7 +447,7 @@
     <string name="id_date_of_birth_field">Date of birth (YYYY-MM-DD)</string>
     <string name="id_date_of_expiry_field">Date of expiry (YYYY-MM-DD)</string>
     <string name="id_delete_document">Delete document</string>
-    <string name="id_delete_document_blurb">This only removes the document from Maknoon on this phone. Your physical document is unaffected.</string>
+    <string name="id_delete_document_blurb">Removes the passport from Maknoon on this phone. Your physical passport is not affected. Elabify issuers do not keep, track, or share your identity information beyond processing your verification.</string>
     <string name="id_details">Details</string>
     <string name="id_discard">Discard</string>
     <string name="id_document_details">Document details</string>
@@ -469,8 +470,10 @@
     <string name="id_given_name">Given name</string>
     <string name="id_hold_phone_over_passport">Tap Passport</string>
     <string name="id_identity_verified_credential">Identity Verified Credential</string>
-    <string name="id_issue_detail_blurb">Upload the document\'s chip-signed fields to an issuer service for verification and sanctions screening, then issue a post-quantum credential anchored privately on ledger. You will receive an identity verified credential in your wallet that any Elabify-compatible verifier can check.</string>
-    <string name="id_issue_idle_blurb">Send the document to an issuer for verification, sanctions screening, and anchoring on ledger that any compatible verifier can check.</string>
+    <string name="id_issue_detail_blurb">Send your passport\'s chip-signed details to Musnad by Elabify for verification and a sanctions check. You get back a verified credential in your wallet that you can share with any compatible app. Your passport details are never written on-chain; only a private anchor (a code with no personal data) is.</string>
+    <string name="id_issue_idle_blurb">Send your passport details to Musnad by Elabify for verification and a sanctions check. You get back a verified credential that any compatible app can check. Your passport details are never written on-chain.</string>
+    <string name="id_issue_purpose">Purpose: to verify your passport and issue your credential.</string>
+    <string name="id_issue_no_retention">Elabify issuers do not keep, track, or share your identity information beyond processing your verification.</string>
     <string name="id_issue_optional_hint">Optional, takes a moment. Pick an issuer in Settings (Identity, Known issuers) before submitting.</string>
     <string name="id_issue_verified_credential">Issue verified credential</string>
     <string name="id_issued_by">Issued by</string>
@@ -492,12 +495,12 @@
     <string name="id_passport_chip">Passport chip</string>
     <string name="id_passport_symbol_required">Your passport must show this symbol on its cover. Without it, the passport cannot be scanned.</string>
     <string name="id_pending_id_value">Pending ID: %1$s</string>
-    <string name="id_pending_pre_verified_blurb">The issuer accepted your passport\'s chip-signed bytes and confirmed they chain to a recognised national CSCA. It\'s now pending review; an operator will approve it shortly.</string>
-    <string name="id_pending_pre_verified_blurb_short">The issuer accepted your passport\'s chip-signed bytes and confirmed they chain to a recognised national CSCA. An operator will approve it shortly.</string>
+    <string name="id_pending_pre_verified_blurb">Musnad accepted your passport\'s chip-signed data and confirmed it traces to a recognized national passport authority. It is now pending review; a reviewer will approve it shortly.</string>
+    <string name="id_pending_pre_verified_blurb_short">Musnad accepted your passport\'s chip-signed data and confirmed it traces to a recognized national passport authority. A reviewer will approve it shortly.</string>
     <string name="id_personal_number">Personal number</string>
     <string name="id_place_of_birth">Place of birth</string>
-    <string name="id_pre_verification_failed">Pre-verification did not complete automatically (%1$s). An operator will review your packet shortly; you can close this screen.</string>
-    <string name="id_pre_verification_failed_short">Pre-verification did not complete automatically (%1$s). An operator will review your packet shortly.</string>
+    <string name="id_pre_verification_failed">Automatic checks did not finish (%1$s). A reviewer will look at your submission shortly; you can close this screen.</string>
+    <string name="id_pre_verification_failed_short">Automatic checks did not finish (%1$s). A reviewer will look at your submission shortly.</string>
     <string name="id_present">Present</string>
     <string name="id_present_blurb">Present this passport as a self-signed credential: a QR another Maknoon user can verify on the spot, fully offline. It is signed by your post-quantum key. No issuer, no network.</string>
     <string name="id_present_show_qr">Present (show QR)</string>
@@ -505,10 +508,10 @@
     <string name="id_recheck_chip">Re-check chip</string>
     <string name="id_recheck_sanctions">Re-check sanctions</string>
     <string name="id_retap_needed">Re-tap needed</string>
-    <string name="id_retap_needed_body">Chip-signed material isn\'t captured. Re-tap the document so Maknoon can store the SOD bytes; the issuer needs them to validate.</string>
+    <string name="id_retap_needed_body">The chip\'s signed data wasn\'t captured. Re-tap your passport so Maknoon can store it; the issuer needs it to verify.</string>
     <string name="id_sanctions_clean">Clean</string>
     <string name="id_sanctions_error">Screening error</string>
-    <string name="id_sanctions_footer_note">Submits your name and date of birth to the selected issuer for an OpenSanctions check. Your photo and chip data stay on this device.</string>
+    <string name="id_sanctions_footer_note">Sends only your name and date of birth to Musnad by Elabify for a sanctions check. Your photo and chip data stay on this phone.</string>
     <string name="id_sanctions_inconclusive">Inconclusive</string>
     <string name="id_sanctions_pep_match">PEP match</string>
     <string name="id_sanctions_sanctioned">Sanctioned</string>
@@ -522,12 +525,12 @@
     <string name="id_screening_result">Screening result</string>
     <string name="id_sex">Sex</string>
     <string name="id_something_went_wrong">Something went wrong.</string>
-    <string name="id_submitted_anchoring">Submitted; anchoring in background</string>
+    <string name="id_submitted_anchoring">Submitted. Finishing up.</string>
     <string name="id_submitted_awaiting_review">Submitted, awaiting manual review</string>
     <string name="id_submitted_pre_verified">Submitted, pre-verified</string>
     <string name="id_submitting_to_host">Submitting to %1$s...</string>
     <string name="id_tap_document_title">Tap ID document</string>
-    <string name="id_uploaded_fields_note">Uploaded: name, document number, dates, nationality, sex. NOT uploaded: chip photo (stays on this device).</string>
+    <string name="id_uploaded_fields_note">Shared with Musnad: your name, document number, dates, nationality, and sex. Not shared: your passport photo and chip data stay on this phone.</string>
 
     <!-- miniapp -->
     <string name="app_scan_to_pay">Scan to pay</string>
@@ -887,6 +890,7 @@
 <string name="eth_resolving_ens">Resolving ENS name…</string>
 <string name="eth_resolves_to">Resolves to %1$s</string>
 <string name="eth_address_invalid">Address must be 0x followed by 40 hex characters, or an ENS name like vitalik.eth.</string>
+<string name="eth_self_send_warning">This is your own address. Sending to yourself just moves funds within this wallet and still costs a fee.</string>
 <string name="eth_unit">Unit</string>
 <string name="eth_network_fee">Network fee</string>
 <string name="eth_fetching_gas">Fetching current gas prices…</string>
@@ -1295,11 +1299,14 @@
     <string name="passport_field_issued">Issued</string>
     <string name="passport_field_expires">Expires</string>
     <string name="passport_field_place_of_birth">Place of birth</string>
-    <string name="passport_seal_verified">Verified</string>
-    <string name="passport_seal_genuine">Genuine</string>
-    <string name="passport_seal_failed">Authenticity failed</string>
-    <string name="passport_seal_unverified">Not verified</string>
-    <string name="passport_seal_checking">Checking authenticity…</string>
+    <string name="passport_seal_verified">Chip verified</string>
+    <string name="passport_seal_genuine">Chip genuine</string>
+    <string name="passport_seal_failed">Chip check failed</string>
+    <string name="passport_seal_unverified">Chip not checked</string>
+    <string name="passport_seal_checking">Checking chip…</string>
+    <string name="passport_facts_title">What was checked</string>
+    <string name="passport_fact_signature">Chip signature valid</string>
+    <string name="passport_fact_authority">Data traces to a national passport authority</string>
     <string name="passport_pinned_registry">Musnad Registry</string>
     <string name="present_build_online_qr">Build Online QR</string>
     <string name="present_advanced">Advanced</string>
@@ -1312,5 +1319,6 @@
     <string name="identity_card_move_to_folder">Move to folder</string>
     <string name="identity_card_delete">Delete</string>
     <string name="identity_card_delete_title">Delete this card?</string>
-    <string name="identity_card_delete_body">This removes it from this device. This can\'t be undone.</string>
+    <string name="identity_card_delete_body">Removes the local copy from this phone. Elabify issuers do not keep, track, or share your identity information beyond processing your verification.</string>
+    <string name="wallet_wrong_network_address">That looks like a %1$s address. This is a %2$s wallet.</string>
 </resources>
