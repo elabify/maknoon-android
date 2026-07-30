@@ -1,6 +1,20 @@
 // Root project: plugin versions + the GMS-free guardrail. App config lives
 // in app/build.gradle.kts.
 
+// Pin a newer standalone R8 than the one AGP 8.7.3 bundles, so R8 can parse
+// Kotlin 2.2.0 metadata and stop emitting the ~312 "error parsing kotlin
+// metadata" warnings on the release minify. Buildscript classpath only; AGP +
+// Gradle are unchanged (far lower risk than a full AGP/Gradle bump). ADR-0068.
+buildscript {
+    repositories {
+        google()
+        mavenCentral()
+    }
+    dependencies {
+        classpath("com.android.tools:r8:8.10.21")
+    }
+}
+
 plugins {
     alias(libs.plugins.android.application) apply false
     alias(libs.plugins.kotlin.android) apply false

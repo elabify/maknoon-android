@@ -80,7 +80,7 @@ android {
         // dev value. versionName/MARKETING stays at the release. Mirrors the iOS
         // CURRENT_PROJECT_VERSION=run_number approach (ADR-0048 0.6.3 hardening).
         versionCode = System.getenv("ANDROID_VERSION_CODE")?.toIntOrNull() ?: 11
-        versionName = "0.6.8"
+        versionName = "0.6.9"
         buildConfigField("String", "GIT_COMMIT", "\"${gitShortSha()}\"")
         // WalletConnect / Reown Cloud project id (ADR-0049). Public client id,
         // allowlisted by app id in Reown Cloud; not a secret.
@@ -111,7 +111,15 @@ android {
 
     buildTypes {
         release {
-            isMinifyEnabled = false
+            // R8 code shrinking + obfuscation (ADR-0068 / task #256): produces a
+            // mapping.txt that the AAB carries in BUNDLE-METADATA, so Gradle Play
+            // Publisher auto-associates it and Play can deobfuscate crashes/ANRs.
+            // Conservative keep-rules (proguard-rules.pro) protect the JNI +
+            // reflection + serialization surface (WalletCore, JNA/uniffi cores,
+            // BouncyCastle, jmrtd, Reown, our own JSON models). Resource shrinking
+            // is intentionally left OFF for now (separate risk vector). MUST pass a
+            // full on-device regression before shipping.
+            isMinifyEnabled = true
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
             // Embed a native symbol file in the AAB so Play can symbolicate
             // crashes/ANRs in the Rust + WalletCore .so libs. SYMBOL_TABLE gives

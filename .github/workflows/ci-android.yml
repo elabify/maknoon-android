@@ -350,3 +350,15 @@ jobs:
                 $pre 2>/dev/null; then
             gh release upload "${{ github.ref_name }}" "$out" --clobber --repo "${{ github.repository }}"
           fi
+          # R8 deobfuscation map for THIS build's sideload APK (ADR-0068). Gradle
+          # Play Publisher already uploads the mapping to Play for the AAB, but the
+          # GitHub/Obtainium channel has no mapping store, so attach it to the
+          # Release to deobfuscate sideload crashes/ANRs. versionCode =
+          # github.run_number, so each release's map is distinct.
+          map="app/build/outputs/mapping/release/mapping.txt"
+          if [ -f "$map" ]; then
+            cp "$map" "$RUNNER_TEMP/maknoon-${{ github.ref_name }}-mapping.txt"
+            gh release upload "${{ github.ref_name }}" \
+              "$RUNNER_TEMP/maknoon-${{ github.ref_name }}-mapping.txt" \
+              --clobber --repo "${{ github.repository }}"
+          fi

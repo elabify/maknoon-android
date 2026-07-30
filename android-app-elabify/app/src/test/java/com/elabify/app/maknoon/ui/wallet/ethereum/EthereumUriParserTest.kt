@@ -36,7 +36,26 @@ class EthereumUriParserTest {
             assertEquals("recipient: $name", c.getString("recipient"), parsed.recipient)
             assertEquals("tokenContract: $name", if (c.isNull("tokenContract")) null else c.getString("tokenContract"), parsed.tokenContract)
             assertEquals("amount: $name", if (c.isNull("amountBaseUnits")) null else c.getString("amountBaseUnits"), parsed.amountBaseUnits)
+            assertEquals("chainId: $name", if (c.isNull("chainId")) null else c.getLong("chainId"), parsed.chainId)
         }
+    }
+
+    /**
+     * The real Coinbase Arbitrum deposit QR: bridged USDC.e as the target, chain
+     * 42161, no `uint256`. The chain id has to survive parsing so the send screen
+     * can refuse to probe the contract on whatever chain the wallet happens to be
+     * on (the same address is a different token elsewhere).
+     */
+    @Test
+    fun coinbaseBridgedUsdcQrKeepsChainId() {
+        val parsed = EthereumUriParser.parse(
+            "ethereum:0xFF970A61A04b1cA14834A43f5dE4533eBDDB5CC8@42161" +
+                "/transfer?address=0xB4d1424609Bee6F4990b6c557501Bb1C240B9871"
+        )
+        assertEquals(42161L, parsed.chainId)
+        assertEquals("0xff970a61a04b1ca14834a43f5de4533ebddb5cc8", parsed.tokenContract?.lowercase())
+        assertEquals("0xb4d1424609bee6f4990b6c557501bb1c240b9871", parsed.recipient.lowercase())
+        assertEquals(null, parsed.amountBaseUnits)
     }
 
     /** A token-transfer URI: the recipient is the address= param, never the target. */

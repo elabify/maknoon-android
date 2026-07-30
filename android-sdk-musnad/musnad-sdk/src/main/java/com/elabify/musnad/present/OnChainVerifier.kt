@@ -38,10 +38,18 @@ data class RegistryConfig(
          *  honors the user's per-network override and otherwise falls back to
          *  EthereumNetwork.SEPOLIA.defaultRPCURL). Keeps the on-chain verifier on
          *  the same endpoint the wallet already uses. */
+        /** ADR-0072 (2026-07-30): the hardened redeploy replaced both registries.
+         *  The retired originals (identity 0x8ca4260A…, revocation 0x56CCaCEf…)
+         *  are still deployed and still answer, so a stale build keeps working,
+         *  but they are frozen: they no longer receive issuer rotations,
+         *  deactivations or new revocations. Reading them would report a stale
+         *  issuer as active. Keep these in step with
+         *  smart-contracts/deployments/11155111.json; RegistryConfigTest asserts
+         *  they match. */
         fun sepolia(rpcURL: String) = RegistryConfig(
             rpcURL = rpcURL,
-            identityRegistry = "0x8ca4260A49F4B05c652F926Cc402D909CA0881dB",
-            revocationRegistry = "0x56CCaCEf210fc24007a8C327C10540Ea0d5ac52A",
+            identityRegistry = "0xA228871E831F5AB6d220ce953c6A60D4F9a90d88",
+            revocationRegistry = "0x2dC725379FCEb2611a646ED0b163c1E8E28E3579",
         )
     }
 }

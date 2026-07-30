@@ -18,12 +18,17 @@ import java.net.URLDecoder
  * to (the `address` query param for a token transfer, otherwise the path
  * target). [tokenContract] is non-null only for a `/transfer` (ERC-20) request.
  * [amountBaseUnits] is the raw on-chain amount (uint256 for a token transfer,
- * value in wei for a native request), or null when unspecified.
+ * value in wei for a native request), or null when unspecified. [chainId] is the
+ * EIP-155 id from the `@<chainId>` hint: the send screen compares it against the
+ * wallet's active network BEFORE looking the token contract up, because the same
+ * address means different tokens on different chains, so probing the wrong chain
+ * can match something unrelated. Null when absent or not a plain integer.
  */
 data class ParsedEthUri(
     val recipient: String,
     val tokenContract: String?,
     val amountBaseUnits: String?,
+    val chainId: Long?,
 )
 
 object EthereumUriParser {
@@ -41,21 +46,24 @@ object EthereumUriParser {
         val function = if (slashIndex >= 0) beforeQuery.substring(slashIndex + 1) else null
         val beforeFunction = if (slashIndex >= 0) beforeQuery.substring(0, slashIndex) else beforeQuery
 
-        // Drop "@chainId" at the first '@'; the remainder is the path target.
+        // Split "@chainId" at the first '@'; the remainder is the path target.
         val atIndex = beforeFunction.indexOf('@')
         val target = (if (atIndex >= 0) beforeFunction.substring(0, atIndex) else beforeFunction).trim()
+        val chainId = if (atIndex >= 0) beforeFunction.substring(atIndex + 1).trim().toLongOrNull() else null
 
         return if (function == "transfer") {
             ParsedEthUri(
                 recipient = query["address"] ?: "",
                 tokenContract = target,
                 amountBaseUnits = query["uint256"],
+                chainId = chainId,
             )
         } else {
             ParsedEthUri(
                 recipient = target,
                 tokenContract = null,
                 amountBaseUnits = query["value"],
+                chainId = chainId,
             )
         }
     }

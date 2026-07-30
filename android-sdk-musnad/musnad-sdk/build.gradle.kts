@@ -73,7 +73,7 @@ dependencies {
     // MUST be the @aar variant: it bundles libjnidispatch.so per ABI. The
     // plain `jna` jar is desktop-only and fails on-device with
     // UnsatisfiedLinkError (com/sun/jna/android-aarch64/libjnidispatch.so).
-    implementation("net.java.dev.jna:jna:5.14.0@aar")
+    implementation("net.java.dev.jna:jna:5.17.0@aar")
 
     implementation(libs.coroutines.core)
     implementation(libs.coroutines.android)

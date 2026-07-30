@@ -51,6 +51,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -91,6 +92,8 @@ import com.elabify.app.maknoon.ui.wallet.common.WalletSelector
 import com.elabify.musnad.wallet.ethereum.EIP55
 import com.elabify.musnad.wallet.ethereum.ENSResolver
 import com.elabify.musnad.wallet.ethereum.EthereumGasEstimator
+import com.elabify.musnad.wallet.ethereum.EthereumNetwork
+import com.elabify.musnad.wallet.ethereum.EthereumNetworkID
 import com.elabify.musnad.wallet.ethereum.EthereumToken
 import com.elabify.musnad.wallet.ethereum.EthereumTxPlan
 import com.elabify.musnad.wallet.ethereum.EthereumWallet
@@ -150,12 +153,17 @@ internal fun EthereumSendScreen(walletId: UUID, preselectTokenId: String?, onDon
     val settings = remember { EthereumStores.settings(context) }
     val tokenStore = remember { EthereumStores.tokenStore(context) }
     val sandwich = remember { loadEthereumSandwich(context) }
-    val resolved = remember { resolveCurrentNetwork(context) }
+    // Bumped whenever this screen changes the wallet's chain (after a scanned
+    // EIP-681 code names another one) or adds a token, so the network and token
+    // list below are re-read from the stores instead of staying on the snapshot
+    // taken at first composition.
+    var storeEpoch by remember { mutableIntStateOf(0) }
+    val resolved = remember(storeEpoch) { resolveCurrentNetwork(context) }
 
     val descriptor = remember(walletId) { walletStore.wallets.firstOrNull { it.id == walletId } }
     // Wallet-scoped token list (ADR-0060): the curated chain-wide defaults merged
     // with just this wallet's added/discovered tokens, matching iOS EthereumSendView.
-    val availableTokens = remember { tokenStore.tokens(resolved, walletId) }
+    val availableTokens = remember(storeEpoch) { tokenStore.tokens(resolved, walletId) }
     val isHardware = descriptor?.kind is EthereumWalletKind.Hardware
     // Pre-sign device-ready sheet (ADR-0033) + whether this hardware wallet is a
     // host-typed hidden (passphrase) wallet that must re-supply its passphrase
@@ -167,9 +175,24 @@ internal fun EthereumSendScreen(walletId: UUID, preselectTokenId: String?, onDon
     }
 
     var recipient by remember { mutableStateOf("") }
-    // Set when a scanned / pasted EIP-681 URI could not be applied (unknown
-    // token, or no valid recipient address in the code). Shown under the field.
+    // Set when a scanned / pasted EIP-681 URI could not be applied (no valid
+    // recipient address in the code, or an unconfigured chain). Shown under the field.
     var scanError by remember { mutableStateOf<String?>(null) }
+    // Set when a scanned code names a chain other than the one this wallet is
+    // on. Nothing from the code is applied until the user taps through: the same
+    // contract address is a different token on a different chain.
+    var pendingChainSwitch by remember { mutableStateOf<PendingChainSwitch?>(null) }
+    // Set when a scanned code requests an ERC-20 this wallet does not have on
+    // this chain. Drives EthereumScannedTokenSheet.
+    var pendingTokenRequest by remember { mutableStateOf<ScannedTokenRequest?>(null) }
+    // Set when the user chose to send a DIFFERENT contract than the scanned code
+    // asked for. Shown next to the asset picker until the form is submitted.
+    var substitutedTokenNote by remember { mutableStateOf<String?>(null) }
+    // A scanned code waiting to be re-applied once a chain switch has settled.
+    // `resolved` is a remember(storeEpoch) snapshot, so it only reflects the new
+    // chain on the NEXT composition: re-parsing inside the same event handler
+    // would still see the old chain and just re-raise the switch prompt.
+    var reapplyAfterSwitch by remember { mutableStateOf<String?>(null) }
     // True when the current recipient is a contract address AND a token is
     // selected (a token transfer to a contract loses the tokens). Resolved
     // best-effort via eth_getCode when the recipient / token changes.
@@ -217,8 +240,10 @@ internal fun EthereumSendScreen(walletId: UUID, preselectTokenId: String?, onDon
 
     fun denomTag(): String = selectedToken?.symbol ?: resolved.ticker
 
-    // load balances + gas tiers
-    LaunchedEffect(walletId, selectedToken?.id) {
+    // load balances + gas tiers. Keyed on the chain as well as the asset: a
+    // scanned code can move the wallet to another chain, and the balances and
+    // gas tiers from the old one are meaningless there.
+    LaunchedEffect(walletId, selectedToken?.id, resolved.networkID.stableId) {
         if (descriptor == null) return@LaunchedEffect
         gasLoading = true
         withContext(Dispatchers.IO) {
@@ -232,7 +257,7 @@ internal fun EthereumSendScreen(walletId: UUID, preselectTokenId: String?, onDon
 
     // Native-coin fiat unit price (mainnet only; never for ERC-20). Reset the
     // fiat-entry toggle if a token is selected or no price is available.
-    LaunchedEffect(selectedToken?.id) {
+    LaunchedEffect(selectedToken?.id, resolved.networkID.stableId) {
         ethUnitPrice = if (selectedToken == null) FiatReference.unitPrice(resolved.coinGeckoAssetId) else null
         if (ethUnitPrice == null) fiatEntry = false
     }
@@ -476,23 +501,125 @@ internal fun EthereumSendScreen(walletId: UUID, preselectTokenId: String?, onDon
     // recipient.
     fun applyScannedOrPastedUri(raw: String) {
         scanError = null
+        pendingChainSwitch = null
         val parsed = EthereumUriParser.parse(raw)
-        val contract = parsed.tokenContract
-        if (contract != null) {
-            val match = availableTokens.firstOrNull { it.contractAddress.equals(contract, ignoreCase = true) }
-            if (match == null) {
-                scanError = "This payment is for a token that is not added to this wallet. Add the token first, then scan again."
+
+        // Chain first. A contract address means a different token on every chain,
+        // so matching or probing before the chain agrees can bind the send to an
+        // entirely unrelated asset. Nothing is applied until the user confirms.
+        val wantChain = parsed.chainId
+        if (wantChain != null && wantChain != resolved.chainId) {
+            val targetName = chainDisplayName(context, wantChain)
+            if (targetName == null) {
+                scanError = SCAN_CHAIN_UNCONFIGURED.format(wantChain)
                 return
             }
-            selectedToken = match
-            parsed.amountBaseUnits?.let { base ->
-                runCatching {
-                    amount = EthereumWeiValue.fromBigInteger(java.math.BigInteger(base))
-                        .units(match.decimals).stripTrailingZeros().toPlainString()
+            pendingChainSwitch = PendingChainSwitch(wantChain, targetName, raw)
+            return
+        }
+
+        val contract = parsed.tokenContract
+        if (contract != null) {
+            // requestedSymbol is null here because reading symbol() is an RPC
+            // round trip; the dialog does that and re-resolves for candidates.
+            when (val match = EthereumScannedToken.resolve(contract, null, availableTokens)) {
+                is EthereumScannedTokenMatch.AlreadyAdded -> {
+                    selectedToken = match.token
+                    substitutedTokenNote = null
+                    parsed.amountBaseUnits?.let { base ->
+                        runCatching {
+                            amount = EthereumWeiValue.fromBigInteger(java.math.BigInteger(base))
+                                .units(match.token.decimals).stripTrailingZeros().toPlainString()
+                        }
+                    }
+                }
+                else -> {
+                    // Not in this wallet on this chain. Hand off to the dialog
+                    // rather than dead-ending: it probes the contract and offers
+                    // adding it or sending a token the wallet already holds.
+                    val builtin = resolved.builtinNetwork()
+                    if (builtin == null) {
+                        scanError = SCAN_CUSTOM_NETWORK_TOKEN
+                        return
+                    }
+                    pendingTokenRequest = ScannedTokenRequest(contract, parsed.recipient.trim(), parsed.amountBaseUnits)
+                    return
                 }
             }
         }
         val r = parsed.recipient.trim()
+        if (isValidEthAddress(r) || ENSResolver.looksLikeName(r)) {
+            recipient = r
+        } else {
+            scanError = "The scanned code did not contain a valid recipient address."
+        }
+    }
+
+    // Move the wallet to the chain a scanned code named, then re-apply the code.
+    // Everything asset- and fee-shaped is dropped first: it all belonged to the
+    // previous chain.
+    fun applyPendingChainSwitch(pending: PendingChainSwitch) {
+        val target = EthereumNetwork.fromChainId(pending.chainId)
+        val custom = if (target == null) {
+            EthereumStores.customs(context).networks.firstOrNull { it.chainId == pending.chainId }
+        } else null
+        val id = when {
+            target != null -> EthereumNetworkID.Builtin(target)
+            custom != null -> EthereumNetworkID.Custom(custom.id)
+            else -> return
+        }
+        walletStore.setCurrentNetworkID(id, walletId)
+        selectedToken = null
+        amount = ""
+        estimates = emptyList()
+        gasUnits = null
+        nativeWeiHex = null
+        tokenWeiHex = null
+        substitutedTokenNote = null
+        pendingChainSwitch = null
+        // Re-apply on the next composition, when `resolved` reflects the new
+        // chain (see reapplyAfterSwitch).
+        reapplyAfterSwitch = pending.rawUri
+        storeEpoch++
+    }
+
+    // Finish a chain switch: the recomposition triggered by storeEpoch has
+    // re-resolved the network and token list, so the scanned code can be parsed
+    // again against the chain it actually named.
+    LaunchedEffect(storeEpoch) {
+        val raw = reapplyAfterSwitch ?: return@LaunchedEffect
+        reapplyAfterSwitch = null
+        applyScannedOrPastedUri(raw)
+    }
+
+    // Apply what the user picked in EthereumScannedTokenSheet.
+    fun applyScannedTokenChoice(choice: ScannedTokenChoice, request: ScannedTokenRequest) {
+        storeEpoch++
+        selectedToken = choice.token
+        val from = choice.substitutedFrom
+        substitutedTokenNote = if (from != null) {
+            SCAN_SUBSTITUTED_NOTE.format(
+                from.symbol, shortContract(from.contract),
+                choice.token.symbol, shortContract(choice.token.contractAddress),
+            )
+        } else null
+        // Carry the requested amount over only when both contracts use the same
+        // decimals; otherwise the same integer is a different quantity, so the
+        // user re-enters it.
+        val base = request.amountBaseUnits
+        if (base != null) {
+            val requestedDecimals = from?.decimals ?: choice.token.decimals
+            if (requestedDecimals == choice.token.decimals) {
+                runCatching {
+                    amount = EthereumWeiValue.fromBigInteger(java.math.BigInteger(base))
+                        .units(choice.token.decimals).stripTrailingZeros().toPlainString()
+                }
+            } else {
+                amount = ""
+                substitutedTokenNote = ((substitutedTokenNote?.plus(" ")) ?: "") + SCAN_DECIMALS_MISMATCH
+            }
+        }
+        val r = request.recipient
         if (isValidEthAddress(r) || ENSResolver.looksLikeName(r)) {
             recipient = r
         } else {
@@ -505,8 +632,18 @@ internal fun EthereumSendScreen(walletId: UUID, preselectTokenId: String?, onDon
     val nativeOption = AssetOption(id = "native", symbol = resolved.ticker, label = stringResource(R.string.eth_asset_native, resolved.ticker))
     // Native first, then ERC-20s alphabetically by symbol (ADR-0033 Phase 2b round-2).
     val assetOptions = remember(availableTokens) {
+        // Two contracts can share a symbol on one chain (native USDC and bridged
+        // USDC.e both report "USDC"), which would otherwise render as two
+        // identical rows. Add the contract tail to any symbol that repeats.
+        val colliding = availableTokens.groupBy { it.symbol.lowercase() }
+            .filterValues { it.size > 1 }
+            .keys
         listOf(nativeOption) + availableTokens.sortedBy { it.symbol.lowercase() }.map {
-            AssetOption(id = it.id, symbol = it.symbol, label = "${it.symbol} · ${it.name}")
+            val base = "${it.symbol} · ${it.name}"
+            val label = if (it.symbol.lowercase() in colliding) {
+                "$base · ${shortContract(it.contractAddress)}"
+            } else base
+            AssetOption(id = it.id, symbol = it.symbol, label = label)
         }
     }
     val selectedOption = assetOptions.firstOrNull { it.id == (selectedToken?.id ?: "native") } ?: nativeOption
@@ -529,9 +666,19 @@ internal fun EthereumSendScreen(walletId: UUID, preselectTokenId: String?, onDon
                     selected = selectedOption,
                     onSelect = { opt ->
                         selectedToken = if (opt.id == "native") null else availableTokens.firstOrNull { it.id == opt.id }
+                        substitutedTokenNote = null
                     },
                     label = stringResource(R.string.eth_token),
                 )
+                // Stays until the form is submitted: the scanned code named one
+                // contract and the user chose to send another.
+                substitutedTokenNote?.let {
+                    Text(
+                        it,
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.tertiary,
+                    )
+                }
             }
         }
 
@@ -552,6 +699,19 @@ internal fun EthereumSendScreen(walletId: UUID, preselectTokenId: String?, onDon
                         tokenSendToContractBlocked ->
                             Text(TOKEN_TO_CONTRACT_ERROR, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.error)
                         scanError != null -> Text(scanError!!, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.error)
+                        pendingChainSwitch != null -> {
+                            val pending = pendingChainSwitch!!
+                            Column(verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
+                                Text(
+                                    "That code is for ${pending.displayName}. This wallet is on ${resolved.displayName}.",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.tertiary,
+                                )
+                                TextButton(onClick = { applyPendingChainSwitch(pending) }) {
+                                    Text("Switch to ${pending.displayName} and continue")
+                                }
+                            }
+                        }
                         ensResolving -> Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.xs)) {
                             CircularProgressIndicator(Modifier.size(14.dp), strokeWidth = 2.dp)
                             Text(stringResource(R.string.eth_resolving_ens), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -784,6 +944,24 @@ internal fun EthereumSendScreen(walletId: UUID, preselectTokenId: String?, onDon
                 }
             }
         }
+    }
+
+    // A scanned code asked for an ERC-20 this wallet does not have on this chain.
+    // The dialog probes the contract and offers adding it or sending a token the
+    // wallet already holds; it never substitutes silently.
+    val tokenRequest = pendingTokenRequest
+    val requestNetwork = resolved.builtinNetwork()
+    if (tokenRequest != null && descriptor != null && requestNetwork != null) {
+        EthereumScannedTokenSheet(
+            request = tokenRequest,
+            descriptor = descriptor,
+            walletId = walletId,
+            network = requestNetwork,
+            resolved = resolved,
+            added = availableTokens,
+            onChoose = { choice -> applyScannedTokenChoice(choice, tokenRequest) },
+            onDismiss = { pendingTokenRequest = null },
+        )
     }
 
     if (showContacts) {
