@@ -1,7 +1,10 @@
-# Maknoon Android CI. Two jobs:
-#   leak-scan  - fast guard on every push/PR: fails if anything that must stay
-#                private slipped into a manual edit.
-#   release    - on a vX.Y.Z tag only, behind the `play-internal` Environment
+# Maknoon Android CI. Three jobs, mirroring ci-ios.yml step for step:
+#   leak-scan      - fast guard on every push/PR: fails if anything that must
+#                    stay private slipped into a manual edit. Shared definition
+#                    in .github/leak-scan.sh.
+#   build-and-test - builds the app, then runs the pure-JVM tests as a separate
+#                    step, so "it builds" and "tests pass" are distinct checks.
+#   release        - on a vX.Y.Z tag only, behind the `play-internal` Environment
 #                (required-reviewer gate): builds the signed AAB and uploads it
 #                to the Play *internal* track. Promote internal -> production
 #                manually in the Play Console.
@@ -30,35 +33,11 @@ jobs:
     steps:
       - uses: actions/checkout@v5
 
-      - name: Scan for forbidden content
-        run: |
-          set -uo pipefail
-          # Patterns use char-classes (e.g. [/]) so this file does not itself
-          # contain the literal forbidden strings it scans for.
-          patterns=(
-            'elabify[/]musnad'
-            'BEGIN [A-Z ]*PRIVATE[ ]KEY'
-            'OPENSSH[ ]PRIVATE[ ]KEY'
-            'ghp_[0-9A-Za-z]{30,}'
-            'AKIA[0-9A-Z]{16}'
-            'xox[baprs]-[0-9A-Za-z-]{8,}'
-            'CARGO_REGISTRY[_]TOKEN'
-            'docs/(decisions|operations|integrations|reference)/'
-            '(\.\.[/]|code[/])(issuer-backend|verifier-server|vault-plugin|smart-contracts|demo-web-app|ios-sdk-musnad)'
-          )
-          fail=0
-          for p in "${patterns[@]}"; do
-            hits="$(grep -rEnI --exclude-dir=.git "$p" . 2>/dev/null || true)"
-            if [ -n "$hits" ]; then
-              echo "::error::forbidden pattern matched: /$p/"
-              echo "$hits" | head -20
-              fail=1
-            fi
-          done
-          [ "$fail" -eq 0 ] && echo "leak scan clean" || exit 1
+      - name: Leak scan
+        run: bash .github/leak-scan.sh
 
-  unit-tests:
-    name: unit tests
+  build-and-test:
+    name: build + unit tests
     # Branch pushes + PRs (never tags: the release job runs the same tests behind
     # its approval gate). Pure JVM tests: the EIP-681 URI parser + the token-send
     # and blind-sign guards (ADR-0070/0071). No emulator. The core AARs must be
@@ -120,7 +99,16 @@ jobs:
             echo "::endgroup::"
           done
 
-      - name: Unit tests (app + SDK, pure JVM)
+      # Build and test are separate steps on purpose: `testDebugUnitTest` compiles
+      # classes but never assembles an APK, so a green test run alone does not
+      # prove the app builds. Splitting them makes "does it build" and "do the
+      # tests pass" two distinct, separately-readable checks (iOS parity).
+      - name: Build app
+        run: |
+          set -euo pipefail
+          (cd android-app-elabify && ./gradlew :app:assembleDebug --no-daemon --stacktrace)
+
+      - name: Unit tests
         # The SDK is a composite includeBuild, so its tests run from its own dir
         # (not a subproject of the app root).
         run: |
@@ -145,30 +133,8 @@ jobs:
 
       # Leak scan runs here (after the gate) on tags, since the standalone
       # leak-scan job is skipped for tags so nothing auto-runs pre-approval.
-      - name: Scan for forbidden content
-        run: |
-          set -uo pipefail
-          patterns=(
-            'elabify[/]musnad'
-            'BEGIN [A-Z ]*PRIVATE[ ]KEY'
-            'OPENSSH[ ]PRIVATE[ ]KEY'
-            'ghp_[0-9A-Za-z]{30,}'
-            'AKIA[0-9A-Z]{16}'
-            'xox[baprs]-[0-9A-Za-z-]{8,}'
-            'CARGO_REGISTRY[_]TOKEN'
-            'docs/(decisions|operations|integrations|reference)/'
-            '(\.\.[/]|code[/])(issuer-backend|verifier-server|vault-plugin|smart-contracts|demo-web-app|ios-sdk-musnad)'
-          )
-          fail=0
-          for p in "${patterns[@]}"; do
-            hits="$(grep -rEnI --exclude-dir=.git "$p" . 2>/dev/null || true)"
-            if [ -n "$hits" ]; then
-              echo "::error::forbidden pattern matched: /$p/"
-              echo "$hits" | head -20
-              fail=1
-            fi
-          done
-          [ "$fail" -eq 0 ] && echo "leak scan clean" || exit 1
+      - name: Leak scan (gate the release)
+        run: bash .github/leak-scan.sh
 
       - uses: actions/setup-java@v4
         with:
