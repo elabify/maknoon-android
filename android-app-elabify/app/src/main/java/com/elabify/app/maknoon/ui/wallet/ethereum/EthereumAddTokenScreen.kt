@@ -114,13 +114,13 @@ internal fun EthereumAddTokenScreen(prefilledContract: String?, onDone: () -> Un
     val canAdd = builtinNetwork != null && contractValid && (registryHit != null || (symbolInput.isNotBlank() && decimalsValid))
 
     fun addToken() {
-        val net = builtinNetwork ?: run { error = "Tokens are only supported on built-in networks."; return }
-        if (!contractValid) { error = "Contract address is not a valid 0x-prefixed 20-byte address."; return }
+        val net = builtinNetwork ?: run { error = context.getString(R.string.eth_tokens_builtin_networks_only); return }
+        if (!contractValid) { error = context.getString(R.string.eth_contract_address_invalid); return }
         val hit = registryHit
         val token = if (hit != null) {
             EthereumToken.create(net, trimmed, hit.symbol, hit.name, hit.decimals, curated = true)
         } else {
-            val d = decimalsInput.toIntOrNull() ?: run { error = "Decimals must be 0 to 36."; return }
+            val d = decimalsInput.toIntOrNull() ?: run { error = context.getString(R.string.eth_decimals_range); return }
             val sym = symbolInput.trim()
             EthereumToken.create(net, trimmed, sym, nameInput.trim().ifEmpty { sym }, d, curated = false)
         }
@@ -130,7 +130,7 @@ internal fun EthereumAddTokenScreen(prefilledContract: String?, onDone: () -> Un
         // attribute it to (should not happen: Add is only reachable from an active
         // wallet dashboard), bail rather than leak it chain-wide.
         val walletId = walletStore.activeWallet?.id ?: run {
-            error = "Select a wallet before adding a custom token."; return
+            error = context.getString(R.string.eth_select_wallet_first); return
         }
         tokenStore.add(token, walletId)
         // The dashboard re-runs its refresh on return (route swap re-composes it),

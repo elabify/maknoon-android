@@ -166,10 +166,7 @@ internal fun LightningSendScreen(
         when {
             lower.startsWith("lnbc") || lower.startsWith("lntb") -> payBolt11(s)
             lower.startsWith("lnurl") || isLightningAddress(s) -> resolveLnurl(s)
-            else -> fail(
-                "Doesn't look like a BOLT11 invoice, LNURL, or Lightning Address. " +
-                    "Expected lnbc…, lntb…, lnurl1…, or you@domain.tld.",
-            )
+            else -> fail(context.getString(R.string.ln_send_unrecognized_input))
         }
     }
 

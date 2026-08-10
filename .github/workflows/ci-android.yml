@@ -36,6 +36,18 @@ jobs:
       - name: Leak scan
         run: bash .github/leak-scan.sh
 
+  i18n-surface:
+    name: per-surface i18n check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      # Registration and coverage are different things and have drifted
+      # apart before. The full cross-surface gate lives in the monorepo
+      # and needs tm/, which this repo does not carry.
+      - name: i18n surface check
+        run: bash .github/i18n-surface.sh
+
   build-and-test:
     name: build + unit tests
     # Branch pushes + PRs (never tags: the release job runs the same tests behind

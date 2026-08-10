@@ -1,6 +1,9 @@
 // Shared QR composable for receive addresses / payment URIs (ZXing, GMS-free).
 
 package com.elabify.app.maknoon.ui.components
+import com.elabify.app.maknoon.R
+
+import androidx.compose.ui.res.stringResource
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Box
@@ -40,7 +43,7 @@ fun QrCode(content: String, modifier: Modifier = Modifier, sizePx: Int = 512) {
         } else {
             Image(
                 painter = BitmapPainter(bmp),
-                contentDescription = "QR code",
+                contentDescription = stringResource(R.string.common_qr_code),
                 modifier = Modifier.fillMaxSize(),
             )
         }

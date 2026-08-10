@@ -22,6 +22,10 @@
 
 package com.elabify.app.maknoon.iddocument
 
+import com.elabify.app.maknoon.R
+
+import androidx.annotation.StringRes
+
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import java.time.format.FormatStyle
@@ -42,10 +46,18 @@ enum class IDDocumentKind(val rawValue: String) {
 
     val id: String get() = rawValue
 
-    val displayName: String
+    // Copy lives in string RESOURCES, not in this enum.
+    //
+    // These were `when (this) -> "Passport"` literals, so the document picker,
+    // its blurbs and the document-number field label shipped English in all 31
+    // locales. An enum has no Context and cannot call stringResource, which is
+    // why the literals looked unavoidable; the fix is to carry the id and let
+    // the composable resolve it. Same shape as MiniAppCapability's labelRes.
+    @get:StringRes
+    val displayNameRes: Int
         get() = when (this) {
-            PASSPORT -> "Passport"
-            OTHER -> "Other ID document"
+            PASSPORT -> R.string.passport_title
+            OTHER -> R.string.id_kind_other_title
         }
 
     /** Logical icon key, resolved to a Material icon by the UI layer. */
@@ -55,12 +67,11 @@ enum class IDDocumentKind(val rawValue: String) {
             OTHER -> "id_document"
         }
 
-    val blurb: String
+    @get:StringRes
+    val blurbRes: Int
         get() = when (this) {
-            PASSPORT ->
-                "Any ePassport with the chip symbol on the cover (most passports issued since around 2010)."
-            OTHER ->
-                "Other ICAO-compatible IDs (EU national ID cards, residence permits, similar formats)."
+            PASSPORT -> R.string.id_kind_passport_blurb
+            OTHER -> R.string.id_kind_other_blurb
         }
 
     /**
@@ -69,19 +80,15 @@ enum class IDDocumentKind(val rawValue: String) {
      * so it has to be the same number that is encoded into the MRZ on
      * the data page of the document.
      */
-    val documentNumberLabel: String
+    @get:StringRes
+    val documentNumberLabelRes: Int
         get() = when (this) {
-            PASSPORT -> "Passport number"
-            OTHER -> "Document number"
+            PASSPORT -> R.string.id_kind_passport_number
+            OTHER -> R.string.id_document_number
         }
 
-    val documentNumberHint: String
-        get() = when (this) {
-            PASSPORT -> ""
-            OTHER -> ""
-        }
-
-    val personalNumberLabel: String get() = "Personal number"
+    @get:StringRes
+    val personalNumberLabelRes: Int get() = R.string.id_personal_number
 
     companion object {
         fun fromRaw(raw: String?): IDDocumentKind? =
@@ -385,20 +392,21 @@ data class IDDocument(
      * generic ("I" matches any TD1 card). Falls back to a chip-derived
      * guess for legacy saved docs that pre-date the type picker.
      */
-    val kindLabel: String
+    @get:StringRes
+    val kindLabelRes: Int
         get() {
             // The chip is authoritative for passports (ADR-0037): an MRZ document
             // type starting with "P" is always a Passport, regardless of the
             // pre-scan picker. The user-declared kind only disambiguates the
             // generic TD1 "I" cards (Emirates ID vs EU residence permit vs Other).
-            if (documentType.take(1).uppercase(Locale.ROOT) == "P") return "Passport"
-            userDeclaredKind?.let { return it.displayName }
+            if (documentType.take(1).uppercase(Locale.ROOT) == "P") return R.string.passport_title
+            userDeclaredKind?.let { return it.displayNameRes }
             return when (documentType.take(1).uppercase(Locale.ROOT)) {
-                "P" -> "Passport"
-                "I" -> "ID card"
-                "A" -> "Residence permit"
-                "V" -> "Visa"
-                else -> "Document"
+                "P" -> R.string.passport_title
+                "I" -> R.string.id_kind_id_card
+                "A" -> R.string.id_kind_residence_permit
+                "V" -> R.string.id_kind_visa
+                else -> R.string.id_kind_document
             }
         }
 

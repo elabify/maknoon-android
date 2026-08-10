@@ -14,6 +14,8 @@
 
 package com.elabify.app.maknoon.ui.wallet.solana
 
+import com.elabify.app.maknoon.MaknoonApplication
+import com.elabify.app.maknoon.R
 import com.elabify.app.maknoon.ui.wallet.common.withHardwareDevice
 import com.elabify.musnad.devices.RegisteredDevice
 import com.elabify.musnad.hardware.trezor.HardwarePassphraseRef
@@ -70,8 +72,7 @@ suspend fun signSolanaHardwareMessage(
         // Surface an update-firmware hint instead of the raw protocol error.
         if ((e.message ?: "").contains("unexpected message", ignoreCase = true)) {
             throw IllegalStateException(
-                "Your Trezor's firmware doesn't support Solana message signing yet. " +
-                    "Update it in Trezor Suite, then try again.",
+                MaknoonApplication.appContext.getString(R.string.sol_trezor_firmware_no_ocms),
             )
         }
         throw e

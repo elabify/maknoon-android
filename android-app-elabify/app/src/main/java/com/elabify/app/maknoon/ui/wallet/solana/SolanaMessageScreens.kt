@@ -111,7 +111,7 @@ internal fun SolanaSignMessageScreen(
             verticalArrangement = Arrangement.spacedBy(14.dp),
         ) {
             if (active == null) {
-                Text("No active wallet. Pick one in the Solana tab first.", color = MaterialTheme.colorScheme.error)
+                Text(stringResource(R.string.sol_no_active_wallet_pick_one), color = MaterialTheme.colorScheme.error)
                 return@Column
             }
 
@@ -119,7 +119,7 @@ internal fun SolanaSignMessageScreen(
             (hw?.publicKeyBase58)?.let { SolanaCopyableField(label = stringResource(R.string.wallet_signing_address), value = it) }
 
             Text(
-                "Signs with the Solana off-chain message (OCMS) format, the one Ledger and Trezor sign on-device. The signature is bound to this wallet's address.",
+                stringResource(R.string.sol_signs_with_the_solana),
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
@@ -127,7 +127,7 @@ internal fun SolanaSignMessageScreen(
             OutlinedTextField(
                 value = message,
                 onValueChange = { message = it },
-                label = { Text("Message") },
+                label = { Text(stringResource(R.string.btc_message)) },
                 minLines = 3,
                 modifier = Modifier.fillMaxWidth(),
             )
@@ -190,7 +190,7 @@ internal fun SolanaSignMessageScreen(
             }
             if (isHardware) {
                 Text(
-                    "You'll confirm the message on the device screen.",
+                    stringResource(R.string.btc_youll_confirm_the_message),
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -237,27 +237,27 @@ internal fun SolanaVerifyMessageScreen(onClose: () -> Unit) {
             verticalArrangement = Arrangement.spacedBy(14.dp),
         ) {
             Text(
-                "Verifies a Solana off-chain message (OCMS) signature. Paste the address, message, and base58 signature produced by a Maknoon, Ledger, or Trezor wallet.",
+                stringResource(R.string.sol_verifies_a_solana_off_chain),
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
             OutlinedTextField(
                 value = address,
                 onValueChange = { address = it; result = null },
-                label = { Text("Address") },
+                label = { Text(stringResource(R.string.walletc_address)) },
                 modifier = Modifier.fillMaxWidth(),
             )
             OutlinedTextField(
                 value = message,
                 onValueChange = { message = it; result = null },
-                label = { Text("Message") },
+                label = { Text(stringResource(R.string.btc_message)) },
                 minLines = 3,
                 modifier = Modifier.fillMaxWidth(),
             )
             OutlinedTextField(
                 value = signature,
                 onValueChange = { signature = it; result = null },
-                label = { Text("Signature (base58)") },
+                label = { Text(stringResource(R.string.sol_signature_base58)) },
                 minLines = 2,
                 modifier = Modifier.fillMaxWidth(),
             )
@@ -271,14 +271,14 @@ internal fun SolanaVerifyMessageScreen(onClose: () -> Unit) {
                         signature = signature.trim(),
                     )
                 },
-            ) { Text("Verify signature") }
+            ) { Text(stringResource(R.string.btc_verify_signature)) }
             when (result) {
                 true -> Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                     Icon(Icons.Filled.CheckCircle, contentDescription = null, tint = Color(0xFF2E7D32))
-                    Text("Signature valid", color = Color(0xFF2E7D32))
+                    Text(stringResource(R.string.btc_signature_valid), color = Color(0xFF2E7D32))
                 }
                 false -> Text(
-                    "Signature does not match this address and message",
+                    stringResource(R.string.btc_signature_does_not_match),
                     color = MaterialTheme.colorScheme.error,
                 )
                 null -> {}

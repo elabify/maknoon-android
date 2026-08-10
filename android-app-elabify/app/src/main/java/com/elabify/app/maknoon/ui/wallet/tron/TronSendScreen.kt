@@ -444,7 +444,7 @@ internal fun TronSendScreen(walletId: UUID, preselectTokenId: String?, onDone: (
                     {
                         maxValue()?.let { mv ->
                             amount = if (fiatActive) {
-                                String.format("%.2f", (mv.toDoubleOrNull() ?: 0.0) * trxUnitPrice!!)
+                                String.format(Locale.US, "%.2f", (mv.toDoubleOrNull() ?: 0.0) * trxUnitPrice!!)
                             } else mv
                         }
                     }

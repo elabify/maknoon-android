@@ -274,7 +274,7 @@ fun VerifyOtherSheet(
             is VerifyPhase.Collecting -> ScanningView(
                 onCode = { handle(it) },
                 onClose = { resetFrames(); onClose() },
-                status = stringResource(R.string.present_offline_frame, p.received, p.total),
+                status = stringResource(R.string.present_offline_frame, p.received.toString(), p.total.toString()),
             )
             is VerifyPhase.Fetching -> VerifyProgress(stringResource(R.string.present_fetching_presentation))
             is VerifyPhase.Badge -> BadgeViewBody(p.badge, actions, onScanAnother = { resetFrames(); phase = VerifyPhase.Scanning })
@@ -444,39 +444,39 @@ private fun BadgeViewBody(b: BadgeView, actions: VerifyOtherActions, onScanAnoth
             Kv(stringResource(R.string.present_anchor_dash, caip2Label(a.chain)), shortHex(a.batchTxHash))
         }
 
-        ExpandableSection("Online verification (on-chain)", badgeOnchainSectionStatus(oc)) {
+        ExpandableSection(stringResource(R.string.present_online_verification_on_chain), badgeOnchainSectionStatus(oc)) {
             when {
                 running && oc == null -> Row(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
                 ) {
                     CircularProgressIndicator(modifier = Modifier.size(18.dp), strokeWidth = 2.dp)
-                    Text("Checking on-chain…", style = MaterialTheme.typography.bodyMedium)
+                    Text(stringResource(R.string.present_checking_on_chain), style = MaterialTheme.typography.bodyMedium)
                 }
                 oc == null -> Unit
                 !oc.reachedChain -> Text(
-                    "Couldn't reach the chain RPC.",
+                    stringResource(R.string.present_couldnt_reach_the_chain),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
                 else -> {
-                    OnChainRow("Issuer registered", oc.issuerRegistered)
-                    OnChainRow("Not revoked", oc.notRevoked)
-                    OnChainRow("Root current", oc.rootCurrent)
-                    oc.cscaProvenance?.let { OnChainRow("Passport CSCA provenance", it) }
+                    OnChainRow(stringResource(R.string.present_issuer_registered), oc.issuerRegistered)
+                    OnChainRow(stringResource(R.string.present_not_revoked), oc.notRevoked)
+                    OnChainRow(stringResource(R.string.present_root_current), oc.rootCurrent)
+                    oc.cscaProvenance?.let { OnChainRow(stringResource(R.string.present_passport_csca_provenance), it) }
                 }
             }
             Text(
-                "Checks talk directly to the chain over a read-only RPC. No issuer or verifier server is involved.",
+                stringResource(R.string.present_checks_talk_directly_to),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
 
-        ExpandableSection("Organisation identity (HAVID)", havidSectionStatus(havid)) {
+        ExpandableSection(stringResource(R.string.present_organisation_identity_havid), havidSectionStatus(havid)) {
             HavidRow(havid)
             Text(
-                "Confirms the issuer's real-world X.509 certificate cross-endorses its DID. A local check, no server involved.",
+                stringResource(R.string.present_confirms_the_issuers_real_world),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
@@ -584,7 +584,7 @@ private fun VerdictBody(
         // the verdict fits a screen. The banner is the answer; expand to audit.
         if (bundle.disclosed.isNotEmpty()) {
             // Disclosed claims are the point of the scan, so open this expanded.
-            ExpandableSection("Disclosed claims (${bundle.disclosed.size})", SectionStatus.NEUTRAL, initiallyExpanded = true) {
+            ExpandableSection(stringResource(R.string.present_disclosed_claims_count, bundle.disclosed.size.toString()), SectionStatus.NEUTRAL, initiallyExpanded = true) {
                 bundle.disclosed.keys.sorted().forEach { k ->
                     Kv(k, bundle.disclosed[k]?.prettyText() ?: "-")
                 }
@@ -597,7 +597,7 @@ private fun VerdictBody(
             Kv(stringResource(R.string.present_cid), presentation.header.cid)
         }
 
-        ExpandableSection("Cryptographic checks", cryptoSectionStatus(bundle)) {
+        ExpandableSection(stringResource(R.string.present_cryptographic_checks), cryptoSectionStatus(bundle)) {
             val c = bundle.checks
             // Issuer-bound header signature is verified in the online tier; shown
             // here only for self-attested (holder key, offline).
@@ -610,7 +610,7 @@ private fun VerdictBody(
         }
 
         if (bundle.decision != LocalVerdict.SELF_ATTESTED) {
-            ExpandableSection("Online verification (on-chain)", onchainSectionStatus(onChain)) {
+            ExpandableSection(stringResource(R.string.present_online_verification_on_chain), onchainSectionStatus(onChain)) {
                 val oc = onChain
                 when {
                     running && oc == null -> Row(
@@ -618,33 +618,33 @@ private fun VerdictBody(
                         horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
                     ) {
                         CircularProgressIndicator(modifier = Modifier.size(18.dp), strokeWidth = 2.dp)
-                        Text("Checking on-chain…", style = MaterialTheme.typography.bodyMedium)
+                        Text(stringResource(R.string.present_checking_on_chain), style = MaterialTheme.typography.bodyMedium)
                     }
                     oc == null -> Unit
                     !oc.reachedChain -> Text(
-                        "Couldn't reach the chain RPC.",
+                        stringResource(R.string.present_couldnt_reach_the_chain),
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                     else -> {
-                        OnChainRow("Issuer registered", oc.issuerRegistered)
-                        OnChainRow("Not revoked", oc.notRevoked)
-                        OnChainRow("Root current", oc.rootCurrent)
-                        OnChainRow("Header signature (on-chain key)", oc.headerSigValid)
-                        oc.cscaProvenance?.let { OnChainRow("Passport CSCA provenance", it) }
+                        OnChainRow(stringResource(R.string.present_issuer_registered), oc.issuerRegistered)
+                        OnChainRow(stringResource(R.string.present_not_revoked), oc.notRevoked)
+                        OnChainRow(stringResource(R.string.present_root_current), oc.rootCurrent)
+                        OnChainRow(stringResource(R.string.present_header_signature_on_chain_key), oc.headerSigValid)
+                        oc.cscaProvenance?.let { OnChainRow(stringResource(R.string.present_passport_csca_provenance), it) }
                     }
                 }
                 Text(
-                    "Checks talk directly to the chain over a read-only RPC. No issuer or verifier server is involved.",
+                    stringResource(R.string.present_checks_talk_directly_to),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
 
-            ExpandableSection("Organisation identity (HAVID)", havidSectionStatus(havid)) {
+            ExpandableSection(stringResource(R.string.present_organisation_identity_havid), havidSectionStatus(havid)) {
                 HavidRow(havid)
                 Text(
-                    "Confirms the issuer's real-world X.509 certificate cross-endorses its DID. A local check, no server involved.",
+                    stringResource(R.string.present_confirms_the_issuers_real_world),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -665,7 +665,7 @@ private fun HavidRow(havid: HavidResult?) {
             horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
         ) {
             CircularProgressIndicator(modifier = Modifier.size(18.dp), strokeWidth = 2.dp)
-            Text("Checking issuer certificate…", style = MaterialTheme.typography.bodyMedium)
+            Text(stringResource(R.string.present_checking_issuer_certificate), style = MaterialTheme.typography.bodyMedium)
         }
         return
     }
@@ -675,26 +675,26 @@ private fun HavidRow(havid: HavidResult?) {
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
             ) {
-                Icon(Icons.Filled.GppGood, contentDescription = "matched", tint = MaknoonColors.success)
-                Text("Issuer certificate matched", style = MaterialTheme.typography.bodyMedium, color = MaknoonColors.success)
+                Icon(Icons.Filled.GppGood, contentDescription = stringResource(R.string.present_matched), tint = MaknoonColors.success)
+                Text(stringResource(R.string.present_issuer_certificate_matched), style = MaterialTheme.typography.bodyMedium, color = MaknoonColors.success)
             }
-            havid.subject?.takeIf { it.isNotEmpty() }?.let { Kv("Certificate subject", it) }
+            havid.subject?.takeIf { it.isNotEmpty() }?.let { Kv(stringResource(R.string.present_certificate_subject), it) }
         }
         HavidState.KEY_ALIGNMENT_FAILURE, HavidState.INTEGRITY_FAILURE, HavidState.EXPIRED_REVOKED ->
             Text(
-                havid.detail ?: "Issuer certificate does not match the DID",
+                havid.detail ?: stringResource(R.string.present_issuer_certificate_does_not),
                 style = MaterialTheme.typography.bodyMedium,
                 color = TrustRed,
             )
         HavidState.NO_ENDORSEMENT ->
             Text(
-                "This issuer publishes no X.509 organisational certificate.",
+                stringResource(R.string.present_this_issuer_publishes_no),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         HavidState.NOT_RESOLVABLE ->
             Text(
-                havid.detail ?: "Issuer identity could not be resolved.",
+                havid.detail ?: stringResource(R.string.present_issuer_identity_could_not),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
@@ -821,7 +821,7 @@ private fun OnChainRow(name: String, tier: OnChainTier) {
         Text(name, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f))
         when (tier) {
             is OnChainTier.Pass ->
-                Icon(Icons.Filled.GppGood, contentDescription = "verified", tint = MaknoonColors.success)
+                Icon(Icons.Filled.GppGood, contentDescription = stringResource(R.string.present_verified), tint = MaknoonColors.success)
             is OnChainTier.Fail ->
                 Text(tier.reason, style = MaterialTheme.typography.labelSmall, color = TrustRed)
             is OnChainTier.Unknown ->

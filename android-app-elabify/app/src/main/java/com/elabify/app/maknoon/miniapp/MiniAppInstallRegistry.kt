@@ -65,6 +65,13 @@ data class MiniAppCatalogEntry(
     /** Stable icon token resolved to a Material icon in the UI. */
     val iconToken: String = "apps",
     /**
+     * Per-locale store copy from the catalog, keyed by roster code ("de",
+     * "zh-Hans"). Partial by design: a field is published only when its
+     * translation differs from the base, so a protected term contributes
+     * nothing. Everything falls back to the base field.
+     */
+    val i18n: Map<String, CatalogCopy> = emptyMap(),
+    /**
      * Minimum Maknoon (app) version this entry targets, e.g. "0.4.1". Drives the
      * compatibility badge + install gate. Null means "unknown support" (still
      * installable), matching iOS.
@@ -101,7 +108,7 @@ data class MiniAppCatalogEntry(
  * demo. Manifest URL + pinned SHA-256 are the published values.
  */
 val SEED_CATALOG: List<MiniAppCatalogEntry> = listOf(
-    // Point of Sale, 0.1.6 (Maknoon >= 0.6.3): the host re-scoped the receive
+    // Point of Sale, 0.1.8 (Maknoon >= 0.7.0): the host re-scoped the receive
     // flows (commerce/payment/addressBook) from "payment" to "wallet" (ADR-0036),
     // so this declares only identity + wallet. Served from the single apps/pos
     // bundle. Beta channel.
@@ -111,18 +118,83 @@ val SEED_CATALOG: List<MiniAppCatalogEntry> = listOf(
         summary = "Verify a customer and accept payments.",
         details = "A merchant point-of-sale terminal. Enter an amount in cryptocurrency " +
             "or equivalent fiat currency and select which customer credentials are " +
-            "required. Customers make payments on the network you choose to your wallet " +
-            "along with sending the required credentials to verify.",
+            "required. Customers pay to your wallet on the network you choose, and send " +
+            "the required credentials for verification at the same time.",
         curatedBy = "Elabify",
-        manifestUrl = "https://elabify.github.io/maknoon-dapps/apps/pos/manifest.json",
-        manifestSha256 = "fd612d461626298d62d506a9ff8d95f44059cb6d984ddbe5b1edea0936c13af0",
+        manifestUrl = "https://elabify.github.io/maknoon-dapps/apps/pos/releases/0.1.8/manifest.json",
+        manifestSha256 = "fd1b579ab5f9eb66cb1797563974c01fbe9958071af30219b50fe841503449e8",
         permissions = setOf("identity", "wallet"),
-        channel = "beta",
-        version = "0.1.6",
+        channel = "stable",
+        version = "0.1.8",
         iconToken = "creditCard",
-        requiresMaknoonVersion = "0.6.3",
+        requiresMaknoonVersion = "0.7.0",
+        // Generated alongside the published catalog, so the offline list reads
+        // the same language as the online one. See SeedCatalogI18n.kt.
+        i18n = SEED_CATALOG_I18N["pos"].orEmpty(),
     ),
 )
+
+/** One locale's overrides for the store listing. */
+data class CatalogCopy(
+    val title: String? = null,
+    val summary: String? = null,
+    val details: String? = null,
+    val statusLabel: String? = null,
+)
+
+/** Parse the optional per-locale listing overrides. Unknown keys ignored.
+ *  Top-level so both the catalog parser and the install-snapshot restorer
+ *  read the same shape. */
+private fun i18nOf(a: JSONObject): Map<String, CatalogCopy> {
+    val obj = a.optJSONObject("i18n") ?: return emptyMap()
+    val out = LinkedHashMap<String, CatalogCopy>()
+    for (code in obj.keys()) {
+        val c = obj.optJSONObject(code) ?: continue
+        out[code] = CatalogCopy(
+            title = c.optString("title").ifEmpty { null },
+            summary = c.optString("summary").ifEmpty { null },
+            details = c.optString("details").ifEmpty { null },
+            statusLabel = c.optString("statusLabel").ifEmpty { null },
+        )
+    }
+    return out
+}
+
+/**
+ * The listing copy for the user's chosen app language, resolved at READ time.
+ *
+ * Read time, not parse time, because these entries are cached and persisted:
+ * baking the language in at parse would freeze whichever language was active
+ * when the catalog was last fetched, and the app supports switching language
+ * without a refetch. `LocaleSupport.wrap` sets the JVM default locale to the
+ * chosen one, so the default IS the app language.
+ *
+ * Resolution mirrors the mini-app bundles' own normLocale and iOS
+ * MiniAppLocale: exact tag, then longest script-bearing prefix, then the bare
+ * language subtag, so `zh-Hant-TW` never falls back to Simplified.
+ */
+private fun MiniAppCatalogEntry.copyForActiveLocale(): CatalogCopy? {
+    if (i18n.isEmpty()) return null
+    val tag = java.util.Locale.getDefault().toLanguageTag().lowercase().replace('_', '-')
+    i18n.keys.firstOrNull { it.lowercase() == tag }?.let { return i18n[it] }
+    val base = tag.substringBefore('-')
+    i18n.keys.filter { tag.startsWith(it.lowercase() + "-") }
+        .maxByOrNull { it.length }?.let { return i18n[it] }
+    i18n.keys.firstOrNull { it.lowercase() == base }?.let { return i18n[it] }
+    i18n.keys.firstOrNull { it.lowercase().startsWith("$base-") }?.let { return i18n[it] }
+    return null
+}
+
+val MiniAppCatalogEntry.localizedTitle: String
+    get() = copyForActiveLocale()?.title ?: title
+val MiniAppCatalogEntry.localizedSummary: String
+    get() = copyForActiveLocale()?.summary ?: summary
+val MiniAppCatalogEntry.localizedDetails: String
+    get() = copyForActiveLocale()?.details ?: details
+// NOTE: manifestSha256 above pins apps/pos/manifest.json in
+// elabify/maknoon-dapps. Re-run `node scripts/build.mjs` there and copy the
+// new hash here whenever the bundle changes, or a first-run offline install
+// fails its integrity check against a manifest this pin no longer matches.
 
 /** The seed presented as a single catalog (the "Maknoon Apps" store). */
 const val SEED_CATALOG_NAME = "Maknoon Apps"
@@ -172,6 +244,8 @@ object MiniAppCatalogFetcher {
         return out
     }
 
+
+
     private fun parseFlat(a: JSONObject): MiniAppCatalogEntry? = runCatching {
         MiniAppCatalogEntry(
             appId = a.getString("id"),
@@ -185,6 +259,7 @@ object MiniAppCatalogFetcher {
             channel = if (a.isNull("channel")) null else a.optString("channel", "stable"),
             version = a.optString("version").ifEmpty { null },
             iconToken = iconTokenOf(a.optString("iconName")),
+            i18n = i18nOf(a),
             requiresMaknoonVersion = a.optString("requiresMaknoonVersion").ifEmpty { null },
             supersededAtMaknoonVersion = a.optString("supersededAtMaknoonVersion").ifEmpty { null },
         )
@@ -209,6 +284,7 @@ object MiniAppCatalogFetcher {
                     channel = channel,
                     version = ch.optString("version").ifEmpty { null },
                     iconToken = iconTokenOf(a.optString("iconName")),
+                    i18n = i18nOf(a),
                     requiresMaknoonVersion = ch.optString("requiresMaknoonVersion").ifEmpty { null },
                     supersededAtMaknoonVersion = ch.optString("supersededAtMaknoonVersion").ifEmpty { null },
                 ),
@@ -472,6 +548,21 @@ class MiniAppInstallRegistry(
             put("channel", e.channel)
             e.version?.let { put("version", it) }
             put("iconToken", e.iconToken)
+            // Persist the listing overrides so an installed app keeps its
+            // localized name offline, and keeps following a later language
+            // switch without a catalog refetch.
+            if (e.i18n.isNotEmpty()) {
+                put("i18n", JSONObject().apply {
+                    e.i18n.forEach { (code, c) ->
+                        put(code, JSONObject().apply {
+                            c.title?.let { put("title", it) }
+                            c.summary?.let { put("summary", it) }
+                            c.details?.let { put("details", it) }
+                            c.statusLabel?.let { put("statusLabel", it) }
+                        })
+                    }
+                })
+            }
             e.requiresMaknoonVersion?.let { put("requiresMaknoonVersion", it) }
             e.supersededAtMaknoonVersion?.let { put("supersededAtMaknoonVersion", it) }
         }
@@ -492,6 +583,7 @@ class MiniAppInstallRegistry(
             channel = if (o.isNull("channel")) null else o.optString("channel", "stable"),
             version = if (o.has("version")) o.optString("version") else null,
             iconToken = o.optString("iconToken", "apps"),
+            i18n = i18nOf(o),
             requiresMaknoonVersion = if (o.has("requiresMaknoonVersion")) o.optString("requiresMaknoonVersion") else null,
             supersededAtMaknoonVersion = if (o.has("supersededAtMaknoonVersion")) o.optString("supersededAtMaknoonVersion") else null,
         )

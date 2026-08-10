@@ -59,6 +59,7 @@ import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontFamily
@@ -477,7 +478,7 @@ private fun SolanaDashboard(
                 }
                 if (d.unknownMints.isNotEmpty()) {
                     Text(
-                        stringResource(R.string.sol_unrecognized_tokens, d.unknownMints.size.toString()),
+                        pluralStringResource(R.plurals.sol_unrecognized_tokens, d.unknownMints.size, d.unknownMints.size.toString()),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )

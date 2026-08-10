@@ -7,6 +7,10 @@
 
 package com.elabify.app.maknoon.ui.wallet.common
 
+import android.icu.text.DisplayContext
+import android.icu.text.RelativeDateTimeFormatter
+import android.icu.util.ULocale
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -64,17 +68,47 @@ import com.elabify.app.maknoon.ui.theme.tint
 /** One row in the wallet picker dropdown. */
 data class WalletChipItem(val id: String, val label: String)
 
-/** Relative "just now / Nm ago / Nh ago / Nd ago" label for a sync timestamp. */
+/** Localized relative freshness label ("3 min. ago", "now", "Never synced") for
+ *  a sync timestamp, the analog of iOS `Loc.relativeDate`.
+ *
+ *  ICU translates AND pluralizes this in every locale we ship, so the app must
+ *  not hand-roll the ladder. Four hand-rolled copies used to, all returning
+ *  hardcoded English ("3 min ago") interpolated into an otherwise-localized
+ *  sentence, so every non-English locale rendered a translated frame around an
+ *  English label. They had also drifted from each other: "never" vs
+ *  "Never synced", "5m ago" vs "5 min ago".
+ *
+ *  The number here is a duration, not an amount, so locale-native digits are
+ *  correct localization (ADR-0074); amounts go through the pinned formatters. */
+@Composable
 fun relativeSince(epochMs: Long?): String {
-    if (epochMs == null || epochMs <= 0L) return "never"
-    val delta = System.currentTimeMillis() - epochMs
+    if (epochMs == null || epochMs <= 0L) return stringResource(R.string.common_never_synced)
+    val locale = LocalConfiguration.current.locales[0]
+    val fmt = remember(locale) {
+        RelativeDateTimeFormatter.getInstance(
+            ULocale.forLocale(locale),
+            null,
+            RelativeDateTimeFormatter.Style.SHORT,
+            DisplayContext.CAPITALIZATION_FOR_BEGINNING_OF_SENTENCE,
+        )
+    }
+    val sec = ((System.currentTimeMillis() - epochMs) / 1000L).coerceAtLeast(0L)
+    fun ago(n: Long, unit: RelativeDateTimeFormatter.RelativeUnit) =
+        fmt.format(n.toDouble(), RelativeDateTimeFormatter.Direction.LAST, unit)
     return when {
-        delta < 60_000L -> "just now"
-        delta < 3_600_000L -> "${delta / 60_000L}m ago"
-        delta < 86_400_000L -> "${delta / 3_600_000L}h ago"
-        else -> "${delta / 86_400_000L}d ago"
+        sec < 5 -> fmt.format(RelativeDateTimeFormatter.Direction.PLAIN,
+                              RelativeDateTimeFormatter.AbsoluteUnit.NOW)
+        sec < 60 -> ago(sec, RelativeDateTimeFormatter.RelativeUnit.SECONDS)
+        sec < 3_600 -> ago(sec / 60, RelativeDateTimeFormatter.RelativeUnit.MINUTES)
+        sec < 86_400 -> ago(sec / 3_600, RelativeDateTimeFormatter.RelativeUnit.HOURS)
+        else -> ago(sec / 86_400, RelativeDateTimeFormatter.RelativeUnit.DAYS)
     }
 }
+
+/** Same label from a unix-SECONDS timestamp. */
+@Composable
+fun relativeSinceSec(unixSec: Long): String =
+    relativeSince(if (unixSec <= 0L) null else unixSec * 1000L)
 
 /** Active-wallet header chip (name + subtitle + dropdown to switch wallets). */
 @Composable

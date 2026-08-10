@@ -101,22 +101,6 @@ fun tronTokenToRaw(text: String, decimals: Int): String? {
 fun shortHash(s: String): String =
     if (s.length > 12) "${s.take(6)}…${s.takeLast(4)}" else s
 
-/** Relative "3 min ago" / "just now" style caption from an epoch-ms
- *  timestamp. Kept tiny: this is a freshness hint, not a date library. */
-fun relativeSince(epochMs: Long?): String {
-    if (epochMs == null) return "Never synced"
-    val delta = System.currentTimeMillis() - epochMs
-    if (delta < 0) return "just now"
-    val sec = delta / 1000
-    return when {
-        sec < 5 -> "just now"
-        sec < 60 -> "${sec}s ago"
-        sec < 3600 -> "${sec / 60} min ago"
-        sec < 86_400 -> "${sec / 3600} h ago"
-        else -> "${sec / 86_400} d ago"
-    }
-}
-
 /** Strip an optional `tron:` URI scheme + query string from a scanned /
  *  pasted recipient, mirroring iOS `stripTronPrefix`. */
 fun stripTronPrefix(s: String): String =

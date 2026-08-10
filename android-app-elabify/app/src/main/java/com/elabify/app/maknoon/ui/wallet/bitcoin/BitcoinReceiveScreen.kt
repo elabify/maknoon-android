@@ -81,7 +81,7 @@ internal fun BitcoinReceiveScreen(
             }
         }
         res.onSuccess { address = it.first; index = it.second }
-            .onFailure { error = "Could not derive address: ${it.message ?: it}" }
+            .onFailure { error = context.getString(R.string.btc_could_not_derive_address, "${it.message ?: it}") }
     }
 
     val uri = remember(address, amount, label) { address?.let { bitcoinUri(it, amount, label) } }

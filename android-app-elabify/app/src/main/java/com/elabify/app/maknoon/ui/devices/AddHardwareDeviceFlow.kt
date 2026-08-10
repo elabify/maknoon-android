@@ -255,6 +255,9 @@ private fun RegisterDeviceSheet(
     // silently. Request them just before the first connect, then proceed.
     // (CoreBluetooth prompts implicitly on iOS; Android needs this explicit
     // gate.) Below API 31 these are install-time and always granted.
+    // Resolved in composable scope: the launcher callback below is a plain
+    // lambda, where stringResource() is not callable.
+    val blePermissionDenied = stringResource(R.string.devices_ble_permission_required, kind.displayName)
     val blePermissionLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestMultiplePermissions(),
     ) { grants ->
@@ -262,8 +265,7 @@ private fun RegisterDeviceSheet(
         if (granted) {
             startConnect()
         } else {
-            error = "Bluetooth permission is required to connect to ${kind.displayName}. " +
-                "Grant Nearby devices permission and retry."
+            error = blePermissionDenied
         }
     }
 

@@ -11,6 +11,8 @@
 
 package com.elabify.app.maknoon.miniapp
 
+import android.content.Context
+import com.elabify.app.maknoon.R
 import com.elabify.core.canonicalize
 import com.elabify.musnad.crypto.hexToBytes
 
@@ -30,26 +32,41 @@ object CommerceRequestValidator {
         val reason: String?,
     )
 
-    /** Authenticate the request. Blocking (registry + crypto); call off the main thread. */
+    /**
+     * Authenticate the request. Blocking (registry + crypto); call off the main
+     * thread. [res] is only ever used to resolve the user-facing tier label and
+     * block reason, which the pay sheet renders verbatim.
+     */
     fun validate(
         request: CommerceRequest,
         ctx: CommerceHolderContext,
+        res: Context,
         nowSec: Long = System.currentTimeMillis() / 1000,
     ): Result {
         // 1. Authenticate the verifier request (signature + expiry + trust tier).
         val decision = ctx.validateVerifierRequest(request.verifierRequest, nowSec)
         if (decision == null || !decision.isValid) {
             return Result(
-                ok = false, tier = Tier.UNKNOWN, tierLabel = "Unverified",
-                reason = "The merchant request signature is invalid or expired.",
+                ok = false, tier = Tier.UNKNOWN,
+                tierLabel = res.getString(R.string.app_merchant_tier_unverified),
+                reason = res.getString(R.string.app_merchant_request_sig_invalid),
             )
         }
         val tier: Tier
         val tierLabel: String
         when (val t = decision.tier) {
-            is CommerceVerifierDecision.Tier.Registered -> { tier = Tier.REGISTERED; tierLabel = "Verified: ${t.name}" }
-            is CommerceVerifierDecision.Tier.SelfSigned -> { tier = Tier.SELF_SIGNED; tierLabel = "Self-signed merchant" }
-            is CommerceVerifierDecision.Tier.Unknown -> { tier = Tier.UNKNOWN; tierLabel = "Unverified merchant" }
+            is CommerceVerifierDecision.Tier.Registered -> {
+                tier = Tier.REGISTERED
+                tierLabel = res.getString(R.string.app_merchant_tier_verified, t.name)
+            }
+            is CommerceVerifierDecision.Tier.SelfSigned -> {
+                tier = Tier.SELF_SIGNED
+                tierLabel = res.getString(R.string.app_merchant_tier_self_signed)
+            }
+            is CommerceVerifierDecision.Tier.Unknown -> {
+                tier = Tier.UNKNOWN
+                tierLabel = res.getString(R.string.app_merchant_tier_unverified_merchant)
+            }
         }
 
         // 2. Verify merchantSig over paymentTerms against the verifier pubkey.
@@ -63,17 +80,18 @@ object CommerceRequestValidator {
         val sig = request.merchantSig?.let { hex(it) }
         if (pub == null || sig == null) {
             return Result(ok = false, tier = tier, tierLabel = tierLabel,
-                reason = "Missing the merchant's payment signature.")
+                reason = res.getString(R.string.app_merchant_sig_missing))
         }
         return try {
             val msg = canonicalize(request.paymentTerms.canonicalMap())
             val valid = ctx.mldsaVerify(pub, sig, msg)
             Result(
                 ok = valid, tier = tier, tierLabel = tierLabel,
-                reason = if (valid) null else "The merchant's payment signature does not verify (possible tampering).",
+                reason = if (valid) null else res.getString(R.string.app_merchant_sig_mismatch),
             )
         } catch (_: Exception) {
-            Result(ok = false, tier = tier, tierLabel = tierLabel, reason = "Could not verify the payment terms.")
+            Result(ok = false, tier = tier, tierLabel = tierLabel,
+                reason = res.getString(R.string.app_merchant_terms_unverifiable))
         }
     }
 

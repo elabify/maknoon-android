@@ -7,6 +7,8 @@
 
 package com.elabify.app.maknoon.ui.wallet.bitcoin
 
+import java.util.Locale
+
 import android.content.Context
 import com.elabify.musnad.identity.IdentitySandwich
 import com.elabify.musnad.identity.IdentityStore
@@ -86,20 +88,20 @@ fun loadBip39Passphrase(context: Context): String =
 // MARK: -- formatting helpers (shared across screens)
 
 /** 8-decimal BTC string from satoshis (no sign). */
-fun formatBtc(sats: Long): String = String.format("%.8f", sats / 100_000_000.0)
+fun formatBtc(sats: Long): String = String.format(Locale.US, "%.8f", sats / 100_000_000.0)
 
 /** Signed BTC delta string, "+" prefixed for inbound, used by tx rows. */
 fun formatSignedBtc(sats: Long): String {
-    val body = String.format("%.8f", sats / 100_000_000.0)
+    val body = String.format(Locale.US, "%.8f", sats / 100_000_000.0)
     return if (sats >= 0) "+$body" else body
 }
 
 /** Group-separated sats, e.g. "12,345 sats". */
-fun formatSats(sats: Long): String = "%,d sats".format(sats)
+fun formatSats(sats: Long): String = "%,d sats".format(Locale.US, sats)
 
 /** A compact balance / address label: "12,345 sats" under 100k, else BTC. */
 fun formatSatsCompact(sats: Long, ticker: String): String =
-    if (sats >= 100_000) String.format("%.8f %s", sats / 100_000_000.0, ticker)
+    if (sats >= 100_000) String.format(Locale.US, "%.8f %s", sats / 100_000_000.0, ticker)
     else "$sats sats"
 
 fun shortMiddle(s: String, head: Int = 8, tail: Int = 6): String =

@@ -89,6 +89,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
@@ -228,7 +229,7 @@ fun IdentitySettingsScreen(onBack: () -> Unit) {
 @Composable
 private fun BiometricSection() {
     Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-        SectionHeader(title = stringResource(R.string.settings_on_device_authorization))
+        SectionHeader(title = stringResource(R.string.settings_on_phone_authorization))
         SectionCardGroup {
             Row(
                 modifier = Modifier.fillMaxWidth().padding(Spacing.md),
@@ -447,7 +448,7 @@ private fun CscaSection(
         SectionCardGroup {
             KeyValueRow(
                 stringResource(R.string.settings_trust_list),
-                count?.let { stringResource(R.string.settings_certificates_count, it.toString()) }
+                count?.let { pluralStringResource(R.plurals.settings_certificates_count, it, it.toString()) }
                     ?: stringResource(R.string.settings_not_downloaded),
             )
             if (version != null) KeyValueRow(stringResource(R.string.settings_version), version, mono = true)
@@ -539,7 +540,7 @@ private fun PresentationRelaySection() {
                         modifier = Modifier.fillMaxWidth(),
                     )
                     TextButton(onClick = { host = RelaySettings.DEFAULT_HOST; RelaySettings.host = RelaySettings.DEFAULT_HOST }) {
-                        Text(stringResource(R.string.settings_reset_to_default))
+                        Text(stringResource(R.string.settings_use_default))
                     }
                 }
             }

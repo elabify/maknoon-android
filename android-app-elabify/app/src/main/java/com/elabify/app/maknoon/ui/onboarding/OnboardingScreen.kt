@@ -21,8 +21,11 @@
 
 package com.elabify.app.maknoon.ui.onboarding
 
+import androidx.compose.ui.res.stringResource
+
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import com.elabify.app.maknoon.crypto.PassphraseCharset
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -251,40 +254,55 @@ fun OnboardingScreen(onComplete: () -> Unit) {
             )
 
             Step.CREATE_PASSPHRASE -> {
-                Text("Set a password", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+                Text(stringResource(R.string.onboarding_set_a_password), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
                 Text(
-                    "A username is not required because all your data is owned on your phone. " +
-                        "A password is used to encrypt the backup of your identity and any local assets.",
+                    stringResource(R.string.onboarding_no_username_needed),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurface,
                 )
                 PassphraseField(
                     value = passphrase, onValueChange = { passphrase = it },
-                    label = "Password",
+                    label = stringResource(R.string.common_password),
                 )
                 PassphraseField(
                     value = confirm, onValueChange = { confirm = it },
-                    label = "Confirm password",
+                    label = stringResource(R.string.onboarding_confirm_password),
                 )
                 val mismatch = confirm.isNotEmpty() && passphrase != confirm
                 if (mismatch) {
                     Text(
-                        "Passwords do not match",
+                        stringResource(R.string.onboarding_passwords_do_not_match),
+                        color = MaterialTheme.colorScheme.error,
+                        style = MaterialTheme.typography.bodySmall,
+                    )
+                }
+
+                // Hidden unless the password actually contains something we
+                // cannot carry through PBKDF2 identically to a spec-conformant
+                // wallet, so almost nobody ever sees it. Blocks at CREATE only;
+                // the restore paths warn instead. See PassphraseCharset.
+                val badChars = PassphraseCharset.offendingCodePoints(passphrase)
+                if (badChars.isNotEmpty()) {
+                    Text(
+                        stringResource(
+                            R.string.onboarding_password_unsafe_characters,
+                            PassphraseCharset.describe(badChars),
+                        ),
                         color = MaterialTheme.colorScheme.error,
                         style = MaterialTheme.typography.bodySmall,
                     )
                 }
 
                 Banner(
-                    title = "Save it to a password manager NOW",
-                    body = "This is the last time the password will be shown. Add it to a vetted " +
-                        "password manager before you continue.",
+                    title = stringResource(R.string.onboarding_save_password_now),
+                    body = stringResource(R.string.onboarding_save_password_now_body),
                     variant = BannerVariant.WARNING,
                     icon = Icons.Filled.Lock,
                 )
 
                 Button(
-                    enabled = passphrase.isNotEmpty() && passphrase == confirm && !busy,
+                    enabled = passphrase.isNotEmpty() && passphrase == confirm &&
+                        badChars.isEmpty() && !busy,
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(Radii.md),
                     onClick = {
@@ -303,21 +321,19 @@ fun OnboardingScreen(onComplete: () -> Unit) {
                             }
                         }
                     },
-                ) { Text("Continue") }
+                ) { Text(stringResource(R.string.common_continue)) }
             }
 
             Step.BACKUP -> {
-                Text("Encrypted backup", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+                Text(stringResource(R.string.settings_encrypted_backup), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
                 Text(
-                    "Maknoon stores an encrypted backup wherever you choose, locked by your " +
-                        "password. Without the password the backup is useless to anyone.",
+                    stringResource(R.string.onboarding_backup_where_you_choose),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurface,
                 )
                 Banner(
-                    title = "Strongly recommended",
-                    body = "Your verified credentials and local wallet data are recoverable only " +
-                        "from this encrypted backup plus your password.",
+                    title = stringResource(R.string.onboarding_backup_recommended),
+                    body = stringResource(R.string.onboarding_backup_recommended_body),
                     variant = BannerVariant.INFO,
                 )
                 Button(
@@ -325,26 +341,30 @@ fun OnboardingScreen(onComplete: () -> Unit) {
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(Radii.md),
                     onClick = { saveBackup.launch(com.elabify.app.maknoon.backup.MaknoonBackupV4.defaultBackupFilename()) },
-                ) { Text(if (busy) "Preparing..." else "Save encrypted backup") }
+                ) {
+                    Text(
+                        stringResource(
+                            if (busy) R.string.app_preparing else R.string.onboarding_save_encrypted_backup,
+                        ),
+                    )
+                }
                 OutlinedButton(
                     enabled = !busy,
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(Radii.md),
                     onClick = { step = Step.PASSPORT_SCAN },
-                ) { Text("Skip, not recommended") }
+                ) { Text(stringResource(R.string.onboarding_skip_not_recommended)) }
                 Text(
-                    "Without a backup, losing this phone means losing your identity and any " +
-                        "software wallet keys. You can still create one later in Settings.",
+                    stringResource(R.string.onboarding_without_a_backup),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
 
             Step.PASSPORT_SCAN -> {
-                Text("Tap your Passport", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+                Text(stringResource(R.string.onboarding_tap_your_passport), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
                 Text(
-                    "Maknoon reads your passport's chip on this phone and creates a digital " +
-                        "identity that you control.",
+                    stringResource(R.string.onboarding_passport_chip_blurb),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurface,
                 )
@@ -353,33 +373,27 @@ fun OnboardingScreen(onComplete: () -> Unit) {
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(Radii.md),
                     onClick = { step = Step.PASSPORT_SCAN_TAP },
-                ) { Text("Add Passport") }
+                ) { Text(stringResource(R.string.onboarding_add_passport)) }
                 OutlinedButton(
                     enabled = !busy,
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(Radii.md),
                     onClick = { step = Step.RECOMMEND_WALLET },
-                ) { Text("Skip for now") }
+                ) { Text(stringResource(R.string.onboarding_skip_for_now)) }
                 Column(
                     modifier = Modifier.fillMaxWidth(),
                     verticalArrangement = Arrangement.spacedBy(Spacing.sm),
                 ) {
-                    CheckmarkBullet("Read here: your passport chip is read on this phone.")
-                    CheckmarkBullet("Stays here: the photo and chip data never leave this device.")
-                    CheckmarkBullet(
-                        "Sent only if you choose: nothing is shared unless you ask for a " +
-                            "verified credential later.",
-                    )
+                    CheckmarkBullet(stringResource(R.string.onboarding_bullet_read_here))
+                    CheckmarkBullet(stringResource(R.string.onboarding_bullet_stays_here))
+                    CheckmarkBullet(stringResource(R.string.onboarding_bullet_sent_only_if_you_choose))
                 }
             }
 
             Step.RECOMMEND_WALLET -> {
-                Text("Create your first wallet", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+                Text(stringResource(R.string.onboarding_create_your_first_wallet), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
                 Text(
-                    "Maknoon supports many digital asset networks. For holding value, we only " +
-                        "recommend Bitcoin: it is the only cryptocurrency proven as a long-term " +
-                        "store of value. The safest option is a hardware wallet, but a software " +
-                        "Bitcoin wallet is convenient for small amounts.",
+                    stringResource(R.string.onboarding_bitcoin_only_recommendation),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurface,
                 )
@@ -388,7 +402,7 @@ fun OnboardingScreen(onComplete: () -> Unit) {
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(Radii.md),
                     onClick = { step = Step.RECOMMEND_WALLET_HW },
-                ) { Text("Add a hardware wallet") }
+                ) { Text(stringResource(R.string.onboarding_add_a_hardware_wallet)) }
                 OutlinedButton(
                     enabled = !busy,
                     modifier = Modifier.fillMaxWidth(),
@@ -399,20 +413,19 @@ fun OnboardingScreen(onComplete: () -> Unit) {
                         BitcoinWalletEnv.create(context).store.seedDefaultIfNeeded()
                         onComplete()
                     },
-                ) { Text("Create Bitcoin software wallet") }
+                ) { Text(stringResource(R.string.onboarding_create_bitcoin_software_wallet)) }
                 OutlinedButton(
                     enabled = !busy,
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(Radii.md),
                     onClick = { onComplete() },
-                ) { Text("Skip for now") }
+                ) { Text(stringResource(R.string.onboarding_skip_for_now)) }
             }
 
             Step.RESTORE -> {
-                Text("Restore from encrypted backup", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+                Text(stringResource(R.string.onboarding_restore_from_encrypted_backup), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
                 Text(
-                    "Pick the encrypted backup file you saved earlier. Decryption and verification " +
-                        "happen entirely on this phone.",
+                    stringResource(R.string.onboarding_pick_backup_file_blurb),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurface,
                 )
@@ -421,19 +434,24 @@ fun OnboardingScreen(onComplete: () -> Unit) {
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(Radii.md),
                     onClick = { pickBackup.launch(arrayOf("application/json", "application/octet-stream", "*/*")) },
-                ) { Text(if (restoreBytes == null) "Choose backup file" else "Backup file selected") }
+                ) {
+                    Text(
+                        stringResource(
+                            if (restoreBytes == null) R.string.onboarding_choose_backup_file
+                            else R.string.onboarding_backup_file_selected,
+                        ),
+                    )
+                }
 
                 if (restoreBytes != null) {
                     Banner(
-                        title = "Restoring replaces everything",
+                        title = stringResource(R.string.onboarding_restore_replaces),
                         variant = BannerVariant.WARNING,
-                        body = "Restoring this backup replaces everything on this device with the " +
-                            "backup's contents: your recovery phrase / identity, all verified " +
-                            "credentials, wallets, and settings. This cannot be undone.",
+                        body = stringResource(R.string.onboarding_restore_replaces_body),
                     )
                     PassphraseField(
                         value = passphrase, onValueChange = { passphrase = it },
-                        label = "Password",
+                        label = stringResource(R.string.common_password),
                     )
                     Button(
                         enabled = passphrase.isNotEmpty() && !busy,
@@ -459,7 +477,7 @@ fun OnboardingScreen(onComplete: () -> Unit) {
                                 }
                             }
                         },
-                    ) { Text("Restore") }
+                    ) { Text(stringResource(R.string.onboarding_restore)) }
                 }
                 OutlinedButton(
                     enabled = !busy,
@@ -471,34 +489,35 @@ fun OnboardingScreen(onComplete: () -> Unit) {
                         error = null
                         step = Step.WELCOME
                     },
-                ) { Text("Back") }
+                ) { Text(stringResource(R.string.common_back)) }
             }
 
             Step.RESTORE_DONE -> {
                 val report = restoreReport
                 val hadWarnings = report?.hadWarnings == true
                 Text(
-                    if (hadWarnings) "Restore completed with warnings" else "Restore complete",
+                    stringResource(
+                        if (hadWarnings) R.string.onboarding_restore_completed_with_warnings
+                        else R.string.onboarding_restore_complete,
+                    ),
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.SemiBold,
                 )
                 Text(
-                    if (hadWarnings) {
-                        "Your wallet was restored, but some items could not be imported. " +
-                            "Review them below before continuing."
-                    } else {
-                        "Everything in your backup was restored to this phone."
-                    },
+                    stringResource(
+                        if (hadWarnings) R.string.onboarding_restored_with_warnings_body
+                        else R.string.onboarding_restored_everything_body,
+                    ),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurface,
                 )
                 report?.restored?.takeIf { it.isNotEmpty() }?.let { items ->
-                    Text("Restored", style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.SemiBold)
+                    Text(stringResource(R.string.onboarding_restored), style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.SemiBold)
                     items.forEach { Text("• $it", style = MaterialTheme.typography.bodyMedium) }
                 }
                 if (hadWarnings) {
                     Banner(
-                        title = "Not imported",
+                        title = stringResource(R.string.onboarding_not_imported),
                         body = report!!.warnings.joinToString("\n") { "• $it" },
                         variant = BannerVariant.WARNING,
                     )
@@ -507,7 +526,7 @@ fun OnboardingScreen(onComplete: () -> Unit) {
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(Radii.md),
                     onClick = { onComplete() },
-                ) { Text("Continue") }
+                ) { Text(stringResource(R.string.common_continue)) }
             }
 
             // Full-screen sub-flows handled by the outer `when`; never reached here.
@@ -520,7 +539,7 @@ fun OnboardingScreen(onComplete: () -> Unit) {
         }
         error?.let {
             Banner(
-                title = "Something went wrong",
+                title = stringResource(R.string.id_something_went_wrong),
                 body = it,
                 variant = BannerVariant.ERROR,
             )
@@ -549,13 +568,13 @@ private fun WelcomeStep(
             fontWeight = FontWeight.Bold,
         )
         Text(
-            "Own your Identity, Assets, and Privacy",
+            stringResource(R.string.onboarding_own_your_identity_assets),
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurface,
             textAlign = TextAlign.Center,
         )
         Text(
-            "Your data lives on this phone. No account, no tracking.",
+            stringResource(R.string.onboarding_your_data_lives_on),
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             textAlign = TextAlign.Center,
@@ -570,9 +589,9 @@ private fun WelcomeStep(
             .padding(horizontal = Spacing.sm),
         verticalArrangement = Arrangement.spacedBy(Spacing.md),
     ) {
-        CheckmarkBullet("Verify and carry your passport as a digital identity")
-        CheckmarkBullet("Hold assets in a secure hardware wallet")
-        CheckmarkBullet("Share only what you choose, with people you trust")
+        CheckmarkBullet(stringResource(R.string.onboarding_verify_and_carry_your_passport))
+        CheckmarkBullet(stringResource(R.string.onboarding_hold_assets_in_a))
+        CheckmarkBullet(stringResource(R.string.onboarding_share_only_what_you))
     }
 
     Spacer(Modifier.height(Spacing.sm))
@@ -585,14 +604,14 @@ private fun WelcomeStep(
             modifier = Modifier.fillMaxWidth(),
             shape = RoundedCornerShape(Radii.md),
             onClick = onCreate,
-        ) { Text("Create new") }
+        ) { Text(stringResource(R.string.onboarding_create_new)) }
         OutlinedButton(
             modifier = Modifier.fillMaxWidth(),
             shape = RoundedCornerShape(Radii.md),
             onClick = onRestore,
-        ) { Text("Restore encrypted backup") }
+        ) { Text(stringResource(R.string.onboarding_restore_encrypted_backup)) }
         Text(
-            "Use applications with your identity and assets in your wallets together.",
+            stringResource(R.string.onboarding_use_applications_with_your),
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             textAlign = TextAlign.Center,

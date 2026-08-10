@@ -26,6 +26,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.QrCode
+import androidx.compose.material.icons.filled.HelpOutline
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Shield
@@ -154,6 +155,8 @@ fun IDDocumentDetailScreen(
     currentFolderId: String? = null,
     onAssignFolder: (String?) -> Unit = {},
 ) {
+    val submissionFailedMsg = stringResource(R.string.iddoc_submission_failed)
+    val screeningFailedMsg = stringResource(R.string.iddoc_screening_failed)
     // FLAG_SECURE for the lifetime of this screen: the document's chip-signed
     // fields and photo must not leak into a screenshot, screen recording, or the
     // recents thumbnail. Cleared on dispose so navigating away restores normal
@@ -185,7 +188,7 @@ fun IDDocumentDetailScreen(
                         DetailIssuance.PendingReview(outcome.pendingId, outcome.proofPreVerified, outcome.reason)
                 }
             } catch (e: Throwable) {
-                issuance = DetailIssuance.Failed(e.message ?: "Submission failed.")
+                issuance = DetailIssuance.Failed(e.message ?: submissionFailedMsg)
             }
         }
     }
@@ -196,7 +199,7 @@ fun IDDocumentDetailScreen(
                 runSanctions()
                 sanctions = DetailSanctions.Idle
             } catch (e: Throwable) {
-                sanctions = DetailSanctions.Failed(e.message ?: "Screening failed.")
+                sanctions = DetailSanctions.Failed(e.message ?: screeningFailedMsg)
             }
         }
     }
@@ -344,7 +347,7 @@ private fun PhotoSection(doc: IDDocument, photo: ImageBitmap?) {
                 Text(it, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
             Text(
-                stringResource(R.string.id_kind_summary, doc.kindLabel, doc.summary),
+                stringResource(R.string.id_kind_summary, stringResource(doc.kindLabelRes), doc.summary),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
@@ -474,10 +477,14 @@ private fun ChipAuthPill(r: PassiveAuthResult) {
             if (r.reason == "dsc_or_chain_expired") {
                 Look(stringResource(R.string.id_chip_signer_expired), MaterialTheme.colorScheme.tertiary, Icons.Filled.Warning)
             } else {
-                // Genuine chip whose signer just isn't in the on-device CSCA
-                // trust list. Confident blue "Genuine" (mirrors iOS); the CSCA
-                // nuance lives in the description below, not the pill label.
-                Look(stringResource(R.string.id_chip_signer_not_in_list), Color(0xFF3B82F6), Icons.Filled.Verified)
+                // The signature verifies against a DSC carried by the chip, but no
+                // trusted CSCA anchors it, so a chip self-signed by a forger with
+                // their own DSC and CSCA produces exactly this state. This was a
+                // confident blue "Genuine" with a Verified checkmark, which claimed
+                // more than the check establishes; "Genuine" now requires an
+                // anchored result. Mirrors iOS.
+                Look(stringResource(R.string.id_chip_signer_not_in_list),
+                     MaterialTheme.colorScheme.onSurfaceVariant, Icons.Filled.HelpOutline)
             }
         PassiveAuthResult.Status.FAILED -> Look(stringResource(R.string.id_chip_failed), MaterialTheme.colorScheme.error, Icons.Filled.Warning)
         PassiveAuthResult.Status.UNAVAILABLE -> Look(stringResource(R.string.id_chip_unavailable), MaterialTheme.colorScheme.onSurfaceVariant, Icons.Filled.Search)
@@ -645,7 +652,7 @@ private fun SanctionsResultView(result: SanctionsScreenResult?) {
 private fun SanctionsPill(outcome: SanctionsOutcome) {
     data class Look(val label: String, val color: Color, val icon: ImageVector)
     val look = when (outcome) {
-        SanctionsOutcome.CLEAN -> Look(stringResource(R.string.id_sanctions_clean), MaterialTheme.colorScheme.primary, Icons.Filled.Shield)
+        SanctionsOutcome.CLEAN -> Look(stringResource(R.string.id_sanctions_no_match), MaterialTheme.colorScheme.primary, Icons.Filled.Shield)
         SanctionsOutcome.SANCTIONED -> Look(stringResource(R.string.id_sanctions_sanctioned), MaterialTheme.colorScheme.error, Icons.Filled.Warning)
         SanctionsOutcome.PEP -> Look(stringResource(R.string.id_sanctions_pep_match), MaterialTheme.colorScheme.tertiary, Icons.Filled.Warning)
         SanctionsOutcome.INCONCLUSIVE -> Look(stringResource(R.string.id_sanctions_inconclusive), MaterialTheme.colorScheme.tertiary, Icons.Filled.Search)

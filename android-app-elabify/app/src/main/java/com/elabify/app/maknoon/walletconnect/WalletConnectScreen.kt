@@ -9,6 +9,9 @@
 // prepare-device popup integration is a follow-up.
 
 package com.elabify.app.maknoon.walletconnect
+import com.elabify.app.maknoon.R
+
+import androidx.compose.ui.res.stringResource
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -88,7 +91,7 @@ fun WalletConnectScreen(onClose: () -> Unit) {
                 title = { Text("WalletConnect") },
                 navigationIcon = {
                     IconButton(onClick = onClose) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.common_back))
                     }
                 },
             )
@@ -102,15 +105,15 @@ fun WalletConnectScreen(onClose: () -> Unit) {
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
-            Text("Connect to an app", style = MaterialTheme.typography.titleMedium)
+            Text(stringResource(R.string.wc_connect_to_an_app), style = MaterialTheme.typography.titleMedium)
             Button(onClick = { showScanner = true }, modifier = Modifier.fillMaxWidth()) {
                 Icon(Icons.Filled.QrCodeScanner, contentDescription = null)
-                Text("  Scan WalletConnect QR")
+                Text(stringResource(R.string.wc_scan_walletconnect_qr))
             }
             OutlinedTextField(
                 value = pasted,
                 onValueChange = { pasted = it },
-                label = { Text("or paste wc: link") },
+                label = { Text(stringResource(R.string.wc_or_paste_wc_link)) },
                 singleLine = true,
                 modifier = Modifier.fillMaxWidth(),
             )
@@ -118,18 +121,18 @@ fun WalletConnectScreen(onClose: () -> Unit) {
                 onClick = { WalletConnectManager.pair(pasted.trim()); pasted = "" },
                 enabled = pasted.isNotBlank(),
                 modifier = Modifier.fillMaxWidth(),
-            ) { Text("Connect") }
+            ) { Text(stringResource(R.string.app_web3_connect)) }
             Text(
-                "Connects this wallet to an external app over the WalletConnect relay. EVM (Ethereum) only. You approve every request.",
+                stringResource(R.string.wc_connects_this_wallet_to),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
 
             HorizontalDivider()
-            Text("Active connections", style = MaterialTheme.typography.titleMedium)
+            Text(stringResource(R.string.wc_active_connections), style = MaterialTheme.typography.titleMedium)
             if (sessions.isEmpty()) {
                 Text(
-                    "No active connections.",
+                    stringResource(R.string.wc_no_active_connections),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -142,7 +145,7 @@ fun WalletConnectScreen(onClose: () -> Unit) {
                         ) {
                             Column(modifier = Modifier.weight(1f)) {
                                 Text(
-                                    session.metaData?.name?.takeIf { it.isNotBlank() } ?: "Connected app",
+                                    session.metaData?.name?.takeIf { it.isNotBlank() } ?: stringResource(R.string.wc_connected_app),
                                     style = MaterialTheme.typography.bodyLarge,
                                 )
                                 session.metaData?.url?.let {
@@ -150,7 +153,7 @@ fun WalletConnectScreen(onClose: () -> Unit) {
                                 }
                             }
                             TextButton(onClick = { WalletConnectManager.disconnect(session.topic) }) {
-                                Text("Disconnect")
+                                Text(stringResource(R.string.wc_disconnect))
                             }
                         }
                     }
@@ -167,7 +170,7 @@ fun WalletConnectScreen(onClose: () -> Unit) {
                     .clickable { advancedExpanded = !advancedExpanded },
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                Text("Advanced", style = MaterialTheme.typography.titleMedium, modifier = Modifier.weight(1f))
+                Text(stringResource(R.string.present_advanced), style = MaterialTheme.typography.titleMedium, modifier = Modifier.weight(1f))
                 Icon(
                     if (advancedExpanded) Icons.Filled.ExpandLess else Icons.Filled.ExpandMore,
                     contentDescription = null,
@@ -175,25 +178,25 @@ fun WalletConnectScreen(onClose: () -> Unit) {
             }
             if (advancedExpanded) {
                 Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                    Text("Relay", modifier = Modifier.weight(1f))
+                    Text(stringResource(R.string.wc_relay), modifier = Modifier.weight(1f))
                     Text(
                         if (relayConnected) "Connected" else "Not connected",
                         color = if (relayConnected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
                 OutlinedButton(onClick = { WalletConnectManager.resetAll() }, modifier = Modifier.fillMaxWidth()) {
-                    Text("Reset WalletConnect")
+                    Text(stringResource(R.string.wc_clear_connections))
                 }
                 Text(
-                    "Disconnects everything and clears stored connection state. Use this if a connection is stuck, then scan a fresh QR.",
+                    stringResource(R.string.wc_disconnects_everything_and_clears),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
 
-                Text("Diagnostics", style = MaterialTheme.typography.titleSmall)
+                Text(stringResource(R.string.settings_diagnostics), style = MaterialTheme.typography.titleSmall)
                 if (diagLog.isEmpty()) {
                     Text(
-                        "No WalletConnect activity yet.",
+                        stringResource(R.string.wc_no_walletconnect_activity_yet),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
@@ -227,7 +230,7 @@ fun WalletConnectScreen(onClose: () -> Unit) {
         Dialog(onDismissRequest = { showScanner = false }) {
             Surface(shape = MaterialTheme.shapes.large) {
                 Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                    Text("Scan WalletConnect QR", style = MaterialTheme.typography.titleMedium)
+                    Text(stringResource(R.string.wc_scan_walletconnect_qr_2), style = MaterialTheme.typography.titleMedium)
                     MiniAppQrScanner(
                         onCode = { code ->
                             showScanner = false
@@ -249,7 +252,7 @@ fun WalletConnectScreen(onClose: () -> Unit) {
                         modifier = Modifier.fillMaxWidth(),
                     )
                     TextButton(onClick = { showScanner = false }, modifier = Modifier.align(Alignment.End)) {
-                        Text("Cancel")
+                        Text(stringResource(R.string.common_cancel))
                     }
                 }
             }
@@ -286,17 +289,17 @@ fun WalletConnectApprovalHost() {
     proposal?.let { p ->
         AlertDialog(
             onDismissRequest = { WalletConnectManager.rejectProposal() },
-            title = { Text(p.name.takeIf { it.isNotBlank() } ?: "An app") },
+            title = { Text(p.name.takeIf { it.isNotBlank() } ?: stringResource(R.string.wc_an_app)) },
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     p.url.takeIf { it.isNotBlank() }?.let {
                         Text(it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
-                    Text("wants to connect to your Ethereum wallet. It can request signatures and transactions, which you approve one at a time.")
+                    Text(stringResource(R.string.wc_wants_to_connect_to_your))
                 }
             },
-            confirmButton = { TextButton(onClick = { WalletConnectManager.approveProposal() }) { Text("Connect") } },
-            dismissButton = { TextButton(onClick = { WalletConnectManager.rejectProposal() }) { Text("Reject") } },
+            confirmButton = { TextButton(onClick = { WalletConnectManager.approveProposal() }) { Text(stringResource(R.string.app_web3_connect)) } },
+            dismissButton = { TextButton(onClick = { WalletConnectManager.rejectProposal() }) { Text(stringResource(R.string.present_reject)) } },
         )
     }
 
@@ -336,7 +339,7 @@ private fun RequestDialog(pending: WalletConnectManager.PendingRequest) {
                 Text(pending.preview, style = MaterialTheme.typography.bodyMedium)
                 if (pending.isHardware) {
                     Text(
-                        "You will confirm this on your device.",
+                        stringResource(R.string.wc_you_will_confirm_this),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
@@ -345,7 +348,7 @@ private fun RequestDialog(pending: WalletConnectManager.PendingRequest) {
                     PassphraseField(
                         value = passphrase,
                         onValueChange = { passphrase = it },
-                        label = "Hidden wallet passphrase",
+                        label = stringResource(R.string.wallet_hidden_wallet_passphrase),
                     )
                 }
             }
@@ -369,16 +372,16 @@ private fun RequestDialog(pending: WalletConnectManager.PendingRequest) {
                             scope.launch {
                                 val ok = BiometricGate.authenticate(
                                     activity,
-                                    title = "Authorize signature",
-                                    subtitle = "Confirm it's you to sign for the connected app.",
+                                    title = context.getString(R.string.wc_authorize_signature),
+                                    subtitle = context.getString(R.string.wc_authorize_signature_subtitle),
                                 )
                                 if (ok) WalletConnectManager.approveRequest(pass)
                             }
                         }
                     }
                 },
-            ) { Text("Sign") }
+            ) { Text(stringResource(R.string.btc_sign)) }
         },
-        dismissButton = { TextButton(onClick = { WalletConnectManager.rejectRequest() }) { Text("Reject") } },
+        dismissButton = { TextButton(onClick = { WalletConnectManager.rejectRequest() }) { Text(stringResource(R.string.present_reject)) } },
     )
 }

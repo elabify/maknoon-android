@@ -23,6 +23,9 @@
 // IdentitySandwich name.
 
 package com.elabify.app.maknoon.yubikey
+import com.elabify.app.maknoon.R
+
+import androidx.compose.ui.res.stringResource
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -87,6 +90,7 @@ fun SecondFactorRecoverDialog(
     val factors = remember {
         enrolledSecondFactors(registry).filter { it.id != exclude?.id }
     }
+    val noFactorMessage = stringResource(R.string.yubikey_no_second_factor_enrolled)
 
     // Which enrolled device the user will confirm with. Auto-selected when there
     // is exactly one; otherwise the user picks from the list first.
@@ -96,10 +100,7 @@ fun SecondFactorRecoverDialog(
         // No enrolled factor: the only paths left are the 24-word phrase /
         // encrypted backup. Surface that and dismiss.
         androidx.compose.runtime.LaunchedEffect(Unit) {
-            onError(
-                "No security key is enrolled. Restore from your 24-word phrase " +
-                    "or encrypted backup instead.",
-            )
+            onError(noFactorMessage)
         }
         return
     }
@@ -157,7 +158,7 @@ private fun SecondFactorPickerDialog(
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 Text(
-                    "Choose which enrolled security key to use. Any one of them unlocks your wallet.",
+                    stringResource(R.string.yubikey_choose_which_enrolled_security),
                     style = MaterialTheme.typography.bodyMedium,
                 )
                 factors.forEach { dev ->
@@ -179,7 +180,7 @@ private fun SecondFactorPickerDialog(
         },
         confirmButton = {},
         dismissButton = {
-            TextButton(onClick = onCancel) { Text("Cancel") }
+            TextButton(onClick = onCancel) { Text(stringResource(R.string.common_cancel)) }
         },
     )
 }
@@ -196,6 +197,7 @@ private fun YubiKeyRecoverCekDialog(
     onError: (String) -> Unit,
     onCancel: () -> Unit,
 ) {
+    val keyDidNotUnlockMsg = stringResource(R.string.yubikey_key_did_not_unlock)
     val scope = rememberCoroutineScope()
     var pin by remember { mutableStateOf("") }
     var busy by remember { mutableStateOf(false) }
@@ -209,13 +211,13 @@ private fun YubiKeyRecoverCekDialog(
                 PassphraseField(
                     value = pin,
                     onValueChange = { pin = it },
-                    label = "Security key PIN",
+                    label = stringResource(R.string.yubikey_security_key_pin),
                     enabled = !busy,
                     keyboardOptions = KeyboardOptions(keyboardType = androidx.compose.ui.text.input.KeyboardType.NumberPassword),
                 )
                 if (busy) {
                     Text(
-                        "Hold your security key against the back of the phone…",
+                        stringResource(R.string.yubikey_hold_your_security_key),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
@@ -236,15 +238,15 @@ private fun YubiKeyRecoverCekDialog(
                             .onFailure {
                                 onError(
                                     it.message
-                                        ?: "That security key did not unlock the wallet. Try again.",
+                                        ?: keyDidNotUnlockMsg,
                                 )
                             }
                     }
                 },
-            ) { Text("Tap security key") }
+            ) { Text(stringResource(R.string.yubikey_tap_security_key)) }
         },
         dismissButton = {
-            TextButton(enabled = !busy, onClick = onCancel) { Text("Cancel") }
+            TextButton(enabled = !busy, onClick = onCancel) { Text(stringResource(R.string.common_cancel)) }
         },
     )
 }
@@ -259,6 +261,7 @@ private fun HardwareRecoverCekDialog(
     onError: (String) -> Unit,
     onCancel: () -> Unit,
 ) {
+    val deviceDidNotUnlockMsg = stringResource(R.string.yubikey_device_did_not_unlock)
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     var busy by remember { mutableStateOf(false) }
@@ -280,7 +283,7 @@ private fun HardwareRecoverCekDialog(
                 )
                 if (busy) {
                     Text(
-                        "Connecting. Approve the signature on your ${device.kind.displayName}…",
+                        stringResource(R.string.yubikey_connecting_approve_the_signature, device.kind.displayName),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
@@ -300,15 +303,15 @@ private fun HardwareRecoverCekDialog(
                             .onFailure {
                                 onError(
                                     it.message
-                                        ?: "That device did not unlock the wallet. Try again.",
+                                        ?: deviceDidNotUnlockMsg,
                                 )
                             }
                     }
                 },
-            ) { Text("Connect and approve") }
+            ) { Text(stringResource(R.string.yubikey_connect_and_approve)) }
         },
         dismissButton = {
-            TextButton(enabled = !busy, onClick = onCancel) { Text("Cancel") }
+            TextButton(enabled = !busy, onClick = onCancel) { Text(stringResource(R.string.common_cancel)) }
         },
     )
 }

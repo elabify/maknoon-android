@@ -27,6 +27,7 @@ package com.elabify.app.maknoon.ui.identity
 import android.graphics.BitmapFactory
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
+import android.content.Context
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -228,6 +229,9 @@ fun IdentityScreen(
      *  the payer paid from (chain key, e.g. "bitcoin"). */
     onNavigateToWallet: (chain: String) -> Unit = {},
 ) {
+    val loadVerifyPayFailedMsg = stringResource(R.string.identity_could_not_load_verify_pay)
+    val createCredentialFailedMsg = stringResource(R.string.identity_could_not_create_credential)
+    val buildShareImageFailedMsg = stringResource(R.string.identity_could_not_build_share_image)
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     val store = remember { IdentityStore(context) }
@@ -485,7 +489,7 @@ fun IdentityScreen(
                 try {
                     request = withContext(Dispatchers.IO) { CommerceTransport().fetchRequest(url) }
                 } catch (e: Exception) {
-                    loadError = e.message ?: "Could not load the Verify & Pay request."
+                    loadError = e.message ?: loadVerifyPayFailedMsg
                 }
             }
             val req = request
@@ -585,7 +589,7 @@ fun IdentityScreen(
         is IdentityRoute.TapIdDocument -> {
             BackHandler { route = IdentityRoute.Hub }
             val activity = context as? FragmentActivity
-            val reader = remember { IDDocumentReader() }
+            val reader = remember(context) { IDDocumentReader(context) }
             val nfcAvailable = activity != null && IDDocumentNfcReaderMode.isAvailable(activity)
             TapIDDocumentScreen(
                 nfcAvailable = nfcAvailable,
@@ -794,6 +798,14 @@ fun IdentityScreen(
             val matched = remember(doc.id, credentials, holderDid) {
                 PassportPairing.matchedCredential(doc, credentials, holderDid)
             }
+            // Biometric prompt copy, resolved here in composable scope: the
+            // callbacks below run inside scope.launch {} lambdas, where
+            // stringResource() is not callable.
+            val presentPassportTitle = stringResource(R.string.identity_present_passport)
+            val presentSelfSubtitle = stringResource(R.string.identity_present_passport_subtitle)
+            val presentIssuedSubtitle = stringResource(R.string.identity_present_issued_passport_subtitle)
+            val sharePassportTitle = stringResource(R.string.identity_share_passport)
+            val sharePassportSubtitle = stringResource(R.string.identity_share_passport_subtitle)
             // Mint a self-signed credential and route to the present QR sheet
             // (biometric-gated; second-factor unlock when the header needs the
             // root entropy). Shared by the navy "Share QR" and Advanced "Present".
@@ -802,8 +814,8 @@ fun IdentityScreen(
                     val approved = if (activity != null) {
                         BiometricGate.authenticate(
                             activity,
-                            title = "Present passport",
-                            subtitle = "Create a self-signed credential to show",
+                            title = presentPassportTitle,
+                            subtitle = presentSelfSubtitle,
                         )
                     } else { true }
                     if (!approved) {
@@ -821,7 +833,7 @@ fun IdentityScreen(
                         presentError = null
                         presentNeedsSecondFactor = true
                     } catch (e: Throwable) {
-                        presentError = e.message ?: "Could not create the credential to present."
+                        presentError = e.message ?: createCredentialFailedMsg
                     }
                 }
             }
@@ -846,8 +858,8 @@ fun IdentityScreen(
                                 val approved = if (activity != null) {
                                     BiometricGate.authenticate(
                                         activity,
-                                        title = "Present passport",
-                                        subtitle = "Show your verified passport credential",
+                                        title = presentPassportTitle,
+                                        subtitle = presentIssuedSubtitle,
                                     )
                                 } else { true }
                                 if (!approved) {
@@ -877,8 +889,8 @@ fun IdentityScreen(
                                 val approved = if (activity != null) {
                                     BiometricGate.authenticate(
                                         activity,
-                                        title = "Share passport",
-                                        subtitle = "Create a verifiable QR to share",
+                                        title = sharePassportTitle,
+                                        subtitle = sharePassportSubtitle,
                                     )
                                 } else { true }
                                 if (!approved) {
@@ -910,7 +922,7 @@ fun IdentityScreen(
                                 presentError = null
                                 presentNeedsSecondFactor = true
                             } catch (e: Throwable) {
-                                presentError = e.message ?: "Could not build the share image."
+                                presentError = e.message ?: buildShareImageFailedMsg
                             }
                         }
                     },
@@ -1003,8 +1015,8 @@ fun IdentityScreen(
 
         else -> IdentityHub(
             error = error,
-            cards = remember(credentials, documents, holderDid) {
-                buildHubCards(credentials, documents, holderDid)
+            cards = remember(context, credentials, documents, holderDid) {
+                buildHubCards(context, credentials, documents, holderDid)
             },
             pendingPickups = pending,
             onCancelPending = { pendingPickups.cancel(it) },
@@ -1475,6 +1487,7 @@ private fun QuickActionPlaceholder(title: String, body: String, onBack: () -> Un
 // ---------------------------------------------------------------------------
 
 private fun buildHubCards(
+    context: Context,
     credentials: List<CredentialEntity>,
     documents: List<IDDocument>,
     holderDid: String?,
@@ -1495,7 +1508,7 @@ private fun buildHubCards(
         }
         .mapNotNull { entity -> credentialHubCard(entity) }
 
-    val documentCards = documents.map { documentHubCard(it) }
+    val documentCards = documents.map { documentHubCard(context, it) }
 
     return (credentialCards + documentCards).sortedWith(
         compareBy(
@@ -1536,7 +1549,7 @@ private fun credentialHubCard(entity: CredentialEntity): HubCard.Credential? {
     )
 }
 
-private fun documentHubCard(document: IDDocument): HubCard.Document {
+private fun documentHubCard(context: Context, document: IDDocument): HubCard.Document {
     val portrait: ImageBitmap? = document.portraitJpeg?.let { bytes ->
         runCatching {
             BitmapFactory.decodeByteArray(bytes, 0, bytes.size)?.asImageBitmap()
@@ -1555,7 +1568,7 @@ private fun documentHubCard(document: IDDocument): HubCard.Document {
         id = document.id.toString(),
         name = document.displayName,
         country = "$countryCode · NFC Scan",
-        documentType = document.kindLabel,
+        documentType = context.getString(document.kindLabelRes),
         // Expiry shows only inside the passport (its detail card), not on the
         // Identity list card (iOS parity).
         expiryText = null,
@@ -1566,7 +1579,7 @@ private fun documentHubCard(document: IDDocument): HubCard.Document {
         document = document,
         data = data,
         // ID documents sort under their kind label, then nickname, then country.
-        sortType = document.kindLabel,
+        sortType = context.getString(document.kindLabelRes),
         sortNick = document.nickname.orEmpty(),
         sortIssuer = document.summary,
     )

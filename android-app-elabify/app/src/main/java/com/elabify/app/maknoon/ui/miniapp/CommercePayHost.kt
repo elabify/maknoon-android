@@ -20,6 +20,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.foundation.layout.systemBarsPadding
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.platform.LocalContext
 import com.elabify.app.maknoon.miniapp.CommerceHolderContext
 import com.elabify.app.maknoon.miniapp.CommerceRequest
@@ -42,6 +43,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.json.JSONObject
+import com.elabify.app.maknoon.R
 
 @Composable
 fun CommercePayHost(
@@ -54,6 +56,10 @@ fun CommercePayHost(
     onNavigateToWallet: (chain: String) -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
+    val loadRequestFailedMsg = stringResource(R.string.commerce_could_not_load_request)
+    val paymentFailedMsg = stringResource(R.string.commerce_payment_failed)
+    val signingFailedMsg = stringResource(R.string.commerce_signing_failed)
+    val broadcastFailedMsg = stringResource(R.string.commerce_broadcast_failed)
     val driver = remember(request.requestId) {
         CommercePayDriver(ctx = ctx, request = request, responseBaseURL = responseBaseURL)
     }
@@ -82,7 +88,7 @@ fun CommercePayHost(
     // errorText so the sheet always renders something actionable.
     LaunchedEffect(request.requestId) {
         try {
-            val t = withContext(Dispatchers.IO) { driver.authenticate() }
+            val t = withContext(Dispatchers.IO) { driver.authenticate(context) }
             trust = t
             val m = withContext(Dispatchers.IO) { driver.matchCredential() }
             matched = m
@@ -106,7 +112,7 @@ fun CommercePayHost(
             }
         } catch (e: Exception) {
             phaseLabel = null
-            errorText = e.message ?: "Could not load the request."
+            errorText = e.message ?: loadRequestFailedMsg
         }
     }
 
@@ -132,7 +138,7 @@ fun CommercePayHost(
                 }
                 doneTxid = txid; phaseLabel = null; paying = false
             } catch (e: Exception) {
-                errorText = e.message ?: "Payment failed."; phaseLabel = null; paying = false
+                errorText = e.message ?: paymentFailedMsg; phaseLabel = null; paying = false
             }
         }
     }
@@ -146,7 +152,7 @@ fun CommercePayHost(
                 val p = withContext(Dispatchers.IO) { driver.prepare(cand, cred, hostPassphrase) }
                 signedPrepared = p; phaseLabel = null; paying = false
             } catch (e: Exception) {
-                errorText = e.message ?: "Signing failed."; phaseLabel = null; paying = false
+                errorText = e.message ?: signingFailedMsg; phaseLabel = null; paying = false
             }
         }
     }
@@ -161,7 +167,7 @@ fun CommercePayHost(
                 doneChain = p.chain; doneTxid = txid; signedPrepared = null
                 phaseLabel = null; paying = false
             } catch (e: Exception) {
-                errorText = e.message ?: "Broadcast failed."; phaseLabel = null; paying = false
+                errorText = e.message ?: broadcastFailedMsg; phaseLabel = null; paying = false
             }
         }
     }

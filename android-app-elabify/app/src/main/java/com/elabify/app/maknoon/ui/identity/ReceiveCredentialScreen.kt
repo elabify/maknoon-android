@@ -70,6 +70,7 @@ fun ReceiveCredentialScreen(
     onReceived: () -> Unit,
     onClose: () -> Unit,
 ) {
+    val receiveFailedMsg = stringResource(R.string.identity_could_not_receive_credential)
     var phase by remember { mutableStateOf<ReceivePhase>(ReceivePhase.Scan) }
     var manualUrl by remember { mutableStateOf("") }
     var pickupUrl by remember { mutableStateOf<String?>(null) }
@@ -88,7 +89,7 @@ fun ReceiveCredentialScreen(
                 receive(pickupUrl!!) { msg -> phase = ReceivePhase.Working(msg) }
                 phase = ReceivePhase.Done
             } catch (e: Throwable) {
-                phase = ReceivePhase.Error(e.message ?: "Could not receive the credential.")
+                phase = ReceivePhase.Error(e.message ?: receiveFailedMsg)
             }
         }
     }

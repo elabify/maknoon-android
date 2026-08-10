@@ -20,6 +20,7 @@
 package com.elabify.app.maknoon.miniapp
 
 import android.content.Context
+import com.elabify.app.maknoon.R
 import com.elabify.core.canonicalize
 import com.elabify.musnad.crypto.toHex
 import com.elabify.musnad.data.CredentialEntity
@@ -268,8 +269,7 @@ class RealCommerceHolderContext(
                 // the signer. Mirrors the EthereumSendScreen hardware path.
                 val device = DeviceRegistry(appContext).find(kind.deviceId)
                     ?: throw IllegalStateException(
-                        "The device that holds this wallet is not registered anymore. " +
-                            "Re-register it under Settings > Devices.",
+                        appContext.getString(R.string.eth_device_not_registered),
                     )
                 EthereumWallet(descriptor).prepareHardware(
                     signer = EthereumDeviceSigner(
@@ -357,8 +357,7 @@ class RealCommerceHolderContext(
             is SolanaWalletKind.Hardware -> {
                 val device = DeviceRegistry(appContext).find(kind.deviceId)
                     ?: throw IllegalStateException(
-                        "The device that holds this wallet is not registered anymore. " +
-                            "Re-register it under Settings > Devices.",
+                        appContext.getString(R.string.eth_device_not_registered),
                     )
                 val signerBase58 = kind.publicKeyBase58
                 val signerPublicKey = SolanaPrimitives.base58Decode(signerBase58)
@@ -464,8 +463,7 @@ class RealCommerceHolderContext(
             is TronWalletKind.Hardware -> {
                 val device = DeviceRegistry(appContext).find(kind.deviceId)
                     ?: throw IllegalStateException(
-                        "The device that holds this wallet is not registered anymore. " +
-                            "Re-register it under Settings > Devices.",
+                        appContext.getString(R.string.eth_device_not_registered),
                     )
                 // Build the unsigned tx against the hardware wallet's address, sign
                 // raw_data on the device (Ledger OR Trezor), re-applying the hidden
@@ -570,8 +568,7 @@ class RealCommerceHolderContext(
             is BitcoinWalletKind.Hardware -> {
                 val device = DeviceRegistry(appContext).find(kind.deviceId)
                     ?: throw IllegalStateException(
-                        "The device that holds this wallet is not registered anymore. " +
-                            "Re-register it under Settings > Devices.",
+                        appContext.getString(R.string.eth_device_not_registered),
                     )
                 // Hardware opens watch-only from the cached xpub (no sandwich).
                 val engine = BitcoinWalletEngine.open(descriptor, env.filesDirPath, null, null)

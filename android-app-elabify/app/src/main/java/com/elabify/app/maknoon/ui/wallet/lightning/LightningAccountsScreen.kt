@@ -174,13 +174,13 @@ private fun AddAccount(
         val t = raw.trim()
         val parsed = LightningAccountStore.parseImportURL(t)
         if (parsed == null) {
-            error = if (t.startsWith("http://", true) || t.startsWith("https://", true)) {
-                "That looks like a web wallet page link, not an LNDHub connection. In LNbits, " +
-                    "enable the LNDHub extension, open it, and scan the admin QR (an lndhub:// URL)."
-            } else {
-                "Could not read an lndhub:// connection URL. Expected " +
-                    "lndhub://login:password@host (the LNDHub extension QR)."
-            }
+            error = context.getString(
+                if (t.startsWith("http://", true) || t.startsWith("https://", true)) {
+                    R.string.ln_import_looks_like_web_page
+                } else {
+                    R.string.ln_import_not_an_lndhub_url
+                },
+            )
             return
         }
         error = null
@@ -208,7 +208,7 @@ private fun AddAccount(
             OutlinedButton(
                 onClick = {
                     val s = clipboardText(context)
-                    if (s.isNullOrBlank()) error = "Clipboard is empty." else applyImport(s)
+                    if (s.isNullOrBlank()) error = context.getString(R.string.ln_clipboard_empty) else applyImport(s)
                 },
                 modifier = Modifier.fillMaxWidth(),
             ) { Text(stringResource(R.string.ln_paste_lndhub_url)) }

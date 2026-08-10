@@ -33,6 +33,7 @@
         android:roundIcon="@mipmap/ic_launcher_round"
         android:label="Maknoon"
         android:supportsRtl="true"
+        android:localeConfig="@xml/locales_config"
         android:theme="@style/Theme.Maknoon">
         <activity
             android:name=".MainActivity"

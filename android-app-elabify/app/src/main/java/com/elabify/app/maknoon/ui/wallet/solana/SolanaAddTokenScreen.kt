@@ -92,7 +92,7 @@ internal fun SolanaAddTokenScreen(
                     source = SolanaTokenSource.CUSTOM
                     note = "Read decimals on-chain. Enter the symbol and name manually."
                 } else {
-                    error = "Could not read this mint on ${network.displayName}. Enter decimals manually."
+                    error = context.getString(R.string.sol_could_not_read_mint, network.displayName)
                 }
             }
             looking = false
@@ -148,7 +148,7 @@ internal fun SolanaAddTokenScreen(
             enabled = mint.isNotBlank() && symbol.isNotBlank() && decimals.toIntOrNull() != null,
             onClick = {
                 val d = decimals.toIntOrNull()
-                if (d == null) { error = "Decimals must be a whole number"; return@Button }
+                if (d == null) { error = context.getString(R.string.sol_decimals_whole_number); return@Button }
                 env.tokenStore.add(
                     SolanaSPLToken(
                         network = network,

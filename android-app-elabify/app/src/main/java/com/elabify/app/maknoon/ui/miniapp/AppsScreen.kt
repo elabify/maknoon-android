@@ -111,6 +111,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
@@ -147,6 +148,10 @@ import com.elabify.musnad.present.VerifierHistoryGroup
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import com.elabify.app.maknoon.ui.wallet.common.relativeSinceSec
+import com.elabify.app.maknoon.miniapp.localizedTitle
+import com.elabify.app.maknoon.miniapp.localizedSummary
+import com.elabify.app.maknoon.miniapp.localizedDetails
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -328,7 +333,7 @@ fun AppsScreen(resetKey: Int = 0, onNavigateToWallet: (String) -> Unit = {}) {
         Scaffold(
             topBar = {
                 TopAppBar(
-                    title = { Text(activeEntry.title) },
+                    title = { Text(activeEntry.localizedTitle) },
                     navigationIcon = {
                         IconButton(onClick = { launched = null }) {
                             Icon(
@@ -418,10 +423,12 @@ fun AppsScreen(resetKey: Int = 0, onNavigateToWallet: (String) -> Unit = {}) {
                         spec = MiniAppLaunchSpec(
                             installedAppId = current.installedAppId,
                             appId = activeEntry.appId,
-                            title = activeEntry.title,
+                            title = activeEntry.localizedTitle,
                             manifestUrl = activeEntry.manifestUrl,
                             manifestSha256 = activeEntry.manifestSha256,
                             grantedPermissions = granted,
+                            channel = activeEntry.channel ?: "stable",
+                            version = activeEntry.version.orEmpty(),
                         ),
                         handlerFactory = handlerFactory,
                         approvalSheetHost = approvalSheetHost,
@@ -585,12 +592,12 @@ private fun InstalledRow(
                     verticalArrangement = Arrangement.spacedBy(Spacing.xs),
                 ) {
                     Text(
-                        entry.title,
+                        entry.localizedTitle,
                         style = MaterialTheme.typography.titleSmall,
                         fontWeight = FontWeight.SemiBold,
                     )
                     Text(
-                        entry.summary,
+                        entry.localizedSummary,
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
@@ -709,7 +716,7 @@ private fun InstalledAppDetailSheet(
             ) {
                 AppIcon(entry.iconToken, large = true)
                 Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                    Text(entry.title, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.SemiBold)
+                    Text(entry.localizedTitle, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.SemiBold)
                     Text(
                         buildString {
                             append(entry.channelLabel)
@@ -721,13 +728,13 @@ private fun InstalledAppDetailSheet(
                     )
                 }
             }
-            Text(entry.summary, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            if (entry.details.isNotEmpty()) {
-                Text(entry.details, style = MaterialTheme.typography.bodyMedium)
+            Text(entry.localizedSummary, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            if (entry.localizedDetails.isNotEmpty()) {
+                Text(entry.localizedDetails, style = MaterialTheme.typography.bodyMedium)
             }
 
             // Permissions (revocable). iOS capabilitiesSection.
-            val caps = MiniAppCapabilityRegistry.disclosable(entry.permissions)
+            val caps = MiniAppCapabilityRegistry.disclosable(entry.permissions, LocalContext.current)
             if (caps.isNotEmpty()) {
                 Text(
                     stringResource(R.string.app_permissions),
@@ -743,8 +750,12 @@ private fun InstalledAppDetailSheet(
                     ) {
                         Icon(capIcon(cap.icon), contentDescription = null, tint = MaknoonBrand.accent, modifier = Modifier.size(22.dp))
                         Column(modifier = Modifier.weight(1f)) {
-                            Text(cap.label, style = MaterialTheme.typography.bodyMedium)
-                            Text(cap.reason, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            Text(stringResource(cap.labelRes), style = MaterialTheme.typography.bodyMedium)
+                            Text(
+                                stringResource(cap.reasonRes),
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
                         }
                         Switch(
                             checked = granted.contains(cap.token.lowercase()),
@@ -782,19 +793,6 @@ private fun InstalledAppDetailSheet(
 /** iOS verifierDidShort: keep DIDs <= 36 chars whole, else 20...10 with an ellipsis. */
 private fun verifierDidShort(did: String): String =
     if (did.length <= 36) did else "${did.take(20)}…${did.takeLast(10)}"
-
-/** Relative "3 min ago" style caption from a unix-seconds timestamp. */
-private fun relativeSinceSec(unixSec: Long): String {
-    val delta = System.currentTimeMillis() / 1000L - unixSec
-    if (delta < 0) return "just now"
-    return when {
-        delta < 5 -> "just now"
-        delta < 60 -> "${delta}s ago"
-        delta < 3600 -> "${delta / 60} min ago"
-        delta < 86_400 -> "${delta / 3600} h ago"
-        else -> "${delta / 86_400} d ago"
-    }
-}
 
 /** Soft brand-tinted rounded-square app icon (mirrors the iOS purple glyph). */
 @Composable
@@ -972,11 +970,15 @@ private fun CatalogListRow(
                     fontWeight = FontWeight.SemiBold,
                 )
                 Text(
-                    if (count == 1) {
-                        stringResource(R.string.app_app_count_one, count)
-                    } else {
-                        stringResource(R.string.app_app_count_other, count)
-                    },
+                    // The count is passed TWICE: once to select the category,
+                    // once to substitute. Omitting the third argument compiles
+                    // and renders a literal "%1$s"; lint does not catch it.
+                    //
+                    // toString() and %1$s, never a bare Int and %1$d: getQuantity
+                    // String formats %d through the RESOURCE locale, so an Arabic,
+                    // Persian or Bengali user would read Arabic-Indic digits here.
+                    // The other four plural sites already do this.
+                    pluralStringResource(R.plurals.app_app_count, count, count.toString()),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -1102,12 +1104,12 @@ private fun BrowseRow(entry: MiniAppCatalogEntry, installed: Boolean, onTap: () 
                 verticalArrangement = Arrangement.spacedBy(Spacing.xs),
             ) {
                 Text(
-                    entry.title,
+                    entry.localizedTitle,
                     style = MaterialTheme.typography.titleSmall,
                     fontWeight = FontWeight.SemiBold,
                 )
                 Text(
-                    entry.summary,
+                    entry.localizedSummary,
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -1171,7 +1173,7 @@ private fun InstallSheet(
             ) {
                 AppIcon(chosen.iconToken, large = true)
                 Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                    Text(chosen.title, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.SemiBold)
+                    Text(chosen.localizedTitle, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.SemiBold)
                     Text(
                         buildString {
                             append(chosen.channelLabel)
@@ -1222,13 +1224,13 @@ private fun InstallSheet(
                 Text(compatibility.label, style = MaterialTheme.typography.labelMedium, color = compatColor)
             }
 
-            Text(chosen.summary, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium)
-            if (chosen.details.isNotEmpty()) {
-                Text(chosen.details, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text(chosen.localizedSummary, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium)
+            if (chosen.localizedDetails.isNotEmpty()) {
+                Text(chosen.localizedDetails, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
 
             // "This app can" disclosure of declared capabilities + reasons.
-            val caps = MiniAppCapabilityRegistry.disclosable(chosen.permissions)
+            val caps = MiniAppCapabilityRegistry.disclosable(chosen.permissions, LocalContext.current)
             if (caps.isNotEmpty()) {
                 Column(
                     modifier = Modifier
@@ -1252,8 +1254,16 @@ private fun InstallSheet(
                         ) {
                             Icon(capIcon(cap.icon), contentDescription = null, tint = MaknoonBrand.accent, modifier = Modifier.size(22.dp))
                             Column(modifier = Modifier.weight(1f)) {
-                                Text(cap.label, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium)
-                                Text(cap.reason, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                Text(
+                                    stringResource(cap.labelRes),
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    fontWeight = FontWeight.Medium,
+                                )
+                                Text(
+                                    stringResource(cap.reasonRes),
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                )
                             }
                             if (cap.tier == CapabilityTier.PER_USE) {
                                 Text(

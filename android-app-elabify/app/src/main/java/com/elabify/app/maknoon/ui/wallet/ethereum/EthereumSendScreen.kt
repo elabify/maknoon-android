@@ -29,6 +29,8 @@
 
 package com.elabify.app.maknoon.ui.wallet.ethereum
 
+import java.util.Locale
+
 import android.content.ClipboardManager
 import android.content.Context
 import android.content.Intent
@@ -352,7 +354,7 @@ internal fun EthereumSendScreen(walletId: UUID, preselectTokenId: String?, onDon
             val spendable = EthereumWeiValue.fromDecimal(bal.decimal.subtract(fee.decimal))
             val spendableEth = spendable.ether.setScale(18, java.math.RoundingMode.DOWN)
             amount = if (fiatEntry && ethUnitPrice != null) {
-                String.format("%.2f", spendableEth.toDouble() * ethUnitPrice!!)
+                String.format(Locale.US, "%.2f", spendableEth.toDouble() * ethUnitPrice!!)
             } else {
                 spendableEth.stripTrailingZeros().toPlainString()
             }
@@ -703,12 +705,12 @@ internal fun EthereumSendScreen(walletId: UUID, preselectTokenId: String?, onDon
                             val pending = pendingChainSwitch!!
                             Column(verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
                                 Text(
-                                    "That code is for ${pending.displayName}. This wallet is on ${resolved.displayName}.",
+                                    stringResource(R.string.eth_that_code_is_for, pending.displayName, resolved.displayName),
                                     style = MaterialTheme.typography.labelSmall,
                                     color = MaterialTheme.colorScheme.tertiary,
                                 )
                                 TextButton(onClick = { applyPendingChainSwitch(pending) }) {
-                                    Text("Switch to ${pending.displayName} and continue")
+                                    Text(stringResource(R.string.eth_switch_and_continue, pending.displayName))
                                 }
                             }
                         }

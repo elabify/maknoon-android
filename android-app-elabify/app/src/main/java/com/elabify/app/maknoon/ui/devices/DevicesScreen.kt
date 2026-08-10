@@ -48,6 +48,7 @@
 
 package com.elabify.app.maknoon.ui.devices
 
+import androidx.annotation.StringRes
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -535,7 +536,7 @@ private fun DeviceDetailScreen(
                                 }
                             } else {
                                 Text(
-                                    promotionPrompt(device.kind),
+                                    stringResource(promotionPrompt(device.kind)),
                                     style = MaterialTheme.typography.bodyMedium,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 )
@@ -550,7 +551,7 @@ private fun DeviceDetailScreen(
                         }
                     }
                     Text(
-                        promotionFooter(device.kind),
+                        stringResource(promotionFooter(device.kind)),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.padding(horizontal = 24.dp, vertical = 8.dp),
@@ -612,29 +613,19 @@ private fun DetailSectionHeader(text: String) {
 private fun formatDate(epochMs: Long): String =
     DateFormat.getDateInstance(DateFormat.MEDIUM).format(Date(epochMs))
 
-private fun promotionPrompt(kind: DeviceKind): String = when (kind) {
-    DeviceKind.YUBIKEY ->
-        "Add this security key as a second factor. Tap it to the phone over NFC and enter its " +
-            "PIN; it derives a deterministic wrap key so the key can re-protect your recovery phrase."
-    DeviceKind.LEDGER ->
-        "Add this Ledger as a second factor. Unlock it and open the Ethereum app, then approve the " +
-            "signature; the deterministic signature derives the key that seals your recovery secret."
-    DeviceKind.TREZOR ->
-        "Add this Trezor as a second factor. Unlock it and approve the signature on the device."
-    DeviceKind.SEEDSIGNER ->
-        "SeedSigner is Bitcoin-only and cannot be a second factor. Use a Ledger, Trezor, or " +
-            "security key to wrap the recovery secret."
+@StringRes
+private fun promotionPrompt(kind: DeviceKind): Int = when (kind) {
+    DeviceKind.YUBIKEY -> R.string.devices_promote_prompt_yubikey
+    DeviceKind.LEDGER -> R.string.devices_promote_prompt_ledger
+    DeviceKind.TREZOR -> R.string.devices_promote_prompt_trezor
+    DeviceKind.SEEDSIGNER -> R.string.devices_promote_prompt_seedsigner
 }
 
-private fun promotionFooter(kind: DeviceKind): String = when (kind) {
-    DeviceKind.YUBIKEY ->
-        "Enrollment uses NFC and an on-key PIN. Your 24-word phrase and encrypted backup still work " +
-            "regardless, so you are never locked out if you lose the key."
-    DeviceKind.LEDGER, DeviceKind.TREZOR ->
-        "Enrollment runs over the device's existing Bluetooth transport. Your 24-word phrase and " +
-            "encrypted backup still work regardless."
-    DeviceKind.SEEDSIGNER ->
-        "SeedSigner is Bitcoin-only and cannot participate as a second factor."
+@StringRes
+private fun promotionFooter(kind: DeviceKind): Int = when (kind) {
+    DeviceKind.YUBIKEY -> R.string.devices_promote_footer_yubikey
+    DeviceKind.LEDGER, DeviceKind.TREZOR -> R.string.devices_promote_footer_ble
+    DeviceKind.SEEDSIGNER -> R.string.devices_promote_footer_seedsigner
 }
 
 // ===========================================================================
@@ -678,6 +669,7 @@ private fun RemoveFromSecondFactorDialog(
     onCompleted: () -> Unit,
     onCancel: () -> Unit,
 ) {
+    val removalFailedMsg = stringResource(R.string.devices_could_not_complete_removal)
     val scope = rememberCoroutineScope()
     var error by remember { mutableStateOf<String?>(null) }
     var busy by remember { mutableStateOf(false) }
@@ -726,7 +718,7 @@ private fun RemoveFromSecondFactorDialog(
                     // demoted device's wrap stays cleared, which is the intended
                     // direction (never re-add a wrap silently).
                     error = it.message
-                        ?: "Could not complete the removal. Try again."
+                        ?: removalFailedMsg
                 }
         }
     }
@@ -793,6 +785,7 @@ private fun PromoteToSecondFactorDialog(
     onPromoted: () -> Unit,
     onCancel: () -> Unit,
 ) {
+    val addSecondFactorFailedMsg = stringResource(R.string.devices_could_not_add_second_factor)
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     var busy by remember { mutableStateOf(false) }
@@ -851,7 +844,7 @@ private fun PromoteToSecondFactorDialog(
             result.onSuccess { onPromoted() }
                 .onFailure {
                     error = it.message
-                        ?: "Could not add this device as a second factor. Try again."
+                        ?: addSecondFactorFailedMsg
                 }
         }
     }

@@ -28,6 +28,9 @@
 
 package com.elabify.app.maknoon.iddocument
 
+import androidx.annotation.StringRes
+import com.elabify.app.maknoon.MaknoonApplication
+import com.elabify.app.maknoon.R
 import com.elabify.musnad.crypto.toHex
 import com.elabify.musnad.identity.IdentitySandwich
 import com.elabify.musnad.net.MaknoonHttp
@@ -37,30 +40,45 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.json.JSONObject
 
-/** Typed failures for the issuance flow, mirroring iOS IDDocumentIssuanceError. */
-sealed class IDDocumentIssuanceException(message: String) : Exception(message) {
+/**
+ * Typed failures for the issuance flow, mirroring iOS IDDocumentIssuanceError.
+ *
+ * These messages reach the user (the issuance sheet renders `e.message`), so
+ * they carry a string resource rather than a Kotlin literal. There is no
+ * Context here and two of the cases are `object` singletons, so the text is
+ * resolved on READ through the process-wide application context: resolving it
+ * at construction would freeze a singleton's message in whatever language was
+ * active the first time it was touched, and survive an in-app language change.
+ */
+sealed class IDDocumentIssuanceException(
+    @StringRes private val messageRes: Int,
+    private val detail: String? = null,
+) : Exception() {
+    override val message: String
+        get() = MaknoonApplication.appContext.let { ctx ->
+            if (detail == null) ctx.getString(messageRes)
+            else ctx.getString(messageRes, detail)
+        }
+
     /** The document is missing the chip-signed objects (SOD) the issuer needs. */
-    object MissingChipMaterial : IDDocumentIssuanceException(
-        "This document is missing the chip-signed objects needed for issuance. " +
-            "Re-tap the document so Maknoon can capture them.",
-    )
+    object MissingChipMaterial :
+        IDDocumentIssuanceException(R.string.id_issuance_missing_chip_material)
 
     /** The Identity Sandwich is not loaded. */
-    object IdentityNotLoaded : IDDocumentIssuanceException(
-        "Maknoon is locked. Unlock first.",
-    )
+    object IdentityNotLoaded :
+        IDDocumentIssuanceException(R.string.id_issuance_identity_locked)
 
     class MldsaSignFailed(detail: String) :
-        IDDocumentIssuanceException("Couldn't sign the issuance request: $detail")
+        IDDocumentIssuanceException(R.string.id_issuance_sign_failed, detail)
 
     class SubmitFailed(detail: String) :
-        IDDocumentIssuanceException("Issuer rejected the request: $detail")
+        IDDocumentIssuanceException(R.string.id_issuance_submit_failed, detail)
 
     class MalformedResponse(detail: String) :
-        IDDocumentIssuanceException("Unexpected response from issuer: $detail")
+        IDDocumentIssuanceException(R.string.id_issuance_malformed_response, detail)
 
     class IssuerDidLookupFailed(detail: String) :
-        IDDocumentIssuanceException("Couldn't reach the issuer to learn its DID: $detail")
+        IDDocumentIssuanceException(R.string.id_issuance_did_lookup_failed, detail)
 }
 
 /**

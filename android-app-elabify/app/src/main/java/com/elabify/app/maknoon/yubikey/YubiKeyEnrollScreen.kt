@@ -22,6 +22,9 @@
 // passport reader uses, so the two never fight over NfcAdapter reader-mode.
 
 package com.elabify.app.maknoon.yubikey
+import com.elabify.app.maknoon.R
+
+import androidx.compose.ui.res.stringResource
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -110,6 +113,7 @@ internal fun YubiKeyEnrollScreen(
     onFinished: (RegisteredDevice) -> Unit,
     onCancel: () -> Unit,
 ) {
+    val couldNotProtectWalletMsg = stringResource(R.string.yubikey_could_not_protect_wallet)
     val context = LocalContext.current
     val activity = context as? FragmentActivity
     val scope = rememberCoroutineScope()
@@ -134,7 +138,7 @@ internal fun YubiKeyEnrollScreen(
     // the CEK is never rotated, so every previously enrolled key keeps working.
     val runEnroll: (existingCek: ByteArray?) -> Unit = runEnroll@{ existingCek ->
         val ctl = controller ?: run {
-            error = "NFC is unavailable on this device."
+            error = context.getString(R.string.yubikey_nfc_unavailable)
             return@runEnroll
         }
         val finalLabel = label.trim().ifEmpty { DeviceKind.YUBIKEY.displayName }
@@ -198,7 +202,7 @@ internal fun YubiKeyEnrollScreen(
                         phase = YubiKeyPhase.MUST_SET_PIN
                     }
                     EnrollOutcome.NeedPin -> {
-                        error = "This security key has a FIDO2 PIN set. Enter it above, then tap Enroll again."
+                        error = context.getString(R.string.yubikey_needs_pin)
                         phase = YubiKeyPhase.DETAILS
                     }
                     is EnrollOutcome.Ok -> {
@@ -236,7 +240,7 @@ internal fun YubiKeyEnrollScreen(
                         sealResult.onFailure {
                             android.util.Log.e("YubiKeyClient", "seal failed", it)
                             error = it.message
-                                ?: "Could not protect the wallet with this security key."
+                                ?: couldNotProtectWalletMsg
                             phase = YubiKeyPhase.DETAILS
                         }.onSuccess { seal ->
                             // Register (idempotent), then record the full Identity
@@ -285,10 +289,10 @@ internal fun YubiKeyEnrollScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Add a security key") },
+                title = { Text(stringResource(R.string.yubikey_add_a_security_key)) },
                 navigationIcon = {
                     IconButton(onClick = onCancel) {
-                        Icon(Icons.Filled.Close, contentDescription = "Cancel")
+                        Icon(Icons.Filled.Close, contentDescription = stringResource(R.string.common_cancel))
                     }
                 },
             )
@@ -312,12 +316,12 @@ internal fun YubiKeyEnrollScreen(
                         modifier = Modifier.size(64.dp),
                     )
                     Text(
-                        "Add a security key as a second factor",
+                        stringResource(R.string.yubikey_add_a_security_key_2fa),
                         style = MaterialTheme.typography.titleMedium,
                         textAlign = TextAlign.Center,
                     )
                     Text(
-                        "You will tap the key once to enroll it. After that, you tap it to unlock sensitive actions (recovery phrase, signing). Your wallet stays protected by your fingerprint plus this key.",
+                        stringResource(R.string.yubikey_you_will_tap_the),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         textAlign = TextAlign.Center,
@@ -325,7 +329,7 @@ internal fun YubiKeyEnrollScreen(
                     OutlinedTextField(
                         value = label,
                         onValueChange = { label = it },
-                        label = { Text("Name this key (e.g. \"Primary YubiKey\")") },
+                        label = { Text(stringResource(R.string.yubikey_name_this_key_e_g)) },
                         singleLine = true,
                         modifier = Modifier.fillMaxWidth(),
                     )
@@ -335,11 +339,11 @@ internal fun YubiKeyEnrollScreen(
                         label = "FIDO2 PIN",
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.NumberPassword),
                         supportingText = {
-                            Text("Most security keys have a FIDO2 PIN. Enter it here. Leave blank only if your key has no PIN.")
+                            Text(stringResource(R.string.yubikey_most_security_keys_have_a))
                         },
                     )
                     Button(onClick = enroll, modifier = Modifier.fillMaxWidth()) {
-                        Text("Tap key to enroll")
+                        Text(stringResource(R.string.yubikey_tap_key_to_enroll))
                     }
                 }
 
@@ -351,12 +355,12 @@ internal fun YubiKeyEnrollScreen(
                         modifier = Modifier.size(96.dp),
                     )
                     Text(
-                        "Hold the key against the phone",
+                        stringResource(R.string.yubikey_hold_the_key_against),
                         style = MaterialTheme.typography.titleMedium,
                         textAlign = TextAlign.Center,
                     )
                     Text(
-                        "Lay the security key flat against the top-back of the phone and keep it still until this finishes. Touch the key if it blinks.",
+                        stringResource(R.string.yubikey_lay_the_security_key),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         textAlign = TextAlign.Center,
@@ -369,9 +373,9 @@ internal fun YubiKeyEnrollScreen(
                         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.errorContainer),
                     ) {
                         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                            Text("Set a PIN on this security key first", style = MaterialTheme.typography.titleSmall)
+                            Text(stringResource(R.string.yubikey_set_a_pin_on_this), style = MaterialTheme.typography.titleSmall)
                             Text(
-                                "Enrollment needs user verification, and this key has no FIDO2 PIN set. Open Yubico Authenticator (or another FIDO2 tool), set a FIDO2 PIN on the key, then come back and tap Enroll again.",
+                                stringResource(R.string.yubikey_enrollment_needs_user_verification),
                                 style = MaterialTheme.typography.bodySmall,
                             )
                         }
@@ -379,7 +383,7 @@ internal fun YubiKeyEnrollScreen(
                     Button(
                         onClick = { phase = YubiKeyPhase.DETAILS },
                         modifier = Modifier.fillMaxWidth(),
-                    ) { Text("I have set a PIN, try again") }
+                    ) { Text(stringResource(R.string.yubikey_i_have_set_a_pin)) }
                 }
 
                 YubiKeyPhase.RECOVER_EXISTING -> {
@@ -390,14 +394,12 @@ internal fun YubiKeyEnrollScreen(
                         modifier = Modifier.size(64.dp),
                     )
                     Text(
-                        "Confirm with a key you already use",
+                        stringResource(R.string.yubikey_confirm_with_existing_key),
                         style = MaterialTheme.typography.titleMedium,
                         textAlign = TextAlign.Center,
                     )
                     Text(
-                        "Your wallet already has a second factor. Confirm with one of your enrolled " +
-                            "security keys so this new key can be added alongside it. Any one of your " +
-                            "keys will then unlock your wallet.",
+                        stringResource(R.string.yubikey_confirm_with_existing_key_body),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         textAlign = TextAlign.Center,
@@ -409,9 +411,8 @@ internal fun YubiKeyEnrollScreen(
                     SecondFactorRecoverDialog(
                         activity = activity,
                         registry = registry,
-                        title = "Confirm with an enrolled key",
-                        message = "Confirm with one of your already-enrolled security keys to add this " +
-                            "new key as another second factor.",
+                        title = stringResource(R.string.devices_confirm_with_enrolled_key),
+                        message = stringResource(R.string.yubikey_confirm_enrolled_to_add),
                         onRecovered = { cek -> runEnroll(cek) },
                         onError = { error = it; phase = YubiKeyPhase.DETAILS },
                         onCancel = { phase = YubiKeyPhase.DETAILS },
@@ -425,9 +426,9 @@ internal fun YubiKeyEnrollScreen(
                         tint = MaterialTheme.colorScheme.primary,
                         modifier = Modifier.size(96.dp),
                     )
-                    Text("Security key enrolled", style = MaterialTheme.typography.titleMedium)
+                    Text(stringResource(R.string.yubikey_security_key_enrolled), style = MaterialTheme.typography.titleMedium)
                     Text(
-                        "This key is now your second factor. You will tap it to unlock sensitive actions.",
+                        stringResource(R.string.yubikey_this_key_is_now),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         textAlign = TextAlign.Center,
@@ -449,7 +450,7 @@ internal fun YubiKeyEnrollScreen(
                 }
                 if (phase == YubiKeyPhase.DETAILS) {
                     OutlinedButton(onClick = enroll, modifier = Modifier.fillMaxWidth()) {
-                        Text("Try again")
+                        Text(stringResource(R.string.common_try_again))
                     }
                 }
             }

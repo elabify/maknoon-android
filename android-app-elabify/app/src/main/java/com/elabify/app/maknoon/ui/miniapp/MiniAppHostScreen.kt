@@ -29,6 +29,7 @@
 package com.elabify.app.maknoon.ui.miniapp
 
 import android.annotation.SuppressLint
+import com.elabify.app.maknoon.ui.theme.AppLanguageCatalog
 import android.webkit.WebResourceRequest
 import android.webkit.WebResourceResponse
 import android.webkit.WebView
@@ -82,6 +83,11 @@ data class MiniAppLaunchSpec(
     val manifestSha256: String,
     /** Capability tokens the user granted this install. */
     val grantedPermissions: Set<String>,
+    /** Release channel of THIS install ("stable"/"beta"), handed to the bundle
+     *  so it can badge itself. One bundle serves both channels. */
+    val channel: String = "stable",
+    /** Catalog version of this install, e.g. "0.1.8". */
+    val version: String = "",
 )
 
 /**
@@ -138,6 +144,7 @@ fun MiniAppHostScreen(
     approvalSheetHost: MiniAppApprovalSheetHost = cancelUnknownSheetHost,
     modifier: Modifier = Modifier,
 ) {
+    val couldNotOpenAppMsg = stringResource(R.string.miniapp_could_not_open_app)
     var phase by remember(spec.installedAppId) { mutableStateOf<Phase>(Phase.Loading) }
     val gate = remember(spec.installedAppId) { ApprovalGate() }
 
@@ -152,7 +159,7 @@ fun MiniAppHostScreen(
             )
             Phase.Ready(bundle)
         } catch (e: Exception) {
-            Phase.Failed(e.message ?: "Could not open app")
+            Phase.Failed(e.message ?: couldNotOpenAppMsg)
         }
     }
 
@@ -267,6 +274,8 @@ private fun MiniAppWebView(
                 sink = sink,
                 appId = spec.appId,
                 appTitle = spec.title,
+                appChannel = spec.channel,
+                appVersion = spec.version,
             )
             webView.addJavascriptInterface(bridge, MiniAppBridge.JS_INTERFACE_NAME)
 
@@ -435,15 +444,20 @@ private const val CSP =
  * ar -> rtl) so the host injection and the bundle agree. iOS analog: localeScript
  * in MiniAppHostView.
  */
+/**
+ * Inject `lang` and `dir` at document-start, before the bundle renders, so there
+ * is no left-to-right flash and a mini-app gets correct direction even if it
+ * ignores `device.info()` (ADR-0038: the dApp owns strings, the host owns
+ * direction).
+ *
+ * This used to test `startsWith("ar")` for RTL and collapse every `zh-*` to
+ * Simplified. Both were wrong once the roster grew: Hebrew, Urdu, Persian and
+ * Sorani Kurdish would have rendered left-to-right, and Traditional readers
+ * would have been shown Simplified.
+ */
 private fun localeShim(localeTag: String): String {
-    val id = localeTag.lowercase()
-    val lang: String
-    val dir: String
-    when {
-        id.startsWith("ar") -> { lang = "ar"; dir = "rtl" }
-        id.startsWith("zh") -> { lang = "zh-Hans"; dir = "ltr" }
-        else -> { lang = "en"; dir = "ltr" }
-    }
+    val lang = normalizeMiniAppLocale(localeTag)
+    val dir = if (lang in AppLanguageCatalog.rtlCodes) "rtl" else "ltr"
     return """
     (function () {
       var e = document.documentElement;
@@ -576,3 +590,22 @@ private fun providerShim(): String = """
   } catch (e) {}
 })();
 """.trimIndent()
+
+/**
+ * Reduce any device locale tag to a code the mini-app bundles actually ship.
+ * Mirror of iOS MiniAppLocale.normalize.
+ *
+ * Longest-prefix, not first-match: `zh-Hant-TW` must reach `zh-Hant` rather than
+ * being swallowed by `zh-Hans`, and `ckb` must not be confused with `ku`.
+ */
+private fun normalizeMiniAppLocale(tag: String): String {
+    val lower = tag.lowercase().replace('_', '-')
+    val codes = AppLanguageCatalog.all.map { it.code }
+    codes.firstOrNull { it.lowercase() == lower }?.let { return it }
+    codes.filter { lower.startsWith(it.lowercase() + "-") }
+        .maxByOrNull { it.length }?.let { return it }
+    val base = lower.substringBefore('-')
+    codes.firstOrNull { it.lowercase() == base }?.let { return it }
+    codes.firstOrNull { it.lowercase().startsWith("$base-") }?.let { return it }
+    return "en"
+}

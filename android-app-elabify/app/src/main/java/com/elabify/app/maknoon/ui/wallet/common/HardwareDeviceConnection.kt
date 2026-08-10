@@ -24,6 +24,7 @@
 package com.elabify.app.maknoon.ui.wallet.common
 
 import com.elabify.app.maknoon.MaknoonApplication
+import com.elabify.app.maknoon.R
 import com.elabify.musnad.devices.DeviceKind
 import com.elabify.musnad.devices.DeviceRegistry
 import com.elabify.musnad.devices.RegisteredDevice
@@ -174,8 +175,12 @@ suspend fun <T> withHardwareDevice(
                     registry.rebindSerial(device.id, liveSerial)
                 } else {
                     throw IllegalStateException(
-                        "Connected device serial $liveSerial does not match ${device.serial}. " +
-                            "Connect the correct ${device.kind.displayName}.",
+                        MaknoonApplication.appContext.getString(
+                            R.string.devices_serial_mismatch,
+                            liveSerial,
+                            device.serial,
+                            device.kind.displayName,
+                        ),
                     )
                 }
             }

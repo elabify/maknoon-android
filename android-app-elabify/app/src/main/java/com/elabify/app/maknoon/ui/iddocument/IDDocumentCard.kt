@@ -85,7 +85,7 @@ fun IDDocumentCard(
                 )
             }
             Text(
-                stringResource(R.string.id_kind_summary, document.kindLabel, document.summary),
+                stringResource(R.string.id_kind_summary, stringResource(document.kindLabelRes), document.summary),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 maxLines = 1,

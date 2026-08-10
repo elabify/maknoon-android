@@ -115,7 +115,7 @@ internal fun EthereumSignMessageScreen(
             verticalArrangement = Arrangement.spacedBy(14.dp),
         ) {
             if (active == null) {
-                Text("No active wallet. Pick one in the Ethereum tab first.", color = MaterialTheme.colorScheme.error)
+                Text(stringResource(R.string.eth_no_active_wallet_pick_one), color = MaterialTheme.colorScheme.error)
                 return@Column
             }
 
@@ -124,7 +124,7 @@ internal fun EthereumSignMessageScreen(
             }
             active.address?.let { EthLabeledCopyableField(label = stringResource(R.string.wallet_signing_address), value = it) }
             Text(
-                "Signs with the EIP-191 \"personal_sign\" format (the one MetaMask and Etherscan produce). The signature is bound to this wallet's address.",
+                stringResource(R.string.eth_signs_with_the_eip_191),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
@@ -132,7 +132,7 @@ internal fun EthereumSignMessageScreen(
             OutlinedTextField(
                 value = message,
                 onValueChange = { message = it },
-                label = { Text("Message") },
+                label = { Text(stringResource(R.string.btc_message)) },
                 minLines = 3,
                 modifier = Modifier.fillMaxWidth(),
             )
@@ -141,10 +141,10 @@ internal fun EthereumSignMessageScreen(
                 PassphraseField(
                     value = hostPassphrase,
                     onValueChange = { hostPassphrase = it },
-                    label = "Hidden wallet passphrase",
+                    label = stringResource(R.string.wallet_hidden_wallet_passphrase),
                 )
                 Text(
-                    "This is a hidden (passphrase) wallet. Enter its passphrase to sign; it is never stored.",
+                    stringResource(R.string.btc_hidden_passphrase_wallet_sign),
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -207,7 +207,7 @@ internal fun EthereumSignMessageScreen(
             }
             if (isHardware) {
                 Text(
-                    "You'll confirm the message on the device screen.",
+                    stringResource(R.string.btc_youll_confirm_the_message),
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -252,27 +252,27 @@ internal fun EthereumVerifyMessageScreen(onClose: () -> Unit) {
             verticalArrangement = Arrangement.spacedBy(14.dp),
         ) {
             Text(
-                "Verifies an EIP-191 \"personal_sign\" signature (MetaMask / Etherscan). Paste the address, message, and 0x-hex signature from any source.",
+                stringResource(R.string.eth_verifies_an_eip_191),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
             OutlinedTextField(
                 value = address,
                 onValueChange = { address = it; result = null },
-                label = { Text("Address (0x…)") },
+                label = { Text(stringResource(R.string.eth_address_0x)) },
                 modifier = Modifier.fillMaxWidth(),
             )
             OutlinedTextField(
                 value = message,
                 onValueChange = { message = it; result = null },
-                label = { Text("Message") },
+                label = { Text(stringResource(R.string.btc_message)) },
                 minLines = 3,
                 modifier = Modifier.fillMaxWidth(),
             )
             OutlinedTextField(
                 value = signature,
                 onValueChange = { signature = it; result = null },
-                label = { Text("Signature (0x…)") },
+                label = { Text(stringResource(R.string.eth_signature_0x)) },
                 minLines = 2,
                 modifier = Modifier.fillMaxWidth(),
             )
@@ -286,14 +286,14 @@ internal fun EthereumVerifyMessageScreen(onClose: () -> Unit) {
                         signature = signature.trim(),
                     )
                 },
-            ) { Text("Verify signature") }
+            ) { Text(stringResource(R.string.btc_verify_signature)) }
             when (result) {
                 true -> Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                     Icon(Icons.Filled.CheckCircle, contentDescription = null, tint = Color(0xFF2E7D32))
-                    Text("Signature valid", color = Color(0xFF2E7D32))
+                    Text(stringResource(R.string.btc_signature_valid), color = Color(0xFF2E7D32))
                 }
                 false -> Text(
-                    "Signature does not match this address and message",
+                    stringResource(R.string.btc_signature_does_not_match),
                     color = MaterialTheme.colorScheme.error,
                 )
                 null -> {}

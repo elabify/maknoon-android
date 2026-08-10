@@ -97,21 +97,6 @@ internal fun resolveCurrentNetwork(context: Context): ResolvedNetwork {
 internal fun shortHex(s: String, head: Int = 6, tail: Int = 4): String =
     if (s.length <= head + tail + 1) s else "${s.take(head)}…${s.takeLast(tail)}"
 
-/** Relative "3 min ago" / "just now" freshness hint from an epoch-ms ts. */
-internal fun ethRelativeSince(epochMs: Long?): String {
-    if (epochMs == null) return "Never synced"
-    val delta = System.currentTimeMillis() - epochMs
-    if (delta < 0) return "just now"
-    val sec = delta / 1000
-    return when {
-        sec < 5 -> "just now"
-        sec < 60 -> "${sec}s ago"
-        sec < 3600 -> "${sec / 60} min ago"
-        sec < 86_400 -> "${sec / 3600} h ago"
-        else -> "${sec / 86_400} d ago"
-    }
-}
-
 /** Format a wei decimal string into a human "value SYMBOL" string. */
 internal fun formatUnitsDecimal(rawDecimal: String, decimals: Int, maxDecimals: Int = 6): String {
     val raw = runCatching { BigDecimal(rawDecimal) }.getOrNull() ?: return "0"

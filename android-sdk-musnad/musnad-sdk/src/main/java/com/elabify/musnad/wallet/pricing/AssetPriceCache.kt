@@ -30,6 +30,8 @@
 
 package com.elabify.musnad.wallet.pricing
 
+import java.util.Locale
+
 import android.content.Context
 import android.content.SharedPreferences
 import com.elabify.musnad.net.MaknoonHttp
@@ -115,7 +117,7 @@ object AssetPriceCache {
         nf.currency = Currency.getInstance(code.uppercase())
         nf.format(value)
     } catch (_: Throwable) {
-        String.format("%,.2f %s", value, code.uppercase())
+        String.format(Locale.US, "%,.2f %s", value, code.uppercase())
     }
 
     // ---- refreshes (blocking; call off the main thread) ----------------------

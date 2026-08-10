@@ -645,7 +645,7 @@ fun CurrencySettingsScreen(onBack: () -> Unit) {
                                     FiatPreferences.coinGeckoBaseURL = FiatPreferences.DEFAULT_COINGECKO
                                     FiatPreferences.fxBaseURL = FiatPreferences.DEFAULT_FX
                                 },
-                            ) { Text(stringResource(R.string.settings_reset_to_defaults)) }
+                            ) { Text(stringResource(R.string.settings_use_defaults)) }
                         }
                     }
                     MiscFooter(
@@ -681,6 +681,13 @@ private fun previewRow(label: String, code: String) {
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun DisplaySettingsScreen(onBack: () -> Unit) {
+    var showLanguagePicker by remember { mutableStateOf(false) }
+
+    if (showLanguagePicker) {
+        LanguagePickerScreen(onPicked = { showLanguagePicker = false })
+        return
+    }
+
     val context = LocalContext.current
     DisplayPreferences.init(context)
     // Read the observable shared prefs directly so changes apply app-wide.
@@ -716,8 +723,8 @@ fun DisplaySettingsScreen(onBack: () -> Unit) {
                     MenuPickerRow(
                         icon = Icons.Filled.Palette,
                         label = stringResource(R.string.settings_theme),
-                        valueLabel = theme.label,
-                        options = AppTheme.entries.map { it to it.label },
+                        valueLabel = stringResource(theme.labelRes),
+                        options = AppTheme.entries.map { it to stringResource(it.labelRes) },
                         onSelect = { DisplayPreferences.theme = it },
                     )
                 }
@@ -733,8 +740,8 @@ fun DisplaySettingsScreen(onBack: () -> Unit) {
                     MenuPickerRow(
                         icon = Icons.Filled.Lock,
                         label = stringResource(R.string.settings_auto_lock),
-                        valueLabel = autoLock.label,
-                        options = AutoLockTimeout.entries.map { it to it.label },
+                        valueLabel = stringResource(autoLock.labelRes),
+                        options = AutoLockTimeout.entries.map { it to stringResource(it.labelRes) },
                         onSelect = { DisplayPreferences.autoLock = it },
                     )
                 }
@@ -745,17 +752,15 @@ fun DisplaySettingsScreen(onBack: () -> Unit) {
             Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
                 MiscHeader(stringResource(R.string.settings_language))
                 MiscSectionCard {
-                    MenuPickerRow(
+                    // A pushed searchable screen, not a dropdown: 32 options in a
+                    // menu is unusable, and this is the one screen a user needs to
+                    // operate while unable to read the current language.
+                    SettingNavRow(
                         icon = Icons.Filled.Language,
                         label = stringResource(R.string.settings_language),
-                        valueLabel = language.label,
-                        options = AppLanguage.entries.map { it to it.label },
-                        onSelect = {
-                            DisplayPreferences.language = it
-                            // Re-create so attachBaseContext re-applies the locale
-                            // (layout direction, formatting) across the app.
-                            (context as? android.app.Activity)?.recreate()
-                        },
+                        value = language.selfName
+                            ?: stringResource(R.string.settings_language_use_phone),
+                        onClick = { showLanguagePicker = true },
                     )
                 }
                 MiscFooter(stringResource(R.string.settings_language_footer))
@@ -1154,3 +1159,27 @@ private val COMPONENTS: List<ComponentEntry> = listOf(
     ComponentEntry("Swift Collections", "1.1.4", "Apache 2.0", "https://github.com/wolfmcnally/swift-collections"),
     ComponentEntry("OpenSSL", "3.3.3001", "Apache 2.0", "https://github.com/krzyzanowskim/OpenSSL-Package"),
 )
+
+@Composable
+private fun SettingNavRow(
+    icon: ImageVector,
+    label: String,
+    value: String,
+    onClick: () -> Unit,
+) {
+    Row(
+        Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick)
+            .padding(horizontal = Spacing.md, vertical = Spacing.sm + 2.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+    ) {
+        Icon(icon, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
+        Text(label, Modifier.weight(1f), style = MaterialTheme.typography.bodyLarge)
+        Text(value, style = MaterialTheme.typography.bodyMedium,
+             color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, contentDescription = null,
+             tint = MaterialTheme.colorScheme.onSurfaceVariant)
+    }
+}

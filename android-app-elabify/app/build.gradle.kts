@@ -80,7 +80,7 @@ android {
         // dev value. versionName/MARKETING stays at the release. Mirrors the iOS
         // CURRENT_PROJECT_VERSION=run_number approach (ADR-0048 0.6.3 hardening).
         versionCode = System.getenv("ANDROID_VERSION_CODE")?.toIntOrNull() ?: 11
-        versionName = "0.6.9"
+        versionName = "0.7.0"
         buildConfigField("String", "GIT_COMMIT", "\"${gitShortSha()}\"")
         // WalletConnect / Reown Cloud project id (ADR-0049). Public client id,
         // allowlisted by app id in Reown Cloud; not a secret.
@@ -149,9 +149,51 @@ android {
     // detector crash as a build-failing error. Release assembly is a shipping step,
     // not a code-quality gate, so skip lint here; also disable the crashing detector
     // as a belt-and-braces guard for any other variant.
+    bundle {
+        language {
+            // Play defaults this to TRUE, which delivers ONLY the split matching
+            // the device's system locale. The in-app picker can then offer a
+            // language whose resources were never installed, and it silently
+            // falls back to English. Measured as a real defect at 3 locales; at
+            // 31 it would be the common case.
+            //
+            // The app never calls SplitInstallManager, so the fix is to ship
+            // every locale in the base. Costs roughly 3.8 MB. The size-optimal
+            // alternative (deferred language install) also moves the language
+            // out of our own SharedPreferences, which would break ADR-0065's
+            // requirement that every setting round-trips through the backup.
+            enableSplit = false
+        }
+    }
+
     lint {
         checkReleaseBuilds = false
-        disable += "NonNullableMutableLiveData"
+        // The ISSUE id is NullSafeMutableLiveData; NonNullableMutableLiveData is
+        // the DETECTOR class name and silently matches nothing, so this disable
+        // never took effect and the detector kept running. It crashes the whole
+        // analysis on Kotlin 2.x ("Found class KaCallableMemberCall, but
+        // interface was expected"), which is what made lint unrunnable and forced
+        // checkReleaseBuilds = false.
+        disable += "NullSafeMutableLiveData"
+        // i18n correctness, promoted to errors now that 31 locales ship.
+        //
+        // The project's own gate (scripts/check-i18n.sh) checks the corpus and
+        // the catalogs; these check the compiled RESOURCES, which is a different
+        // question and the one that crashes at runtime. A plural missing a
+        // category its locale requires, or a format string whose argument count
+        // stops matching its base, is invisible to a Kotlin compile and to a
+        // gate that reads the TM.
+        //
+        // MissingTranslation stays a warning deliberately: a handful of units
+        // are protected-term-only and fall back to English on purpose.
+        error += listOf(
+            "MissingQuantity",      // a locale's required plural category absent
+            "ImpliedQuantity",      // a quantity string with no number in it
+            "StringFormatCount",    // base and translation disagree on arg count
+            "StringFormatMatches",  // and on argument TYPE
+            "StringFormatInvalid",
+            "ExtraTranslation",     // a key in a locale that the base dropped
+        )
     }
 
     packaging {

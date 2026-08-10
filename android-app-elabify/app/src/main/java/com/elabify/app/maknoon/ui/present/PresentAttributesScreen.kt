@@ -213,8 +213,8 @@ fun PresentAttributesScreen(
             val approved = if (activity != null) {
                 BiometricGate.authenticate(
                     activity,
-                    title = "Share credential",
-                    subtitle = "Releasing to $verifierDid",
+                    title = context.getString(R.string.present_share_credential),
+                    subtitle = context.getString(R.string.present_releasing_to, verifierDid),
                 )
             } else {
                 true
@@ -827,7 +827,7 @@ private fun RotatingFramesCard(frames: List<LocalFrames.Frame>) {
                 }
             }
             Text(
-                stringResource(R.string.present_offline_frame, index + 1, frames.size),
+                stringResource(R.string.present_offline_frame, (index + 1).toString(), frames.size.toString()),
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )

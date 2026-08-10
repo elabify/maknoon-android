@@ -24,6 +24,7 @@
 package com.elabify.app.maknoon.yubikey
 
 import android.content.Context
+import com.elabify.app.maknoon.R
 import com.elabify.musnad.crypto.hexToBytes
 import com.elabify.musnad.devices.DeviceKind
 import com.elabify.musnad.devices.RegisteredDevice
@@ -91,8 +92,12 @@ class HardwareSecondFactor(
             try {
                 val liveSerial = wallet.identifyDevice()
                 require(liveSerial == device.serial) {
-                    "Connected device serial $liveSerial does not match ${device.serial}. " +
-                        "Connect the correct ${device.kind.displayName}."
+                    context.getString(
+                        R.string.devices_serial_mismatch,
+                        liveSerial,
+                        device.serial,
+                        device.kind.displayName,
+                    )
                 }
                 // The deterministic secret is keyed by the device seed at the fixed
                 // account-0 path. signMessage always signs in the STANDARD wallet

@@ -3,6 +3,9 @@
 // the iOS monospaced address rows that the user can copy.
 
 package com.elabify.app.maknoon.ui.components
+import com.elabify.app.maknoon.R
+
+import androidx.compose.ui.res.stringResource
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -75,7 +78,7 @@ fun AddressChip(
         )
         Icon(
             imageVector = Icons.Outlined.ContentCopy,
-            contentDescription = "Copy",
+            contentDescription = stringResource(R.string.btc_copy),
             tint = LocalContentColor.current.copy(alpha = 0.6f),
             modifier = Modifier.size(16.dp),
         )

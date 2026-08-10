@@ -16,12 +16,14 @@
 package com.elabify.app.maknoon.iddocument
 
 import android.app.Activity
+import android.content.Context
 import android.nfc.NfcAdapter
 import android.nfc.Tag
 import android.nfc.tech.IsoDep
 import android.os.Bundle
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import com.elabify.app.maknoon.R
 import net.sf.scuba.smartcards.CardService
 import net.sf.scuba.smartcards.CardServiceException
 import org.jmrtd.BACKey
@@ -134,8 +136,12 @@ sealed class IDDocumentReaderError(message: String) : Exception(message) {
 /**
  * The NFC eMRTD reader. Stateless, so a single shared instance is fine; the
  * tag-bound work happens entirely inside [read].
+ *
+ * [context] is held only to resolve the user-facing failure copy in [read] and
+ * [humanMessage]: those run deep inside a coroutine, far from any composable,
+ * so a Context is how the strings reach the corpus at all.
  */
-class IDDocumentReader {
+class IDDocumentReader(private val context: Context) {
 
     /**
      * Read the chip behind [isoDep] using the access key derived from
@@ -197,7 +203,7 @@ class IDDocumentReader {
             throw IDDocumentReaderError.ReadFailed(humanMessage(e))
         } catch (e: Exception) {
             throw IDDocumentReaderError.ReadFailed(
-                "Lost connection to the document. Hold the phone steady against the photo page and try again."
+                context.getString(R.string.id_lost_connection_to_document)
             )
         }
 
@@ -626,26 +632,26 @@ class IDDocumentReader {
         val sw = e.sw and 0xFFFF
         if (sw == 0) {
             // No status word: the channel dropped or the host refused the APDU.
-            return "Lost connection to the document. Hold the phone steady against the photo page and try again."
+            return context.getString(R.string.id_lost_connection_to_document)
         }
         val sw1 = (sw shr 8) and 0xFF
         val sw2 = sw and 0xFF
         val swHex = "0x%04X".format(sw)
         return when {
             (sw1 == 0x6A && sw2 == 0x88) || (sw1 == 0x6A && sw2 == 0x82) ->
-                "This card doesn't expose the standard ICAO data groups (chip rejected the read with $swHex). " +
-                    "Some national-ID cards use vendor-specific applets that require an issuer-registered service to read."
+                context.getString(R.string.id_chip_no_icao_data_groups, swHex)
             (sw1 == 0x63) || (sw1 == 0x69 && sw2 == 0x82) ->
-                "The chip rejected the document number / birth date / expiry combination ($swHex). " +
-                    "Re-check those three values against the data page (watch O vs 0 and 1 vs I), and make sure the expiry " +
-                    "is the document's expiry date, not its issue date. The document won't lock from repeated tries."
+                context.getString(R.string.id_chip_rejected_mrz_key, swHex)
             (sw1 == 0x69 && sw2 == 0x84) ->
-                "The card is locked ($swHex). Wait a moment and try again."
+                context.getString(R.string.id_chip_card_locked, swHex)
             (sw1 == 0x67) ->
-                "Wrong APDU length ($swHex). This usually means the document's chip uses a non-standard format that the " +
-                    "ICAO 9303 reader can't handle."
+                context.getString(R.string.id_chip_wrong_apdu_length, swHex)
             else ->
-                "Chip returned $swHex. Hold the phone steady against the card and try again."
+                context.getString(
+                    R.string.id_chip_returned_sw,
+                    swHex,
+                    e.message?.takeIf { it.isNotBlank() } ?: e.javaClass.simpleName,
+                )
         }
     }
 }

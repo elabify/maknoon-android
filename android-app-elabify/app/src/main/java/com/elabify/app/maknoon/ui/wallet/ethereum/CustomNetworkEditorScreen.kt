@@ -68,8 +68,8 @@ internal fun CustomNetworkEditorScreen(editId: UUID?, onDone: () -> Unit) {
 
     fun save() {
         val id = chainIdStr.trim().toLongOrNull()
-        if (id == null || id <= 0) { error = "Chain ID must be a positive integer."; return }
-        if (!EthereumSettings.isValidRPC(rpcURL)) { error = "RPC URL must be a valid http(s) URL."; return }
+        if (id == null || id <= 0) { error = context.getString(R.string.eth_chain_id_positive); return }
+        if (!EthereumSettings.isValidRPC(rpcURL)) { error = context.getString(R.string.eth_rpc_url_invalid); return }
         val network = CustomEthereumNetwork(
             id = existing?.id ?: UUID.randomUUID(),
             name = name.trim(),
@@ -88,7 +88,7 @@ internal fun CustomNetworkEditorScreen(editId: UUID?, onDone: () -> Unit) {
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text(if (existing != null) stringResource(R.string.eth_edit_network) else stringResource(R.string.eth_add_custom_network)) },
+                title = { Text(if (existing != null) stringResource(R.string.eth_edit_chain) else stringResource(R.string.eth_add_custom_chain)) },
                 navigationIcon = { IconButton(onClick = onDone) { Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.common_cancel)) } },
             )
         },
@@ -125,7 +125,7 @@ internal fun CustomNetworkEditorScreen(editId: UUID?, onDone: () -> Unit) {
             error?.let { Text(it, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodyMedium) }
 
             Button(onClick = { save() }, enabled = canSave, modifier = Modifier.fillMaxWidth()) {
-                Text(if (existing != null) stringResource(R.string.eth_save_changes) else stringResource(R.string.eth_add_network))
+                Text(if (existing != null) stringResource(R.string.eth_save_changes) else stringResource(R.string.eth_add_chain))
             }
         }
     }

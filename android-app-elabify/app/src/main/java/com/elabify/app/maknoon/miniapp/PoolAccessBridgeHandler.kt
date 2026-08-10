@@ -125,6 +125,9 @@ class PoolAccessBridgeHandler(
                     .put("cid", e.cid)
                     .put("label", e.nickname?.takeIf { it.isNotEmpty() } ?: e.schema)
                     .put("holder", parsed.header.sub)
+                    // Issue date distinguishes two passports whose label, holder
+                    // and issuer are all identical.
+                    .put("issuedAt", parsed.header.iat)
                     .apply { if (sdn != null) put("sdn", sdn) },
             )
         }

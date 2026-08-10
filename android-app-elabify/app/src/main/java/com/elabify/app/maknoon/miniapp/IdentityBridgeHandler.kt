@@ -122,11 +122,16 @@ class IdentityBridgeHandler(
 
         // User consent + credential pick (default most-recent). Cancel -> 4001.
         val credArr = JSONArray()
-        matches.forEach { (e, _) ->
+        matches.forEach { (e, parsed) ->
             credArr.put(
                 JSONObject()
                     .put("cid", e.cid)
-                    .put("label", e.nickname?.takeIf { it.isNotEmpty() } ?: e.schema),
+                    .put("label", e.nickname?.takeIf { it.isNotEmpty() } ?: e.schema)
+                    // Holder + issue date, matching poolAccess. Without them two
+                    // un-nicknamed passports render as the same schema URI twice
+                    // and the pick is a guess.
+                    .put("holder", parsed.header.sub)
+                    .put("issuedAt", parsed.header.iat),
             )
         }
         val payload = JSONObject().apply {

@@ -9,15 +9,17 @@
 package com.elabify.app.maknoon.ui.theme
 
 import android.content.Context
+import androidx.annotation.StringRes
 import android.content.SharedPreferences
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import com.elabify.app.maknoon.R
 
-enum class AppTheme(val key: String, val label: String) {
-    AUTOMATIC("automatic", "Automatic"),
-    LIGHT("light", "Light"),
-    DARK("dark", "Dark");
+enum class AppTheme(val key: String, @StringRes val labelRes: Int) {
+    AUTOMATIC("automatic", R.string.display_theme_automatic),
+    LIGHT("light", R.string.display_theme_light),
+    DARK("dark", R.string.display_theme_dark);
 
     /** Resolve to dark? Automatic follows the system, matching iOS resolvedColorScheme. */
     fun resolveDark(systemDark: Boolean): Boolean = when (this) {
@@ -32,31 +34,63 @@ enum class AppTheme(val key: String, val label: String) {
     }
 }
 
-enum class AutoLockTimeout(val key: String, val label: String, val seconds: Long?) {
-    SEC30("30s", "30 seconds", 30),
-    MIN1("1m", "1 minute", 60),
-    MIN2("2m", "2 minutes", 120),
-    MIN3("3m", "3 minutes", 180),
-    MIN4("4m", "4 minutes", 240),
-    MIN5("5m", "5 minutes", 300),
-    NEVER("never", "Never", null);
+enum class AutoLockTimeout(val key: String, @StringRes val labelRes: Int, val seconds: Long?) {
+    // A fixed ladder, not a plural: each value is its own string so a translator
+    // can get Arabic's dual right for "2 minutes" rather than being handed a
+    // count to pluralize.
+    SEC30("30s", R.string.display_autolock_30s, 30),
+    MIN1("1m", R.string.display_autolock_1m, 60),
+    MIN2("2m", R.string.display_autolock_2m, 120),
+    MIN3("3m", R.string.display_autolock_3m, 180),
+    MIN4("4m", R.string.display_autolock_4m, 240),
+    MIN5("5m", R.string.display_autolock_5m, 300),
+    NEVER("never", R.string.display_autolock_never, null);
 
     companion object {
         fun fromKey(k: String?) = entries.firstOrNull { it.key == k } ?: MIN2
     }
 }
 
-enum class AppLanguage(val key: String, val label: String) {
-    USE_PHONE("", "Use Phone Setting"),
-    ENGLISH("en", "English"),
-    ARABIC("ar", "العربية"),
-    CHINESE_SIMPLIFIED("zh-Hans", "简体中文");
+/**
+ * Language override. `key` is what lands in the `display.language` preference
+ * and in the encrypted backup (ADR-0065), so existing "", "en", "ar" and
+ * "zh-Hans" values keep loading unchanged.
+ *
+ * A value class over [AppLanguageCatalog] rather than 31 enum entries. Self-names
+ * come from the catalog and are never translated: someone hunting for 简体中文
+ * cannot find "Chinese (Simplified)" in a language they do not yet read.
+ */
+@JvmInline
+value class AppLanguage(val key: String) {
+
+    val entry: AppLanguageCatalog.Entry? get() = AppLanguageCatalog.entry(key)
+
+    /** Shown as the primary label. Empty key means "follow the phone". */
+    val selfName: String? get() = entry?.selfName
+
+    /** Secondary label, for a user who half-reads English. */
+    val englishName: String? get() = entry?.englishName
+
+    val isRTL: Boolean get() = entry?.isRTL == true
 
     companion object {
-        fun fromKey(k: String?) = entries.firstOrNull { it.key == k } ?: USE_PHONE
+        val USE_PHONE = AppLanguage("")
+
+        /** Follow-the-phone first, then every shipped locale by English name. */
+        val all: List<AppLanguage> =
+            listOf(USE_PHONE) + AppLanguageCatalog.all.map { AppLanguage(it.code) }
+
+        /**
+         * Unknown key falls back to follow-the-phone rather than throwing: a
+         * backup restored from a newer build can name a locale this build lacks.
+         */
+        fun fromKey(k: String?): AppLanguage {
+            val v = k.orEmpty()
+            return if (v.isEmpty() || AppLanguageCatalog.entry(v) != null) AppLanguage(v)
+                   else USE_PHONE
+        }
     }
 }
-
 /** Process-wide, observable display preferences. Call [init] once at app start. */
 object DisplayPreferences {
     private lateinit var prefs: SharedPreferences

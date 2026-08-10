@@ -22,6 +22,8 @@
 
 package com.elabify.app.maknoon.ui.wallet.solana
 
+import java.util.Locale
+
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.padding
@@ -219,7 +221,7 @@ internal fun SolanaSendScreen(
     // (parseSolToLamports, rent check) stays in SOL.
     val fiatActive = fiatEntry && solUnitPrice != null && asset is SendAsset.Native
     val solAmountInput: String = if (fiatActive) {
-        amount.toDoubleOrNull()?.takeIf { it > 0 }?.let { String.format("%.9f", it / solUnitPrice!!) } ?: ""
+        amount.toDoubleOrNull()?.takeIf { it > 0 }?.let { String.format(Locale.US, "%.9f", it / solUnitPrice!!) } ?: ""
     } else {
         amount
     }
@@ -457,7 +459,7 @@ internal fun SolanaSendScreen(
             val typedAmt = amount.toDoubleOrNull()?.takeIf { it > 0 }
             val amountSecondary = when {
                 !showUnitPicker || typedAmt == null -> null
-                fiatActive -> "≈ ${String.format("%.6f", typedAmt / solUnitPrice!!)} SOL"
+                fiatActive -> "≈ ${String.format(Locale.US, "%.6f", typedAmt / solUnitPrice!!)} SOL"
                 else -> "≈ " + FiatReference.format(typedAmt * solUnitPrice!!)
             }
             AmountField(

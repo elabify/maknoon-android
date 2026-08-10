@@ -110,7 +110,7 @@ internal fun TronSignMessageScreen(
             verticalArrangement = Arrangement.spacedBy(14.dp),
         ) {
             if (active == null) {
-                Text("No active wallet. Pick one in the Tron tab first.", color = MaterialTheme.colorScheme.error)
+                Text(stringResource(R.string.trx_no_active_wallet_pick_one), color = MaterialTheme.colorScheme.error)
                 return@Column
             }
 
@@ -119,7 +119,7 @@ internal fun TronSignMessageScreen(
 
             if (trezorUnsupported) {
                 Text(
-                    "Trezor firmware doesn't support Tron message signing (it signs Tron transactions only). Use a software or Ledger Tron wallet to sign a message.",
+                    stringResource(R.string.trx_trezor_firmware_doesnt_support),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.error,
                 )
@@ -127,7 +127,7 @@ internal fun TronSignMessageScreen(
             }
 
             Text(
-                "Signs with the TIP-191 \"TRON Signed Message\" format (the one TronLink / TronWeb verifyMessageV2 produce). The signature is bound to this wallet's address.",
+                stringResource(R.string.trx_signs_with_the_tip_191),
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
@@ -135,7 +135,7 @@ internal fun TronSignMessageScreen(
             OutlinedTextField(
                 value = message,
                 onValueChange = { message = it },
-                label = { Text("Message") },
+                label = { Text(stringResource(R.string.btc_message)) },
                 minLines = 3,
                 modifier = Modifier.fillMaxWidth(),
             )
@@ -198,7 +198,7 @@ internal fun TronSignMessageScreen(
             }
             if (isHardware) {
                 Text(
-                    "You'll confirm the message on the device screen.",
+                    stringResource(R.string.btc_youll_confirm_the_message),
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -245,27 +245,27 @@ internal fun TronVerifyMessageScreen(onClose: () -> Unit) {
             verticalArrangement = Arrangement.spacedBy(14.dp),
         ) {
             Text(
-                "Verifies a TIP-191 \"TRON Signed Message\" signature (TronLink / TronWeb). Paste the T-address, message, and 0x-hex signature from any source.",
+                stringResource(R.string.trx_verifies_a_tip_191),
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
             OutlinedTextField(
                 value = address,
                 onValueChange = { address = it; result = null },
-                label = { Text("Address (T…)") },
+                label = { Text(stringResource(R.string.trx_address_t)) },
                 modifier = Modifier.fillMaxWidth(),
             )
             OutlinedTextField(
                 value = message,
                 onValueChange = { message = it; result = null },
-                label = { Text("Message") },
+                label = { Text(stringResource(R.string.btc_message)) },
                 minLines = 3,
                 modifier = Modifier.fillMaxWidth(),
             )
             OutlinedTextField(
                 value = signature,
                 onValueChange = { signature = it; result = null },
-                label = { Text("Signature (0x…)") },
+                label = { Text(stringResource(R.string.eth_signature_0x)) },
                 minLines = 2,
                 modifier = Modifier.fillMaxWidth(),
             )
@@ -279,14 +279,14 @@ internal fun TronVerifyMessageScreen(onClose: () -> Unit) {
                         signature = signature.trim(),
                     )
                 },
-            ) { Text("Verify signature") }
+            ) { Text(stringResource(R.string.btc_verify_signature)) }
             when (result) {
                 true -> Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                     Icon(Icons.Filled.CheckCircle, contentDescription = null, tint = Color(0xFF2E7D32))
-                    Text("Signature valid", color = Color(0xFF2E7D32))
+                    Text(stringResource(R.string.btc_signature_valid), color = Color(0xFF2E7D32))
                 }
                 false -> Text(
-                    "Signature does not match this address and message",
+                    stringResource(R.string.btc_signature_does_not_match),
                     color = MaterialTheme.colorScheme.error,
                 )
                 null -> {}

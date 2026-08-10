@@ -17,6 +17,8 @@
 
 package com.elabify.app.maknoon.ui.miniapp
 
+import java.util.Locale
+
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -128,9 +130,10 @@ class CommercePayDriver(
     private val requiredClaims: List<String> get() = request.requiredClaims
     private val terms get() = request.paymentTerms
 
-    /** Authenticate the request + the merchant's signature over the terms. */
-    fun authenticate(): CommercePayTrust {
-        val v = CommerceRequestValidator.validate(request, ctx)
+    /** Authenticate the request + the merchant's signature over the terms.
+     *  [res] resolves the localized tier label / block reason. */
+    fun authenticate(res: android.content.Context): CommercePayTrust {
+        val v = CommerceRequestValidator.validate(request, ctx, res)
         return CommercePayTrust(v.tierLabel, v.tier, if (v.ok) null else v.reason)
     }
 
@@ -328,7 +331,7 @@ class CommercePayDriver(
 
     /** Trim a Solana decimal amount to <=6 places + ticker (EVM uses displayUnits). */
     private fun fmtSol(x: Double, ticker: String): String {
-        var s = String.format("%.6f", x)
+        var s = String.format(Locale.US, "%.6f", x)
         if (s.contains(".")) {
             s = s.trimEnd('0').trimEnd('.')
         }

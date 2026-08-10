@@ -127,13 +127,16 @@ class MiniAppBridge(
     /** App metadata for the built-in "host" namespace. */
     private val appId: String,
     private val appTitle: String,
+    /** Release channel + version of THIS install, so the bundle can badge itself. */
+    private val appChannel: String = "stable",
+    private val appVersion: String = "",
 ) {
     private val handlers: MutableMap<String, MiniAppNamespaceHandler> = mutableMapOf()
 
     init {
         for (h in handlers) this.handlers[h.namespace] = h
         // Built-in, always-available namespace.
-        val host = HostNamespaceHandler(appId, appTitle, granted)
+        val host = HostNamespaceHandler(appId, appTitle, granted, appChannel, appVersion)
         this.handlers[host.namespace] = host
     }
 
@@ -287,17 +290,24 @@ private class HostNamespaceHandler(
     private val appId: String,
     private val appTitle: String,
     private val granted: Set<String>,
+    private val appChannel: String = "stable",
+    private val appVersion: String = "",
 ) : MiniAppNamespaceHandler {
     override val namespace = "host"
     override val requiredPermission: String? = null
 
     override suspend fun handle(method: String, argsJson: String): String = when (method) {
         "ping" -> JSONObject.quote("pong")
+        // channel + version let a bundle that serves BOTH release channels render
+        // its own badge honestly. Without them a static "Beta" in the markup is
+        // wrong for whichever channel it is not.
         "appInfo" -> JSONObject().apply {
             put("id", appId)
             put("title", appTitle)
             put("permissions", org.json.JSONArray(granted.toList()))
-            put("bridgeVersion", 1)
+            put("channel", appChannel)
+            put("version", appVersion)
+            put("bridgeVersion", 2)
         }.toString()
         else -> throw MiniAppBridgeError.unsupported("host.$method")
     }

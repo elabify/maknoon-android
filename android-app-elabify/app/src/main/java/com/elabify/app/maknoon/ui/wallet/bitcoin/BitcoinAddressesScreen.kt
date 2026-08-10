@@ -54,6 +54,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontFamily
@@ -230,7 +231,7 @@ internal fun BitcoinAddressesScreen(
                                         }
                                     }
                                 }
-                                val utxoTag = stringResource(R.string.btc_utxo_count, row.utxoCount.toString())
+                                val utxoTag = pluralStringResource(R.plurals.btc_utxo_count, row.utxoCount, row.utxoCount.toString())
                                 val unusedTag = stringResource(R.string.btc_unused)
                                 val tags = buildList {
                                     if (row.utxoCount > 0) add(utxoTag)

@@ -104,12 +104,12 @@ internal fun TronAddTokenScreen(prefilledContract: String?, onDone: () -> Unit) 
     val canAdd = contractValid && (catalogHit != null || (symbolInput.isNotBlank() && decimalsValid))
 
     fun addToken() {
-        if (!contractValid) { error = "Contract address is not valid."; return }
+        if (!contractValid) { error = context.getString(R.string.trx_contract_address_invalid); return }
         val hit = catalogHit
         val token = if (hit != null) {
             TronTRC20Token(network, trimmed, hit.symbol, hit.name, hit.decimals, hit.logoURI, TronTokenSource.TRONSCAN)
         } else {
-            val d = decimalsInput.toIntOrNull() ?: run { error = "Decimals must be 0 to 18."; return }
+            val d = decimalsInput.toIntOrNull() ?: run { error = context.getString(R.string.trx_decimals_range); return }
             val sym = symbolInput.trim()
             TronTRC20Token(network, trimmed, sym, nameInput.trim().ifEmpty { sym }, d, null, TronTokenSource.CUSTOM)
         }

@@ -11,6 +11,9 @@
 // here substitutes silently. Mirrors iOS EthereumScannedTokenSheet.
 
 package com.elabify.app.maknoon.ui.wallet.ethereum
+import com.elabify.app.maknoon.R
+
+import androidx.compose.ui.res.stringResource
 
 import android.content.Context
 import androidx.compose.foundation.layout.Arrangement
@@ -147,8 +150,10 @@ internal fun EthereumScannedTokenSheet(
         val wallet = EthereumWallet(descriptor)
         val probed = withContext(Dispatchers.IO) { EthereumTokenLookup.fetch(request.contract, rpc) }
         if (probed == null) {
-            probeError = "That contract did not answer symbol() or decimals() on ${resolved.displayName}. " +
-                "It may not be an ERC-20, or it may live on a different chain."
+            probeError = context.getString(
+                R.string.eth_token_probe_no_answer,
+                resolved.displayName,
+            )
             probing = false
             return@LaunchedEffect
         }
@@ -182,9 +187,9 @@ internal fun EthereumScannedTokenSheet(
             modifier = Modifier.fillMaxWidth().padding(Spacing.lg),
             verticalArrangement = Arrangement.spacedBy(Spacing.sm),
         ) {
-            Text("Token requested", style = MaterialTheme.typography.titleMedium)
+            Text(stringResource(R.string.eth_token_requested), style = MaterialTheme.typography.titleMedium)
             Text(
-                "This payment code asks for a token that is not in this wallet on ${resolved.displayName}.",
+                stringResource(R.string.eth_payment_code_token_not_here, resolved.displayName),
                 style = MaterialTheme.typography.bodySmall,
             )
             if (probing) {
@@ -194,14 +199,14 @@ internal fun EthereumScannedTokenSheet(
                 ) {
                     CircularProgressIndicator(Modifier.size(14.dp), strokeWidth = 2.dp)
                     Text(
-                        "Reading the contract on ${resolved.displayName}…",
+                        stringResource(R.string.eth_reading_the_contract_on, resolved.displayName),
                         style = MaterialTheme.typography.labelSmall,
                     )
                 }
             }
             val m = meta
             if (m != null) {
-                Text("Requested", style = MaterialTheme.typography.labelMedium)
+                Text(stringResource(R.string.eth_requested), style = MaterialTheme.typography.labelMedium)
                 Text("${m.symbol} · ${m.name}", style = MaterialTheme.typography.bodySmall)
                 Text(
                     shortContract(request.contract),
@@ -209,7 +214,7 @@ internal fun EthereumScannedTokenSheet(
                     fontFamily = FontFamily.Monospace,
                 )
                 Text(
-                    "Your balance: ${balanceText(requestedBalance, m.decimals, m.symbol)}",
+                    stringResource(R.string.eth_your_balance_value, balanceText(requestedBalance, m.decimals, m.symbol)),
                     style = MaterialTheme.typography.labelSmall,
                 )
             }
@@ -217,7 +222,7 @@ internal fun EthereumScannedTokenSheet(
                 Text(it, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.error)
             }
             if (candidates.isNotEmpty()) {
-                Text("You already hold", style = MaterialTheme.typography.labelMedium)
+                Text(stringResource(R.string.eth_you_already_hold), style = MaterialTheme.typography.labelMedium)
                 candidates.forEach { (t, bal) ->
                     Text("${t.symbol} · ${t.name}", style = MaterialTheme.typography.bodySmall)
                     Text(
@@ -227,14 +232,12 @@ internal fun EthereumScannedTokenSheet(
                     )
                 }
                 Text(
-                    "Two tokens can share a symbol and still be different contracts. A payee may " +
-                        "credit only the contract it asked for, so confirm its deposit instructions " +
-                        "before sending a different one.",
+                    stringResource(R.string.eth_token_same_symbol_warning),
                     style = MaterialTheme.typography.labelSmall,
                 )
             } else if (m != null) {
                 Text(
-                    "Check the contract against the payee's deposit instructions before adding it.",
+                    stringResource(R.string.eth_token_check_contract),
                     style = MaterialTheme.typography.labelSmall,
                 )
             }
@@ -252,7 +255,7 @@ internal fun EthereumScannedTokenSheet(
                     },
                     modifier = Modifier.fillMaxWidth(),
                 ) {
-                    Text("Add ${m.symbol} (${m.name}) and use it")
+                    Text(stringResource(R.string.eth_add_token_and_use, m.symbol, m.name))
                 }
             }
             candidates.forEach { (t, _) ->
@@ -266,11 +269,11 @@ internal fun EthereumScannedTokenSheet(
                     },
                     modifier = Modifier.fillMaxWidth(),
                 ) {
-                    Text("Send my ${t.symbol} (${shortContract(t.contractAddress)}) instead")
+                    Text(stringResource(R.string.eth_send_token_instead, t.symbol, shortContract(t.contractAddress)))
                 }
             }
             OutlinedButton(onClick = onDismiss, modifier = Modifier.fillMaxWidth()) {
-                Text("Cancel")
+                Text(stringResource(R.string.common_cancel))
             }
         }
     }

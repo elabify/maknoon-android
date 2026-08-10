@@ -140,6 +140,7 @@ fun TapIDDocumentScreen(
     onClose: () -> Unit,
     skipKindPicker: Boolean = false,
 ) {
+    val somethingWentWrongMsg = stringResource(R.string.iddoc_something_went_wrong)
     // Onboarding's "Scan your passport" is passport-specific, so it skips the
     // document-kind picker and opens the passport form directly.
     var step by remember { mutableStateOf(if (skipKindPicker) TapStep.Form else TapStep.KindPicker) }
@@ -162,7 +163,7 @@ fun TapIDDocumentScreen(
     val navTitle = when (step) {
         TapStep.KindPicker -> stringResource(R.string.id_tap_document_title)
         TapStep.Minted -> stringResource(R.string.id_saved_title)
-        else -> parameters.declaredKind.displayName
+        else -> stringResource(parameters.declaredKind.displayNameRes)
     }
 
     Scaffold(
@@ -206,7 +207,7 @@ fun TapIDDocumentScreen(
                                 readResult = read(parameters) { msg -> scanStatus = msg }
                                 step = TapStep.Review
                             } catch (e: Throwable) {
-                                lastError = e.message ?: "Something went wrong."
+                                lastError = e.message ?: somethingWentWrongMsg
                                 step = TapStep.Error
                             }
                         }
@@ -281,12 +282,12 @@ private fun KindPickerStep(onPick: (IDDocumentKind) -> Unit) {
                 )
                 Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                     Text(
-                        kind.displayName,
+                        stringResource(kind.displayNameRes),
                         style = MaterialTheme.typography.bodyMedium,
                         fontWeight = FontWeight.SemiBold,
                     )
                     Text(
-                        kind.blurb,
+                        stringResource(kind.blurbRes),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
@@ -372,7 +373,7 @@ private fun FormStep(
         OutlinedTextField(
             value = parameters.documentNumber,
             onValueChange = { onParametersChange(parameters.copy(documentNumber = it.uppercase())) },
-            label = { Text(parameters.declaredKind.documentNumberLabel) },
+            label = { Text(stringResource(parameters.declaredKind.documentNumberLabelRes)) },
             singleLine = true,
             keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(
                 capitalization = KeyboardCapitalization.Characters,
@@ -463,7 +464,7 @@ private fun ScanningStep(status: String?, onCancel: () -> Unit) {
             modifier = Modifier.height(150.dp).widthIn(max = 280.dp),
         )
         Text(
-            status ?: stringResource(R.string.id_hold_phone_over_passport),
+            status ?: stringResource(R.string.id_hold_passport_to_phone),
             style = MaterialTheme.typography.titleMedium,
             textAlign = TextAlign.Center,
         )
@@ -494,6 +495,7 @@ private fun ReviewStep(
     save: suspend (IDDocumentReadResult) -> String,
     onSaved: (String) -> Unit,
 ) {
+    val couldNotSaveDocMsg = stringResource(R.string.iddoc_could_not_save_document)
     val doc = result.document
     var saving by remember { mutableStateOf(false) }
     var saveError by remember { mutableStateOf<String?>(null) }
@@ -506,7 +508,7 @@ private fun ReviewStep(
                 val id = save(result)
                 onSaved(id)
             } catch (e: Throwable) {
-                saveError = e.message ?: "Could not save the document."
+                saveError = e.message ?: couldNotSaveDocMsg
                 saving = false
                 saveRequested = false
             }
@@ -526,7 +528,7 @@ private fun ReviewStep(
                     Text(it, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
                 Text(
-                    stringResource(R.string.id_kind_summary, doc.kindLabel, doc.summary),
+                    stringResource(R.string.id_kind_summary, stringResource(doc.kindLabelRes), doc.summary),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -534,10 +536,10 @@ private fun ReviewStep(
         }
 
         Text(stringResource(R.string.id_details), style = MaterialTheme.typography.titleSmall)
-        val docLabel = doc.userDeclaredKind?.documentNumberLabel ?: stringResource(R.string.id_document_number)
+        val docLabel = stringResource(doc.userDeclaredKind?.documentNumberLabelRes ?: R.string.id_document_number)
         DetailRow(docLabel, doc.documentNumber)
         doc.personalNumber?.takeIf { it.isNotEmpty() }?.let {
-            DetailRow(doc.userDeclaredKind?.personalNumberLabel ?: stringResource(R.string.id_personal_number), it)
+            DetailRow(stringResource(doc.userDeclaredKind?.personalNumberLabelRes ?: R.string.id_personal_number), it)
         }
         doc.formattedDateOfBirth?.let { DetailRow(stringResource(R.string.id_date_of_birth), it) }
         doc.formattedDateOfExpiry?.let { DetailRow(stringResource(R.string.id_expires), it) }
@@ -586,6 +588,7 @@ private fun MintedStep(
     onDone: () -> Unit,
     onRetryIssuance: () -> Unit,
 ) {
+    val submissionFailedMsg = stringResource(R.string.iddoc_submission_failed)
     // Fire the issuance request when the state flips to Submitting.
     if (issuance is TapIssuance.Submitting && savedId != null) {
         LaunchedEffect(savedId) {
@@ -600,7 +603,7 @@ private fun MintedStep(
                     },
                 )
             } catch (e: Throwable) {
-                onIssuanceResult(TapIssuance.Failed(e.message ?: "Submission failed."))
+                onIssuanceResult(TapIssuance.Failed(e.message ?: submissionFailedMsg))
             }
         }
     }

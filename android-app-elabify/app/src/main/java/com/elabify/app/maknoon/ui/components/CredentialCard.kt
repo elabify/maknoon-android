@@ -43,6 +43,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.elabify.app.maknoon.ui.theme.Elevation
 import com.elabify.app.maknoon.ui.theme.Radii
+import androidx.compose.ui.res.stringResource
+import com.elabify.app.maknoon.R
 
 // Total card height + the peek region used when cards are stacked with overlap
 // (the iOS Identity tab stacks cards so each peeks the top 90 dp).
@@ -158,7 +160,7 @@ fun CredentialCard(
                 )
                 val nick = data.nickname?.takeIf { it.isNotEmpty() }
                 Text(
-                    text = nick ?: "Tap to rename",
+                    text = nick ?: stringResource(R.string.credential_tap_to_rename),
                     fontSize = 15.sp,
                     color = fg.copy(alpha = if (nick != null) 0.85f else 0.55f),
                     maxLines = 1,

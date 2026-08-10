@@ -109,6 +109,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.util.UUID
+import com.elabify.app.maknoon.ui.wallet.common.relativeSince
 
 /** Where the Ethereum flow currently is. The dashboard is the root; the
  *  rest are pushed full-screen, mirroring the iOS sheet set. */
@@ -442,7 +443,7 @@ private fun EthereumDashboard(
                     amount = balanceWei?.let { com.elabify.musnad.wallet.ethereum.EthereumWeiValue.fromHex(it).display(ticker = "").trim() } ?: "-",
                     ticker = resolved.ticker,
                     syncing = syncing,
-                    syncLabel = stringResource(R.string.eth_last_sync, ethRelativeSince(lastSyncAtMs ?: activeWallet.lastSyncAt)),
+                    syncLabel = stringResource(R.string.eth_last_sync, relativeSince(lastSyncAtMs ?: activeWallet.lastSyncAt)),
                     onRefresh = { refresh() },
                     subnote = fiat,
                 )

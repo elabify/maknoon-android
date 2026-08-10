@@ -35,6 +35,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -135,10 +136,14 @@ fun CredentialFolderStrip(
             title = { Text(stringResource(R.string.identity_delete_folder)) },
             text = {
                 Text(
-                    stringResource(
-                        R.string.identity_delete_folder_message,
-                        n.toString(),
-                        if (n == 1) "" else "s",
+                    // Was stringResource with an `if (n == 1) "" else "s"`
+                    // suffix argument. No language other than English forms a
+                    // plural by appending "s", so that string was untranslatable
+                    // in the other thirty locales; two translators flagged it
+                    // independently. iOS already carried the CLDR plural for this
+                    // exact sentence, so Android was the outlier.
+                    pluralStringResource(
+                        R.plurals.identity_delete_folder_message, n, n.toString(),
                     ),
                 )
             },

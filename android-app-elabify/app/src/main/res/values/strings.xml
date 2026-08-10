@@ -11,6 +11,7 @@
 <resources>
     <!-- ============================ common ============================ -->
     <string name="common_cancel">Cancel</string>
+    <string name="common_never_synced">Never synced</string>
     <string name="common_done">Done</string>
     <string name="common_save">Save</string>
     <string name="common_continue">Continue</string>
@@ -32,7 +33,7 @@
 
     <!-- ===================== wallet (cross-chain) ===================== -->
     <string name="walletc_found_accounts">Found accounts</string>
-    <string name="walletc_wallet_label">Wallet Label</string>
+    <string name="walletc_wallet_label">Wallet label</string>
     <string name="walletc_auto_discovery">Auto Discovery</string>
     <string name="walletc_account">Account %1$s</string>
     <string name="walletc_transactions">Transactions</string>
@@ -65,11 +66,11 @@
     <string name="settings_encrypted_backup">Encrypted backup</string>
     <string name="settings_reset_maknoon">Reset Maknoon</string>
     <string name="settings_default_apps_catalog">Default Apps catalog</string>
-    <string name="settings_built_in">Built in</string>
+    <string name="settings_built_in">Built-in</string>
     <string name="settings_default_catalog_footer">The Maknoon Apps catalog ships with Maknoon and cannot be removed.</string>
     <string name="settings_additional_apps_catalogs">Additional Apps catalogs</string>
     <string name="settings_no_additional_catalogs">No additional Apps catalogs configured.</string>
-    <string name="settings_add_apps_catalog_action">Add Apps catalog...</string>
+    <string name="settings_add_apps_catalog_action">Add Apps catalog…</string>
     <string name="settings_beta_apps">Beta apps</string>
     <string name="settings_show_beta_apps">Show beta apps</string>
     <string name="settings_add_apps_catalog_title">Add Apps catalog</string>
@@ -79,18 +80,18 @@
     <string name="settings_name_required_error">Name is required.</string>
     <string name="settings_url_scheme_error">URL must start with http:// or https://.</string>
     <string name="settings_add">Add</string>
-    <string name="settings_network_bitcoin">Bitcoin</string>
+    <string name="settings_network_bitcoin" translatable="false">Bitcoin</string>
     <string name="settings_network_bitcoin_subtitle">Electrum, mempool.space, block explorer, fiat</string>
     <string name="settings_network_lightning">Bitcoin Lightning</string>
     <string name="settings_network_lightning_subtitle">LNDHub-compatible custodial accounts (manual configuration)</string>
-    <string name="settings_network_ethereum">Ethereum</string>
+    <string name="settings_network_ethereum" translatable="false">Ethereum</string>
     <string name="settings_network_ethereum_subtitle">RPC, Etherscan-family API, explorer (mainnet plus EVM-compatible L2s)</string>
-    <string name="settings_network_solana">Solana</string>
+    <string name="settings_network_solana" translatable="false">Solana</string>
     <string name="settings_network_solana_subtitle">RPC endpoint, Solana Explorer</string>
-    <string name="settings_network_tron">Tron</string>
+    <string name="settings_network_tron" translatable="false">Tron</string>
     <string name="settings_network_tron_subtitle">TronGrid endpoint, TronScan explorer, TRC-20 catalog</string>
     <string name="settings_show_recovery_phrase">Show recovery phrase</string>
-    <string name="settings_show_recovery_phrase_subtitle">Confirm to reveal your 24-word seed phrase</string>
+    <string name="settings_show_recovery_phrase_subtitle">Confirm to reveal your 24-word recovery phrase</string>
     <string name="settings_could_not_read_recovery">Could not read recovery material.</string>
     <string name="settings_unlock_second_factor_title">Unlock with your second factor</string>
     <string name="settings_unlock_second_factor_message">Your wallet is protected by a second factor. Confirm with an enrolled security key to reveal your 24-word recovery phrase.</string>
@@ -99,17 +100,17 @@
     <string name="settings_copied">Copied</string>
     <string name="settings_copy">Copy</string>
     <string name="settings_recovery">Recovery</string>
-    <string name="settings_show_seed_phrase">Show seed phrase</string>
-    <string name="settings_verify_seed_phrase">Verify seed phrase</string>
+    <string name="settings_show_seed_phrase">Show recovery phrase</string>
+    <string name="settings_verify_seed_phrase">Verify recovery phrase</string>
     <string name="settings_verify_encrypted_backup">Verify encrypted backup</string>
-    <string name="settings_lockdown_enabled_note">Lockdown enabled. Seed phrase is no longer viewable on this device.</string>
-    <string name="settings_recovery_footer">Show or verify your 24-word seed phrase for advanced or offline use. Verify encrypted backup tests that a saved backup file opens with your password, without changing anything on this device.</string>
+    <string name="settings_lockdown_enabled_note">Lockdown enabled. Recovery phrase is no longer viewable on this phone.</string>
+    <string name="settings_recovery_footer">Show or verify your 24-word recovery phrase for advanced or offline use. Verify encrypted backup tests that a saved backup file opens with your password, without changing anything on this phone.</string>
     <string name="settings_lockdown">Lockdown</string>
     <string name="settings_lockdown_wallet">Lockdown wallet…</string>
-    <string name="settings_lockdown_footer">Irreversibly removes the option to view your recovery phrase on this device. Useful after you have written it down and stored it safely. The only way to recover after Lockdown is from your offline paper or an encrypted backup.</string>
-    <string name="settings_seed_phrase">Seed phrase</string>
-    <string name="settings_offline_only">OFFLINE only</string>
-    <string name="settings_offline_only_body">Write these words on paper or stamped metal. Store OFFLINE. Never type them into a computer, never photograph or screenshot.</string>
+    <string name="settings_lockdown_footer">Irreversibly removes the option to view your recovery phrase on this phone. Useful after you have written it down and stored it safely. The only way to recover after Lockdown is from your offline paper or an encrypted backup.</string>
+    <string name="settings_seed_phrase">Recovery phrase</string>
+    <string name="settings_offline_only">Offline only</string>
+    <string name="settings_offline_only_body">Write these words on paper or stamped metal. Store offline. Never type them into a computer, never photograph or screenshot.</string>
     <string name="settings_hide_before_sharing">Hide before screen-sharing.</string>
     <string name="settings_tap_grid_to_reveal">Tap the grid to reveal.</string>
     <string name="settings_also_have_password">You also have a password</string>
@@ -117,12 +118,12 @@
     <string name="settings_verify_seed_phrase_subtitle">Confirm to check the phrase you typed</string>
     <string name="settings_could_not_load_phrase">Could not load recovery phrase.</string>
     <string name="settings_phrase_verified">Phrase verified</string>
-    <string name="settings_phrase_verified_body">The phrase you typed matches the recovery phrase on this device.</string>
+    <string name="settings_phrase_verified_body">The phrase you typed matches the recovery phrase on this phone.</string>
     <string name="settings_type_all_24_words">Type all 24 words</string>
     <string name="settings_separate_words_with_spaces">Separate words with spaces. They must match the recovery phrase exactly.</string>
     <string name="settings_phrase_mismatch">The typed phrase does not match. Try again.</string>
     <string name="settings_wrong_password_or_tampered">wrong password, or tampered blob</string>
-    <string name="settings_verify_backup_intro">Pick a backup file and enter its password. This decrypts the file in memory to confirm it opens, without changing anything on this device.</string>
+    <string name="settings_verify_backup_intro">Pick a backup file and enter its password. This decrypts the file in memory to confirm it opens, without changing anything on this phone.</string>
     <string name="settings_choose_backup_file">Choose backup file…</string>
     <string name="settings_verify_backup_action">Verify backup</string>
     <string name="settings_backup_verified">Backup verified</string>
@@ -133,18 +134,18 @@
     <string name="settings_could_not_verify_password">Could not verify password.</string>
     <string name="settings_password_mismatch">Password does not match. Try again.</string>
     <string name="settings_cannot_be_undone">This cannot be undone</string>
-    <string name="settings_lockdown_explain_body">Enabling Lockdown removes the ability to view your recovery phrase on this device. After this, the only ways to recover your identity are:</string>
+    <string name="settings_lockdown_explain_body">Enabling Lockdown removes the ability to view your recovery phrase on this phone. After this, the only ways to recover your identity are:</string>
     <string name="settings_lockdown_recovery_options">• Your offline paper or metal backup of the 24 words\n• Your encrypted backup, if you set one up</string>
     <string name="settings_lockdown_prove_backups">Use Lockdown only after you are absolutely sure your backups are safe and accessible. To prove that, the next step asks you to retype all 24 words and your password.</string>
     <string name="settings_type_your_password">Type your password</string>
     <string name="settings_must_match_onboarding_password">Must match the password you set during onboarding.</string>
     <string name="settings_final_confirmation">Final confirmation</string>
-    <string name="settings_lockdown_confirm_body">Enabling Lockdown now will permanently remove the Show recovery phrase option from this device. You can still present credentials and use the wallet normally, you just cannot view the recovery phrase on this device anymore.</string>
+    <string name="settings_lockdown_confirm_body">Enabling Lockdown now will permanently remove the Show recovery phrase option from this phone. You can still present credentials and use the wallet normally, you just cannot view the recovery phrase on this phone anymore.</string>
     <string name="settings_enable_lockdown">Enable Lockdown</string>
     <string name="settings_unknown_error">unknown error</string>
     <string name="settings_saved_backup">Saved %1$s</string>
     <string name="settings_save_failed">Save failed: %1$s</string>
-    <string name="settings_save_backup_intro">Save an encrypted backup using your password so you can restore on this device or another.</string>
+    <string name="settings_save_backup_intro">Save an encrypted backup using your password so you can restore on this phone or another.</string>
     <string name="settings_save_encrypted_backup_action">Save encrypted backup…</string>
     <string name="settings_no_password_no_backup">You did not set a password at onboarding, so we cannot encrypt a backup. The 24 offline words remain your only recovery path.</string>
     <string name="settings_backup_saved">Backup saved</string>
@@ -156,8 +157,8 @@
     <string name="settings_wipe_everything">Wipe everything</string>
     <string name="settings_maknoon_reset_done">Maknoon has been reset</string>
     <string name="settings_reset_done_body">Everything has been wiped. You\'ll land on the onboarding screen on the next render and can set up a fresh identity from there.</string>
-    <string name="settings_reset_footer">Wipes everything on this device: your identity, every wallet on every chain, every label, every paired hardware device, the address book, ID documents, Lightning accounts, installed apps, and every setting. Equivalent to deleting and reinstalling the app. The only way to restore is using your encrypted backup file and password.</string>
-    <string name="settings_on_device_authorization">On-device authorization</string>
+    <string name="settings_reset_footer">Wipes everything on this phone: your identity, every wallet on every chain, every label, every paired hardware device, the address book, ID documents, Lightning accounts, installed apps, and every setting. Equivalent to deleting and reinstalling the app. The only way to restore is using your encrypted backup file and password.</string>
+    <string name="settings_on_phone_authorization">How you approve on this phone</string>
     <string name="settings_secure_enclave_signing">Mobile Phone Signing</string>
     <string name="settings_secure_enclave_signing_body">Authorized by your preferred configured biometric, phone passcode, or optional hardware second factor.</string>
     <string name="settings_always_on_cannot_disable">Always on. Cannot be disabled.</string>
@@ -165,30 +166,33 @@
     <string name="settings_advanced_show">Show</string>
     <string name="settings_advanced_hide">Hide</string>
     <string name="settings_show_testnet_anchors">Show testnet anchors</string>
-    <string name="settings_show_testnet_anchors_footer">Show ledger-anchor badges for testnets (Sepolia, Base Sepolia) on credential cards. Off by default; the credential itself always shows.</string>
+    <string name="settings_show_testnet_anchors_footer">Show on-chain anchor badges for Testnet chains (Sepolia, Base Sepolia) on credential cards. Off by default; the credential itself always shows.</string>
     <string name="settings_hardware_second_factor">Hardware second factor</string>
     <string name="settings_no_identity_devices">No identity-capable devices registered yet.</string>
     <string name="settings_register_device_hint">Register a YubiKey or a Ledger Nano X from Settings &gt; Devices, then return here to enable it as a second factor.</string>
     <string name="settings_hardware_second_factor_footer">Enabling a hardware device adds extra protection for your identity and asset transactions. The device is then required to unlock.</string>
-    <string name="settings_device_kind_serial">%1$s - %2$s</string>
+    <string name="settings_device_kind_serial" translatable="false">%1$s - %2$s</string>
     <string name="settings_enabled">Enabled</string>
     <string name="settings_known_issuers">Known issuers</string>
     <string name="settings_issuer_host_placeholder">issuer.example.com</string>
     <string name="settings_add_issuer">Add issuer</string>
     <string name="settings_passport_trust_list">Passport trust list (CSCA)</string>
     <string name="settings_trust_list">Trust list</string>
-    <string name="settings_certificates_count">%1$s certificates</string>
+    <plurals name="settings_certificates_count">
+        <item quantity="one">%1$s certificate</item>
+        <item quantity="other">%1$s certificates</item>
+    </plurals>
     <string name="settings_not_downloaded">Not downloaded</string>
     <string name="settings_version">Version</string>
     <string name="settings_updated">Updated</string>
-    <string name="settings_updating">Updating...</string>
+    <string name="settings_updating">Updating…</string>
     <string name="settings_update_now">Update now</string>
     <string name="settings_presentation_relay">Presentation relay</string>
     <string name="settings_use_network_relay">Use network relay</string>
     <string name="settings_relay_host_url">Relay host URL</string>
-    <string name="settings_reset_to_default">Reset to default</string>
+    <string name="settings_use_default">Use default</string>
     <string name="settings_presentation_relay_footer">When on, you can share a verified credential over the internet using a private one-time link. Turn it off to share only by offline QR code.</string>
-    <string name="settings_no_saved_contacts">No saved %1$s contacts. Add one in Settings &gt; Address book.</string>
+    <string name="settings_no_saved_contacts">No %1$s contacts yet. Add some in Settings → Address book.</string>
     <string name="settings_your_wallets">Your wallets</string>
     <string name="settings_contacts">Contacts</string>
     <string name="settings_add_contact">Add contact</string>
@@ -208,16 +212,16 @@
     <string name="settings_price_data_sources">Price data sources</string>
     <string name="settings_coingecko_base_url">CoinGecko base URL</string>
     <string name="settings_fx_rates_url">USD FX rates URL</string>
-    <string name="settings_reset_to_defaults">Reset to defaults</string>
-    <string name="settings_price_sources_footer">Advanced: use your own price and exchange-rate sources instead of the defaults.</string>
+    <string name="settings_use_defaults">Use defaults</string>
+    <string name="settings_price_sources_footer">Price data sources: use your own price and exchange-rate sources instead of the defaults.</string>
     <string name="settings_preview">Preview</string>
     <string name="settings_preview_1_btc">1 BTC</string>
     <string name="settings_preview_0001_btc">0.001 BTC</string>
     <string name="settings_preview_1_eth">1 ETH</string>
     <string name="settings_theme">Theme</string>
     <string name="settings_theme_automatic_footer">Follows your phone\'s light or dark appearance setting.</string>
-    <string name="settings_auto_lock">Auto-Lock</string>
-    <string name="settings_auto_lock_footer">Locks Maknoon after a period of inactivity. Unlock with your fingerprint, face, or device PIN.</string>
+    <string name="settings_auto_lock">Auto-lock</string>
+    <string name="settings_auto_lock_footer">Locks Maknoon after a period of inactivity. Unlock with your fingerprint, face, or phone PIN.</string>
     <string name="settings_language">Language</string>
     <string name="settings_language_footer">More languages will be added in future updates.</string>
     <string name="settings_app">App</string>
@@ -229,7 +233,7 @@
     <string name="settings_source_code_link">Source code &amp; issue tracker</string>
     <string name="settings_license_link">License (Apache 2.0 / MIT)</string>
     <string name="settings_privacy_policy_link">Privacy policy</string>
-    <string name="settings_elabify_footer">Maknoon and ElabifyCore are dual-licensed under Apache 2.0 or MIT, at your choice. No analytics and no telemetry: your recovery phrase, password, and private keys never leave the Secure Enclave / Keychain, and every network endpoint below is overridable or self-hostable. File feature requests and bug reports on GitHub.</string>
+    <string name="settings_elabify_footer">Maknoon and ElabifyCore are dual-licensed under Apache 2.0 or MIT, at your choice. No analytics and no telemetry: your recovery phrase, password, and private keys never leave this phone\'s keystore (StrongBox/TEE), and every network endpoint below is overridable or self-hostable. File feature requests and bug reports on GitHub.</string>
     <string name="settings_default_services">Default services</string>
     <string name="settings_default_services_footer">Maknoon talks to these services out of the box. You can override any of them with your own endpoint in Settings → Networks.</string>
     <string name="settings_open_source_components">Open-source components</string>
@@ -239,8 +243,8 @@
     <string name="settings_clear_logs">Clear logs</string>
     <string name="settings_diagnostics_footer">Logs capture recent errors, BLE events, RPC failures, and identity-wrap activity to make support easier. They live only in this app\'s memory until you share or clear them.</string>
     <string name="settings_share_logs_question">Share diagnostic logs?</string>
-    <string name="settings_share_logs_warning">Logs DO NOT contain your recovery phrase, password, private keys, or wrap keys, those never leave Keychain.\n\nLogs DO contain public-but-identifying information: wallet addresses, transaction hashes, the chains and services you\'ve used, BLE device identifiers, and timestamps. Anyone who reads the logs can correlate your activity on-chain. Only share with people you trust.</string>
-    <string name="settings_understand_share_logs">I understand, share logs</string>
+    <string name="settings_share_logs_warning">Logs never contain your recovery phrase, password, private keys, or wrap keys: those never leave this phone\'s keystore (StrongBox/TEE).\n\nThey do contain public-but-identifying information: wallet addresses, transaction hashes, the chains and services you\'ve used, BLE device identifiers, and timestamps. Anyone who reads the logs can correlate your activity on-chain. Only share with people you trust.</string>
+    <string name="settings_understand_share_logs">Understood, share logs</string>
     <string name="settings_clear_logs_question">Clear diagnostic logs?</string>
     <string name="settings_clear_all_entries">Clear all entries</string>
 
@@ -259,7 +263,7 @@
     <string name="devices_second_factor">Second factor</string>
     <string name="devices_active_second_factor">Active second factor</string>
     <string name="devices_enrolled_on">Enrolled %1$s</string>
-    <string name="devices_remove_from_second_factor">Remove from second factor</string>
+    <string name="devices_remove_from_second_factor">Remove second factor</string>
     <string name="devices_add_as_second_factor">Add as second factor</string>
     <string name="devices_danger_zone">Danger zone</string>
     <string name="devices_remove_device">Remove device</string>
@@ -278,36 +282,36 @@
     <string name="devices_connect_and_add">Connect and add</string>
     <string name="devices_none_registered_title">No devices registered yet</string>
     <string name="devices_none_registered_body">Tap Register device to identify a Ledger or Trezor. Adding it as a second factor or to a specific network is a separate step from the device\'s detail screen.</string>
-    <string name="devices_kind_serial">%1$s - %2$s</string>
+    <string name="devices_kind_serial" translatable="false">%1$s - %2$s</string>
     <string name="devices_badge_second_factor">Second factor</string>
     <string name="devices_badge_identity">Identity</string>
-    <string name="devices_badge_bitcoin">Bitcoin</string>
-    <string name="devices_badge_ethereum">Ethereum</string>
-    <string name="devices_badge_solana">Solana</string>
-    <string name="devices_badge_tron">Tron</string>
+    <string name="devices_badge_bitcoin" translatable="false">Bitcoin</string>
+    <string name="devices_badge_ethereum" translatable="false">Ethereum</string>
+    <string name="devices_badge_solana" translatable="false">Solana</string>
+    <string name="devices_badge_tron" translatable="false">Tron</string>
     <string name="devices_vendor_yubikey_desc">Security key for hardware second factor.</string>
     <string name="devices_vendor_wallet_desc">Bluetooth hardware wallets</string>
     <string name="devices_vendor_picker_footer">Connect a supported transport so Maknoon can read the device\'s serial. Adding it to a network wallet is a separate step from the device\'s detail screen.</string>
     <string name="devices_register_kind">Register %1$s</string>
-    <string name="devices_register_card_body">Maknoon will connect over Bluetooth, read the device\'s stable serial, and record it. The device does not need to be promoted into Identity or any network yet.</string>
-    <string name="devices_unlock_ledger">Unlock the Ledger Nano X and open the device so we can locally confirm the device serial.</string>
+    <string name="devices_register_card_body">Maknoon will connect over %1$s, read the device\'s stable serial, and record it. The device does not need to be promoted into Identity or any network yet.</string>
+    <string name="devices_unlock_ledger">Unlock the Ledger Nano X and open the Ethereum app so Maknoon can locally confirm the device serial.</string>
     <string name="devices_unlock_trezor">Unlock your Trezor so Maknoon can read its serial over Bluetooth.</string>
     <string name="devices_unlock_generic">Unlock your device so Maknoon can read its serial.</string>
     <string name="devices_connect_read_serial">Connect and read serial</string>
-    <string name="devices_connecting_approve">Connecting. Approve any on-device confirmation prompts.</string>
+    <string name="devices_connecting_approve">Connecting… approve any on-device confirmation prompts.</string>
     <string name="devices_label_hint">Label (e.g. \"Vault Ledger\")</string>
     <string name="devices_register_button">Register</string>
-    <string name="devices_register_dedup_note">If you\'ve registered this device before, Maknoon recognises its serial and returns the existing record without creating a duplicate.</string>
+    <string name="devices_register_dedup_note">If you\'ve registered this device before, Maknoon will recognise its serial and just return the existing record without creating a duplicate.</string>
     <string name="devices_pair_trezor">Pair Trezor</string>
     <string name="devices_pair_trezor_message">Enter the 6-digit pairing code shown on your Trezor.</string>
     <string name="devices_pair_code_placeholder">000000</string>
     <string name="devices_pair_button">Pair</string>
     <string name="devices_discover_wallets">Discover wallets</string>
     <string name="devices_discover_device_line">%1$s (%2$s)</string>
-    <string name="devices_discover_card_body">Maknoon walks accounts 0, 1, 2, ... on this device until %1$s consecutive empty accounts are found, then stops. Each account\'s receive identity is read off the device and probed for on-chain activity over the network, so only accounts with history are surfaced. Open the relevant chain\'s app on the %2$s and approve any prompt.</string>
+    <string name="devices_discover_card_body">Maknoon walks accounts 0, 1, 2, ... on this device until %1$s consecutive empty accounts are found, then stops. Each account\'s receive address is read off the device and probed for on-chain activity over the network, so only accounts with history are surfaced. Open the relevant chain\'s app on the %2$s and approve any prompt.</string>
     <string name="devices_chain">Chain</string>
     <string name="devices_wallet">Wallet</string>
-    <string name="devices_passphrase_standard">Standard</string>
+    <string name="devices_passphrase_standard">Standards</string>
     <string name="devices_passphrase_on_trezor">On Trezor</string>
     <string name="devices_passphrase_type_on_phone">Type on phone</string>
     <string name="devices_passphrase">Passphrase</string>
@@ -340,7 +344,7 @@
     <string name="present_issued">Issued</string>
     <string name="present_expires">Expires</string>
     <string name="present_anchor_chain">Anchor (%1$s)</string>
-    <string name="present_pii_stays_title">PII stays on this device</string>
+    <string name="present_pii_stays_title">PII stays on this phone</string>
     <string name="present_pii_stays_body">None of the personal information on this credential, such as your name or date of birth, is encoded in the QR. To share specific attributes with a verifier, switch to \"Attribute QR\".</string>
     <string name="present_header">Header</string>
     <string name="present_cryptography">Cryptography</string>
@@ -355,7 +359,7 @@
     <string name="present_none_all_credentials">None (All credentials)</string>
     <string name="present_folder_selected">%1$s *</string>
     <string name="present_protected_screen_title">Protected screen</string>
-    <string name="present_protected_screen_body">Screenshots are blocked while sharing, and a device unlock confirms before any release. Your signing keys never leave this device.</string>
+    <string name="present_protected_screen_body">Screenshots are blocked while sharing, and a phone unlock confirms before any data is sent. Your signing keys never leave this phone.</string>
     <string name="present_responding_to_verifier">Responding to verifier</string>
     <string name="present_verifier">Verifier</string>
     <string name="present_verifier_lower">verifier</string>
@@ -364,10 +368,10 @@
     <string name="present_deselect_all">Deselect all</string>
     <string name="present_select_all">Select all</string>
     <string name="present_required">required</string>
-    <string name="present_attributes_help">All attributes are selected by default. Untick any field before building; required fields (when the verifier specified them) stay on.</string>
+    <string name="present_attributes_help">All attributes are selected by default. Tap to remove any field before building the QR; required fields (when the verifier specified them) stay on.</string>
     <string name="present_rebuild_qr">Re-build QR</string>
     <string name="present_build_qr">Build QR</string>
-    <string name="present_build_help">Signs a Presentation with the disclosed claims, over a fresh nonce, valid for about 5 minutes.</string>
+    <string name="present_build_help">Signs a Presentation with the disclosed claims. The signature is over a fresh nonce, valid for ~5 minutes.</string>
     <string name="present_build_error">Build error: %1$s</string>
     <string name="present_share">Share</string>
     <string name="present_send_to_verifier">Send to %1$s</string>
@@ -390,10 +394,10 @@
     <string name="present_verifier_scans_this">Verifier scans this</string>
     <string name="present_drop_id">Drop ID</string>
     <string name="present_expires_at">Expires %1$s</string>
-    <string name="present_drop_scan_help">To verify, use Elabify Maknoon app identity to verify credential</string>
+    <string name="present_drop_scan_help">To verify, use the Elabify Maknoon app: Identity → Verify credential</string>
     <string name="present_go">Go</string>
     <string name="present_scan_verifier_prompt">Scan the verifier\'s QR code</string>
-    <string name="present_validating_signature">Validating verifier signature...</string>
+    <string name="present_validating_signature">Validating verifier signature…</string>
     <string name="present_no_matching_credential">No matching credential</string>
     <string name="present_no_matching_credential_body">This verifier needs a credential you do not have. Try receiving one from an issuer first.</string>
     <string name="present_no_qr_in_photo">No QR code found in that photo.</string>
@@ -401,8 +405,8 @@
     <string name="present_your_matching_credential">Your matching credential</string>
     <string name="present_you_will_share">You will share</string>
     <string name="present_no_attributes_requested">No personal attributes requested.</string>
-    <string name="present_approve_help">Approve signs these attributes and sends them to the verifier over the network. Your keys never leave this device.</string>
-    <string name="present_sending">Sending...</string>
+    <string name="present_approve_help">Approve signs these attributes and sends them to the verifier over the network. Your keys never leave this phone.</string>
+    <string name="present_sending">Sending…</string>
     <string name="present_approve_share">Approve &amp; share</string>
     <string name="present_reject">Reject</string>
     <string name="present_shared_with">Shared with %1$s</string>
@@ -411,16 +415,15 @@
     <string name="present_self_signed_verifier">Self-signed verifier</string>
     <string name="present_unverified">Unverified</string>
     <string name="present_fetching_presentation">Fetching presentation...</string>
-    <string name="present_scan_badge_drop_presentation">Scan a badge, a drop envelope, or a presentation</string>
+    <string name="present_scan_badge_drop_presentation">Scan a badge, a drop envelope, or a rotating QR</string>
     <string name="present_badge">Badge</string>
     <string name="present_badge_no_pii_body">No personal data was shared. The badge proves a credential reference exists; verify on-chain for full proof.</string>
     <string name="present_what_this_shows">What this shows</string>
     <string name="present_anchor_dash">Anchor - %1$s</string>
     <string name="present_scan_another">Scan another</string>
     <string name="present_verdict_self_attested">Self-issued, app genuineness unverified</string>
-    <string name="present_verdict_deny">DENY</string>
+    <string name="present_verdict_deny">Deny</string>
     <string name="present_verdict_locally_valid">Locally valid</string>
-    <string name="present_disclosed_claims">Disclosed claims</string>
     <string name="present_credential">Credential</string>
     <string name="present_schema">Schema</string>
     <string name="present_cid">CID</string>
@@ -434,11 +437,11 @@
     <string name="id_change_document_type">Change document type</string>
     <string name="id_check_opensanctions">Check against OpenSanctions</string>
     <string name="id_chip_authenticity">Chip authenticity</string>
-    <string name="id_chip_check_note">Chip check note</string>
+    <string name="id_chip_check_note">About this chip check</string>
     <string name="id_chip_enabled_passport">Chip-enabled passport</string>
     <string name="id_chip_failed">Failed</string>
     <string name="id_chip_signer_expired">Authentic, signer expired</string>
-    <string name="id_chip_signer_not_in_list">Genuine</string>
+    <string name="id_chip_signer_not_in_list">Signer not recognized</string>
     <string name="id_chip_unavailable">Unavailable</string>
     <string name="id_chip_verified">Verified</string>
     <string name="id_credential_value">Credential: %1$s</string>
@@ -464,11 +467,11 @@
     <string name="id_folder_name_selected">%1$s *</string>
     <string name="id_folders_blurb">Folders live at the root and group cards on the Identity tab.</string>
     <string name="id_form_accuracy_note">The passport can only be read if the passport number, date of birth, and expiration are entered correctly.</string>
-    <string name="id_form_intro_other">Type the details from the data page of your ID, then tap your phone to it when the NFC prompt appears.</string>
+    <string name="id_form_intro_other">Type the details from the data page of your ID, then hold your phone against it when the system NFC sheet appears.</string>
     <string name="id_form_intro_passport">Passports with this logo on the front can be added. In order to connect to your passport securely, you must type your details from inside of your passport accurately.</string>
     <string name="id_get_verified_credential">Get verified credential</string>
     <string name="id_given_name">Given name</string>
-    <string name="id_hold_phone_over_passport">Tap Passport</string>
+    <string name="id_hold_passport_to_phone">Hold passport to phone</string>
     <string name="id_identity_verified_credential">Identity Verified Credential</string>
     <string name="id_issue_detail_blurb">Send your passport\'s chip-signed details to Musnad by Elabify for verification and a sanctions check. You get back a verified credential in your wallet that you can share with any compatible app. Your passport details are never written on-chain; only a private anchor (a code with no personal data) is.</string>
     <string name="id_issue_idle_blurb">Send your passport details to Musnad by Elabify for verification and a sanctions check. You get back a verified credential that any compatible app can check. Your passport details are never written on-chain.</string>
@@ -478,13 +481,13 @@
     <string name="id_issue_verified_credential">Issue verified credential</string>
     <string name="id_issued_by">Issued by</string>
     <string name="id_kind_picker_prompt">What kind of document are you about to tap?</string>
-    <string name="id_kind_summary">%1$s · %2$s</string>
+    <string name="id_kind_summary" translatable="false">%1$s · %2$s</string>
     <string name="id_last_screened">Last screened</string>
     <string name="id_move_slowly_find_chip">Passports vary. Try to place the phone on the center of the inside back cover of the passport, or on the photo page, or the front cover.</string>
     <string name="id_move_to_folder">Move to folder</string>
     <string name="id_nationality">Nationality</string>
     <string name="id_native_name">Native name</string>
-    <string name="id_nfc_unavailable">NFC reading isn\'t available on this device. You can still fill in the details, but the scan step will not work here.</string>
+    <string name="id_nfc_unavailable">NFC reading isn\'t available on this phone. You can still fill in the details, but the scan step will not work here.</string>
     <string name="id_nickname">Nickname</string>
     <string name="id_nickname_hint">Use a friendly label like \"Personal passport\" or \"Work ID\".</string>
     <string name="id_nickname_optional">Nickname (optional)</string>
@@ -507,9 +510,9 @@
     <string name="id_reading_chip_hold">Reading the chip. Keep the passport held against the phone until this finishes.</string>
     <string name="id_recheck_chip">Re-check chip</string>
     <string name="id_recheck_sanctions">Re-check sanctions</string>
-    <string name="id_retap_needed">Re-tap needed</string>
-    <string name="id_retap_needed_body">The chip\'s signed data wasn\'t captured. Re-tap your passport so Maknoon can store it; the issuer needs it to verify.</string>
-    <string name="id_sanctions_clean">Clean</string>
+    <string name="id_retap_needed">Read the chip again</string>
+    <string name="id_retap_needed_body">The chip\'s signed data wasn\'t captured. Hold your passport to the phone again so Maknoon can store it; the issuer needs it to verify.</string>
+    <string name="id_sanctions_no_match">No match</string>
     <string name="id_sanctions_error">Screening error</string>
     <string name="id_sanctions_footer_note">Sends only your name and date of birth to Musnad by Elabify for a sanctions check. Your photo and chip data stay on this phone.</string>
     <string name="id_sanctions_inconclusive">Inconclusive</string>
@@ -528,8 +531,8 @@
     <string name="id_submitted_anchoring">Submitted. Finishing up.</string>
     <string name="id_submitted_awaiting_review">Submitted, awaiting manual review</string>
     <string name="id_submitted_pre_verified">Submitted, pre-verified</string>
-    <string name="id_submitting_to_host">Submitting to %1$s...</string>
-    <string name="id_tap_document_title">Tap ID document</string>
+    <string name="id_submitting_to_host">Submitting to %1$s…</string>
+    <string name="id_tap_document_title">Hold ID document to phone</string>
     <string name="id_uploaded_fields_note">Shared with Musnad: your name, document number, dates, nationality, and sex. Not shared: your passport photo and chip data stay on this phone.</string>
 
     <!-- miniapp -->
@@ -551,15 +554,15 @@
     <string name="app_web3_advanced_data">Contract data (advanced)</string>
     <string name="app_web3_advanced_data_warn">This is a contract call the wallet could not decode. Only continue if you trust this app.</string>
     <string name="app_web3_switch_chain">Switch chain</string>
-    <string name="app_web3_switch">Switch</string>
-    <string name="app_web3_switch_body">This app wants to switch the active network.</string>
+    <string name="app_web3_switch">Switch chain</string>
+    <string name="app_web3_switch_body">This app wants to switch the active chain.</string>
     <string name="common_from">From</string>
-    <string name="app_could_not_open_app">Could not open app: %1$s</string>
+    <string name="app_could_not_open_app">Could not open app</string>
     <string name="app_payment_status_lightning">Lightning invoices are not yet available in mini apps. Mark received once paid.</string>
     <string name="app_payment_status_watching">Watching for the payment. Tap Mark received once it lands.</string>
-    <string name="app_preparing">Preparing...</string>
+    <string name="app_preparing">Preparing…</string>
     <string name="app_requesting">Requesting: %1$s</string>
-    <string name="app_customer_scans_identity_verifier">Customer scans this with Identity, Scan verifier</string>
+    <string name="app_customer_scans_identity_verifier">Customer scans this with Identity → Scan verifier</string>
     <string name="app_scan_a_code">Scan a code</string>
     <string name="app_camera_access_needed">Camera access is needed to scan.</string>
     <string name="app_allow_camera">Allow camera</string>
@@ -575,7 +578,7 @@
     <string name="app_payment_sent">Payment sent</string>
     <string name="app_reference">Reference: %1$s…</string>
     <string name="app_view_in_wallet">View in wallet</string>
-    <string name="app_signed_awaiting_broadcast">Signed on your device. Broadcast sends your identity to the merchant first, then the payment on-chain.</string>
+    <string name="app_signed_awaiting_broadcast">Signed on your hardware wallet. Broadcast sends your identity to the merchant first, then the payment on-chain.</string>
     <string name="app_broadcast">Broadcast</string>
     <string name="app_confirm_and_pay">Confirm &amp; Pay</string>
     <string name="app_requesting_proof">is requesting proof from your wallet.</string>
@@ -589,7 +592,7 @@
     <string name="app_approve">Approve</string>
     <string name="app_ask_customer_present">Ask the customer to present their credential</string>
     <string name="app_customer_scans_this">Customer scans this</string>
-    <string name="app_or_scan_the_customer">...or scan the customer</string>
+    <string name="app_or_scan_the_customer">…or scan the customer</string>
     <string name="app_decline">Decline</string>
     <string name="app_back_to_apps">Back to apps</string>
     <string name="app_dismiss">Dismiss</string>
@@ -600,7 +603,7 @@
     <string name="app_installed">Installed</string>
     <string name="app_manage">Manage</string>
     <string name="app_no_apps_installed">No apps installed yet</string>
-    <string name="app_no_apps_subtitle">Tap the + in the top right to browse the Maknoon Apps catalog (and any catalogs you have added in Settings &gt; Apps).</string>
+    <string name="app_no_apps_subtitle">Tap the + to browse the Maknoon Apps catalog (and any catalogs you have added in Settings &gt; Apps).</string>
     <string name="app_connected_verifiers">Connected verifiers</string>
     <string name="app_no_verifiers">No verifiers yet. Once you share a credential, the verifier appears here with the claims you disclosed and the last time you shared.</string>
     <string name="app_last_share">Last share %1$s</string>
@@ -611,11 +614,13 @@
     <string name="app_browse_apps">Browse Apps</string>
     <string name="app_apps_catalogs">Apps catalogs</string>
     <string name="app_add_catalogs_hint">Add additional Apps catalogs in Settings &gt; Apps.</string>
-    <string name="app_app_count_one">%1$d app</string>
-    <string name="app_app_count_other">%1$d apps</string>
+    <plurals name="app_app_count">
+        <item quantity="one">%1$s app</item>
+        <item quantity="other">%1$s apps</item>
+    </plurals>
     <string name="app_back_to_catalogs">Back to catalogs</string>
     <string name="app_catalog_empty">This catalog has no apps yet.</string>
-    <string name="app_beta_hidden">Beta apps are hidden. Turn on \"Show beta apps\" in Settings &gt; Apps to see experimental apps.</string>
+    <string name="app_beta_hidden">Beta apps are hidden. Turn on “Show beta apps” in Apps settings to see experimental apps.</string>
     <string name="app_this_app_can">This app can</string>
     <string name="app_asks_each_time">asks each time</string>
     <string name="app_install_to_apps_tab">Install to Apps tab</string>
@@ -635,7 +640,10 @@
     <string name="identity_rename_folder">Rename folder</string>
     <string name="identity_folder_name">Folder name</string>
     <string name="identity_delete_folder">Delete folder</string>
-    <string name="identity_delete_folder_message">%1$s credential%2$s will move back to All. The credentials themselves are not deleted.</string>
+    <plurals name="identity_delete_folder_message">
+        <item quantity="one">%1$s credential will move back to All. The credential itself is not deleted.</item>
+        <item quantity="other">%1$s credentials will move back to All. The credentials themselves are not deleted.</item>
+    </plurals>
     <string name="identity_move_to_folder">Move to folder</string>
     <string name="identity_none_all_current">None (All) *</string>
     <string name="identity_none_all">None (All)</string>
@@ -655,10 +663,10 @@
     <string name="identity_quick_actions">Quick actions</string>
     <string name="identity_scan_verifier">Scan verifier</string>
     <string name="identity_verify_someone">Verify credential</string>
-    <string name="identity_tap_id_document">Tap ID document</string>
+    <string name="identity_tap_id_document">Hold ID document to phone</string>
     <string name="identity_error">Error</string>
     <string name="identity_no_credentials_yet">No credentials yet</string>
-    <string name="identity_empty_subtitle">Use the + menu in the top right to receive your first credential or to tap an ID document.</string>
+    <string name="identity_empty_subtitle">Use the + menu to receive your first credential or to tap an ID document.</string>
     <string name="identity_nothing_in_folder">Nothing in this folder yet</string>
     <string name="identity_folder_empty_hint">Open a credential or ID document and pick this folder under \"Folder\" to add it here.</string>
     <string name="identity_show_all_credentials">Show all credentials</string>
@@ -677,12 +685,12 @@
 
     <!-- btc -->
 <string name="btc_no_wallet">No wallet</string>
-<string name="btc_hardware_wallet">Hardware Wallet</string>
+<string name="btc_hardware_wallet">Hardware wallet</string>
 <string name="btc_pay_to">Pay to</string>
 <string name="btc_bech32_placeholder">bc1q… (Bech32 address)</string>
 <string name="btc_label_optional">Label (optional)</string>
-<string name="btc_available_from_selected">Available: %1$s BTC (%2$s) from %3$s selected</string>
-<string name="btc_available">Available: %1$s BTC (%2$s)</string>
+<string name="btc_available_from_selected">Available: %1$s BTC (%2$s sats) from %3$s selected UTXOs</string>
+<string name="btc_available">Available: %1$s BTC (%2$s sats)</string>
 <string name="btc_available_loading">Available: loading…</string>
 <string name="btc_unit">Unit</string>
 <string name="btc_fee">Fee</string>
@@ -694,18 +702,21 @@
 <string name="btc_signal_rbf">Signal RBF (replace-by-fee)</string>
 <string name="btc_coin_control">Coin control (manual UTXO select)</string>
 <string name="btc_select_utxos">Select UTXOs…</string>
-<string name="btc_n_utxos_selected">%1$s UTXO(s) selected</string>
+    <plurals name="btc_n_utxos_selected">
+        <item quantity="one">%1$s UTXO selected</item>
+        <item quantity="other">%1$s UTXOs selected</item>
+    </plurals>
 <string name="btc_review">Review</string>
 <string name="btc_max_fee">Max fee</string>
 <string name="btc_total">Total</string>
 <string name="btc_total_exceeds_balance">Total exceeds available balance.</string>
 <string name="btc_broadcast_txid">Broadcast. txid %1$s…</string>
 <string name="btc_sign">Sign</string>
-<string name="btc_sign_using_hardware">Sign using Hardware Wallet</string>
+<string name="btc_sign_using_hardware">Sign using Hardware Wallet, %1$s</string>
 <string name="btc_sign_on_another_device">Sign on another device…</string>
 <string name="btc_sign_offline_psbt_qr">Or sign offline (PSBT QR)…</string>
-<string name="btc_signing_locally">Signing locally…</string>
-<string name="btc_signing_on_device">Signing on device…</string>
+<string name="btc_signing_locally">Signing on this phone…</string>
+<string name="btc_signing_on_device">Sign on device</string>
 <string name="btc_broadcast_transaction">Broadcast transaction</string>
 <string name="btc_broadcasting">Broadcasting…</string>
 <string name="btc_retry_broadcast">Retry broadcast</string>
@@ -715,12 +726,11 @@
 <string name="btc_add_wallet">Add wallet</string>
 <string name="btc_active">Active</string>
 <string name="btc_rename">Rename</string>
-<string name="btc_wallet_label_lc">Wallet label</string>
 <string name="btc_no_transactions">No transactions yet</string>
 <string name="btc_fund_to_see_history">Fund this wallet to see history here.</string>
 <string name="btc_edit_label">Edit label</string>
 <string name="btc_label_example">Label (e.g. Lunch with Alice)</string>
-<string name="btc_label_applies_to">Applies to %1$s. Labels are stored on this device only.</string>
+<string name="btc_label_applies_to">Applies to %1$s. Labels are stored on this phone only.</string>
 <string name="btc_scan_or_copy">Scan or copy. Anything sent will arrive in this wallet.</string>
 <string name="btc_address_index">Address (index %1$s)</string>
 <string name="btc_copy_address">Copy address</string>
@@ -742,7 +752,7 @@
 <string name="btc_discover_existing">Discover existing wallets</string>
 <string name="btc_software_discover_caption">Scans for your Bitcoin accounts on %1$s that already have history, so you can re-add wallets created previously.</string>
 <string name="btc_already_in_wallets">Already in your wallets</string>
-<string name="btc_balance_txs">%1$s sats · %2$s txs</string>
+<string name="btc_balance_txs">%1$s sats · %2$s tx</string>
 <string name="btc_adding">Adding…</string>
 <string name="btc_add_selected">Add selected</string>
 <string name="btc_no_device_registered">No Ledger or security key is registered yet. Register one to add its Bitcoin wallet.</string>
@@ -754,21 +764,24 @@
 <string name="btc_generic_add_hint">Connect the device and approve any prompt, then tap Add wallet.</string>
 <string name="btc_connecting">Connecting…</string>
 <string name="btc_hardware_discover_caption">Scans this device for your Bitcoin accounts on %1$s that already have history, so you can re-add wallets created previously.</string>
-<string name="btc_already_added_device">Already added on this device</string>
+<string name="btc_already_added_device">Already added on this phone</string>
 <string name="btc_chain">Chain</string>
 <string name="btc_select_utxos_title">Select UTXOs</string>
 <string name="btc_use_selection">Use selection</string>
 <string name="btc_selected">Selected</string>
 <string name="btc_needed">Needed</string>
-<string name="btc_add_more_fee_excluded">Add %1$s more, fee not included.</string>
-<string name="btc_selection_covers">Selection covers the recipient amount. The TxBuilder will deduct the fee from change.</string>
+<string name="btc_add_more_fee_excluded">Select %1$s more from your inputs, fee not included.</string>
+<string name="btc_selection_covers">Selection covers the recipient amount. The wallet will deduct the fee from change.</string>
 <string name="btc_no_spendable_utxos">No spendable UTXOs in this wallet yet.</string>
 <string name="btc_addresses">Addresses</string>
 <string name="btc_change">Change</string>
 <string name="btc_no_addresses">No addresses yet</string>
 <string name="btc_show_qr">Show QR</string>
 <string name="btc_open_in_explorer">Open in explorer</string>
-<string name="btc_utxo_count">%1$s UTXO(s)</string>
+    <plurals name="btc_utxo_count">
+        <item quantity="one">%1$s UTXO</item>
+        <item quantity="other">%1$s UTXOs</item>
+    </plurals>
 <string name="btc_unused">Unused</string>
 <string name="btc_receive_to_address">Receive to this address</string>
 <string name="btc_sign_offline">Sign offline</string>
@@ -780,7 +793,7 @@
 <string name="btc_step_unsigned_psbt">1. Unsigned PSBT</string>
 <string name="btc_building_unsigned_psbt">Building unsigned PSBT…</string>
 <string name="btc_copy">Copy</string>
-<string name="btc_psbt_too_long">PSBT too long for a single QR (%1$s chars). Use Copy instead, or split with Animated QR / BBQr in your signer.</string>
+<string name="btc_psbt_too_long">PSBT too long for a single QR (%1$s chars). Use Copy or Share instead, or split with Animated QR / BBQr in your signer.</string>
 <string name="btc_take_psbt_to_signer">Take this base64 (or QR) to your signing device. Sparrow / Trezor Suite / Ledger Live / Specter all accept BIP174 PSBT.</string>
 <string name="btc_step_signed_psbt">2. Signed PSBT</string>
 <string name="btc_paste_signed_psbt">Paste signed PSBT (base64)…</string>
@@ -791,16 +804,16 @@
 <string name="btc_unconfirmed">Unconfirmed</string>
 <string name="btc_confirmed">Confirmed</string>
 <string name="btc_open_in_block_explorer">Open in block explorer</string>
-<string name="btc_bitcoin">Bitcoin</string>
+<string name="btc_bitcoin" translatable="false">Bitcoin</string>
 <string name="btc_create_identity_first">Create an identity first (Identity tab), then add a Bitcoin wallet.</string>
 <string name="btc_manage_wallets">Manage wallets</string>
 <string name="btc_local_cache_rebuilt">Local cache rebuilt</string>
-<string name="btc_local_cache_rebuilt_body">Your wallet\'s local index could not be read, so Maknoon wiped it and is doing a full re-scan now. Your on-chain funds are safe and untouched. Reason: %1$s</string>
+<string name="btc_local_cache_rebuilt_body">Your wallet\'s local index could not be read, so Maknoon wiped it and is doing a full re-scan now. Your on-chain funds are safe and untouched.</string>
 <string name="btc_next_receive">Next receive</string>
 <string name="btc_fund_to_see_here">Fund this wallet to see it here. Use Receive to copy a deposit address.</string>
 <string name="btc_switch_wallet">Switch wallet</string>
 <string name="btc_bitcoin_settings">Bitcoin settings</string>
-<string name="btc_network_for_settings">Network for these settings</string>
+<string name="btc_chain_for_settings">Chain for these settings</string>
 <string name="btc_electrum">Electrum</string>
 <string name="btc_pinned_cert">Pinned cert SHA-256 (optional)</string>
 <string name="btc_use_public_default">Use public default</string>
@@ -812,8 +825,8 @@
 <string name="btc_explorer_caption">HTML explorer the Addresses + Transactions screens link out to. Must serve /address/&lt;bech32&gt; and /tx/&lt;txid&gt; pages.</string>
 <string name="btc_price_sources_caption">Price data sources (CoinGecko + FX) and the display currency are set app-wide in Settings &gt; Currency.</string>
 <string name="btc_save_changes">Save changes</string>
-<string name="btc_reset_all_settings">Reset all Bitcoin settings</string>
-<string name="btc_saved">Saved.</string>
+<string name="btc_use_default_settings">Use default Bitcoin settings</string>
+<string name="btc_saved">Saved</string>
 
     <!-- eth -->
 <string name="eth_add_ethereum_wallet">Add Ethereum wallet</string>
@@ -837,9 +850,9 @@
 <string name="eth_connect_device_approve">Connect the device and approve any prompt, then tap Add wallet.</string>
 <string name="eth_connecting">Connecting…</string>
 <string name="eth_hardware_discover_caption">Scans this device for your Ethereum accounts on %1$s that already have history, so you can re-add wallets created previously.</string>
-<string name="eth_already_added_on_device">Already added on this device</string>
-<string name="eth_edit_network">Edit chain</string>
-<string name="eth_add_custom_network">Add custom chain</string>
+<string name="eth_already_added_on_device">Already added on this phone</string>
+<string name="eth_edit_chain">Edit chain</string>
+<string name="eth_add_custom_chain">Add custom chain</string>
 <string name="eth_custom_name_hint">Name (e.g. Aurora Mainnet)</string>
 <string name="eth_custom_chain_id_hint">Chain ID (e.g. 1313161554)</string>
 <string name="eth_custom_ticker_hint">Ticker (e.g. ETH)</string>
@@ -852,9 +865,9 @@
 <string name="eth_explorer_api_url_hint">https://api.aurorascan.dev/api (optional)</string>
 <string name="eth_api_key_optional">API key (optional)</string>
 <string name="eth_save_changes">Save changes</string>
-<string name="eth_add_network">Add chain</string>
+<string name="eth_add_chain">Add chain</string>
 <string name="eth_add_erc20_token">Add ERC-20 token</string>
-<string name="eth_tokens_builtin_only_long">ERC-20 tokens are managed per built-in network. Switch to a built-in chain (not a custom network) to add tokens.</string>
+<string name="eth_tokens_builtin_only_long">ERC-20 tokens are managed per built-in chain. Switch to a built-in chain (not a custom chain) to add tokens.</string>
 <string name="eth_contract_address_label">Contract address (0x…)</string>
 <string name="eth_network_caption">Chain: %1$s</string>
 <string name="eth_testnet_catalog_note">%1$s is a testnet. The verified catalog covers mainnet contracts only, so testnet tokens always land in the custom path.</string>
@@ -864,15 +877,15 @@
 <string name="eth_decimals">Decimals</string>
 <string name="eth_badge_detected">Detected on chain</string>
 <string name="eth_badge_not_in_catalog">Not in catalog</string>
-<string name="eth_custom_token_warning">Verified tokens use the metadata from your configured catalog. Custom additions are your responsibility: double-check the contract address against a trusted source before sending value to it.</string>
+<string name="eth_custom_token_warning">Verified tokens use the metadata from your configured catalog (Jupiter strict list by default). Custom additions are your responsibility, double-check the mint address against a trusted source before sending value to it.</string>
 <string name="eth_symbol_hint">Symbol (e.g. USDC)</string>
 <string name="eth_decimals_hint">Decimals (typically 6 or 18)</string>
-<string name="eth_select_network">Select chain</string>
+<string name="eth_select_chain">Select chain</string>
     <string name="eth_chain">Chain</string>
-<string name="eth_mainnets">Mainnets</string>
-<string name="eth_testnets">Testnets</string>
+<string name="eth_mainnets">Mainnet chains</string>
+<string name="eth_testnets">Testnet chains</string>
 <string name="eth_custom_section">Custom</string>
-<string name="eth_add_custom_network_ellipsis">Add custom chain…</string>
+<string name="eth_add_custom_network_ellipsis">Add a custom chain</string>
 <string name="eth_selected">Selected</string>
 <string name="eth_chain_id_ticker">Chain ID %1$s · %2$s</string>
 <string name="eth_edit">Edit</string>
@@ -883,7 +896,7 @@
 <string name="eth_copy_address">Copy address</string>
 <string name="eth_private_key_owns_address">Your private key owns this address on every EVM chain. Chain: %1$s</string>
 <string name="eth_asset_native">%1$s (native)</string>
-<string name="eth_ethereum_wallet">Ethereum wallet</string>
+<string name="eth_ethereum_wallet">New Ethereum wallet</string>
 <string name="eth_token">Token</string>
 <string name="eth_pay_to">Pay to</string>
 <string name="eth_recipient_placeholder">0x… or vitalik.eth</string>
@@ -895,14 +908,14 @@
 <string name="eth_network_fee">Network fee</string>
 <string name="eth_fetching_gas">Fetching current gas prices…</string>
 <string name="eth_base_fee">Base fee</string>
-<string name="eth_priority_tip">Priority tip</string>
+<string name="eth_priority_tip">Priority fee</string>
 <string name="eth_max_fee_per_gas">Max fee per gas</string>
 <string name="eth_gas_units">Gas units</string>
 <string name="eth_max_network_fee">Max network fee</string>
 <string name="eth_gas_unavailable">Gas estimates unavailable. Switch RPC under Settings → Networks → Ethereum, or try Standard.</string>
 <string name="eth_review">Review</string>
-<string name="eth_worst_case_total">Worst-case total</string>
-<string name="eth_worst_case_exceeds">Worst-case total exceeds balance. Lower the amount or wait for cheaper gas.</string>
+<string name="eth_worst_case_total">Most you could pay</string>
+<string name="eth_worst_case_exceeds">The most you could pay exceeds your balance. Lower the amount or wait for cheaper gas.</string>
 <string name="eth_retry_broadcast">Retry broadcast</string>
 <string name="eth_sign_using_device">Sign using device</string>
 <string name="eth_confirm_on_device">Confirm the transaction on your hardware device when prompted. The device verifies the recipient, value, and gas cap on-screen before signing.</string>
@@ -912,14 +925,14 @@
 <string name="eth_working">Working…</string>
 <string name="eth_broadcast">Broadcast</string>
 <string name="eth_device_not_registered">The device that holds this wallet is not registered anymore. Re-register it under Settings, Devices.</string>
-<string name="eth_ethereum">Ethereum</string>
-<string name="eth_networks_overrides_note">Each EVM chain has its own JSON-RPC endpoint and block explorer. Wallets are address-compatible across chains; this picker only changes which overrides you are editing.</string>
-<string name="eth_manage_networks">Manage chains…</string>
+<string name="eth_ethereum" translatable="false">Ethereum</string>
+<string name="eth_networks_overrides_note">Each Tron chain has its own TronGrid endpoint and TronScan explorer. Wallets are address-compatible across chains; this picker only changes which set of overrides you\'re editing.</string>
+<string name="eth_manage_chains">Manage chains…</string>
 <string name="eth_json_rpc_url">JSON-RPC URL</string>
 <string name="eth_default_value">Default: %1$s</string>
 <string name="eth_block_explorer">Block explorer</string>
 <string name="eth_explorer_url">Explorer URL</string>
-<string name="eth_explorer_api_history_short">Explorer API (history)</string>
+<string name="eth_explorer_api_history_short">Explorer API (tx history)</string>
 <string name="eth_etherscan_family_url">Etherscan-family API URL</string>
 <string name="eth_none_history_disabled">none (history disabled)</string>
 <string name="eth_explorer_api_key">Explorer API key</string>
@@ -929,12 +942,12 @@
 <string name="eth_ens_note">ENS lookups always run on Ethereum mainnet. Empty uses the mainnet RPC above.</string>
 <string name="eth_token_catalog">Token catalog</string>
 <string name="eth_tokenlist_url">TokenList URL</string>
-<string name="eth_catalog_last_refreshed">Last refreshed %1$s, %2$s verified tokens cached.</string>
+<string name="eth_catalog_last_refreshed">Last refreshed %1$s ago, %2$s verified tokens cached.</string>
 <string name="eth_not_yet_fetched">Not yet fetched.</string>
 <string name="eth_refreshing">Refreshing…</string>
 <string name="eth_refresh_now">Refresh now</string>
 <string name="eth_token_logos">Token logos</string>
-<string name="eth_logo_url_template">Logo URL template</string>
+<string name="eth_logo_url_template">Logo template</string>
 <string name="eth_logo_note">Uses {chain} + {address} placeholders. Empty restores the Trust Wallet default.</string>
 <string name="eth_advanced">Advanced</string>
 <string name="eth_wc_relay">Self-hosted WalletConnect relay</string>
@@ -945,8 +958,8 @@
 <string name="eth_contract">Contract</string>
 <string name="eth_copy_contract_address">Copy contract address</string>
 <string name="eth_no_transactions">No transactions yet</string>
-<string name="eth_history_needs_explorer">History needs a block-explorer API for this network. Set one in Settings → Ethereum.</string>
-<string name="eth_contract_creation">(contract creation)</string>
+<string name="eth_history_needs_explorer">History needs a block-explorer API for this chain. Set one in Settings → Ethereum.</string>
+<string name="eth_contract_creation">Contract creation</string>
 <string name="eth_received">Received</string>
 <string name="eth_sent">Sent</string>
 <string name="eth_failed">Failed</string>
@@ -956,10 +969,10 @@
 <string name="eth_identity_locked">Identity is locked</string>
 <string name="eth_identity_locked_body">Unlock from the Identity tab to read this software wallet.</string>
 <string name="eth_wallet_orphaned">Wallet belongs to a different identity</string>
-<string name="eth_wallet_orphaned_body">This wallet was created under a different identity (for example, restored from a backup that did not include its recovery phrase), so it cannot sign transactions. To use it, restore the backup that created it — note that restoring replaces everything on this device (recovery phrase, credentials, wallets, and settings). Otherwise you can remove it; its funds stay on-chain.</string>
+<string name="eth_wallet_orphaned_body">This wallet was created under a different identity (for example, restored from a backup that did not include its recovery phrase), so it cannot sign transactions. To use it, restore the backup that created it. Note that restoring replaces everything on this phone (recovery phrase, credentials, wallets, and settings). Otherwise you can remove it; its funds stay on-chain.</string>
 <string name="eth_no_wallet_yet">No Ethereum wallet yet</string>
 <string name="eth_add_an_ethereum_wallet">Add an Ethereum wallet</string>
-<string name="eth_tokens_builtin_only">ERC-20 tokens are managed per built-in network. Switch to a built-in chain to add tokens.</string>
+<string name="eth_tokens_builtin_only">ERC-20 tokens are managed per built-in chain. Switch to a built-in chain to add tokens.</string>
 <string name="eth_no_tokens_yet">No ERC-20 tokens yet.</string>
 <string name="eth_loading">Loading…</string>
 <string name="eth_fund_wallet_history">Fund this wallet to see history here.</string>
@@ -967,20 +980,23 @@
 
     <!-- sol -->
 <string name="sol_no_active_wallet">No active Solana wallet.</string>
-<string name="sol_solana">Solana</string>
+<string name="sol_solana" translatable="false">Solana</string>
 <string name="sol_software_account">Software · Account %1$s</string>
 <string name="sol_create_identity_first">Create an identity first (Identity tab), then your Solana wallet derives from your recovery phrase.</string>
 <string name="sol_rpc_unreachable">Couldn\'t reach the Solana RPC. The public endpoint often rate-limits; switch cluster above, or set a custom RPC under Settings.</string>
 <string name="sol_sol_ticker">SOL</string>
 <string name="sol_last_sync">Last sync %1$s</string>
 <string name="sol_no_spl_tokens">No SPL tokens tracked on %1$s.</string>
-<string name="sol_unrecognized_tokens">%1$s unrecognized token(s) held. Use Add token to import one by mint.</string>
+    <plurals name="sol_unrecognized_tokens">
+        <item quantity="one">%1$s unrecognized token held. Use Add token to import it by mint.</item>
+        <item quantity="other">%1$s unrecognized tokens held. Use Add token to import one by mint.</item>
+    </plurals>
 <string name="sol_recent_activity">Recent activity</string>
 <string name="sol_no_recent_transactions">No recent transactions</string>
 <string name="sol_fund_wallet_to_see_activity">Fund this wallet to see activity here.</string>
-<string name="sol_status_failed">failed</string>
-<string name="sol_status_confirmed">confirmed</string>
-<string name="sol_status_pending">pending</string>
+<string name="sol_status_failed">Failed</string>
+<string name="sol_status_confirmed">Confirmed</string>
+<string name="sol_status_pending">Pending</string>
 <string name="sol_test_cluster_no_value">Test cluster (no market value)</string>
 <string name="sol_refreshing">Refreshing…</string>
 <string name="sol_synced">Synced</string>
@@ -1009,11 +1025,11 @@
 <string name="sol_explorer_override">Explorer override (%1$s)</string>
 <string name="sol_verified_token_catalog_url">Verified-token catalog URL</string>
 <string name="sol_token_list_url">Token list URL</string>
-<string name="sol_saved">Saved.</string>
+<string name="sol_saved">Saved</string>
 <string name="sol_solana_wallets">Solana wallets</string>
 <string name="sol_add_wallet">Add wallet</string>
 <string name="sol_no_wallet_yet">No Solana wallet yet</string>
-<string name="sol_available_sol">Available: %1$s SOL</string>
+<string name="sol_available_sol">Available: %1$s</string>
 <string name="sol_available_token">Available: %1$s %2$s</string>
 <string name="sol_rent_exempt_caption">Heads up: Solana requires at least 0.00089088 SOL to fund a brand-new account (rent exemption). If this recipient does not exist yet, the network will reject the transfer.</string>
 <string name="sol_hardware_device">Hardware device</string>
@@ -1046,7 +1062,7 @@
 <string name="sol_software_needs_identity">Software wallets derive from your master seed and need your identity unlocked. Unlock from the Identity tab, or switch the Source to Hardware.</string>
 <string name="sol_account_in_use">Account %1$s is already in your wallets. Pick another to avoid a duplicate.</string>
 <string name="sol_setting_up">Setting up…</string>
-<string name="sol_same_wallet_every_cluster">The same wallet works on every Solana cluster; switch networks from the wallet screen.</string>
+<string name="sol_same_wallet_every_cluster">The same wallet works on every Solana cluster; switch chains from the wallet screen.</string>
 <string name="sol_scanning_inline">Scanning…</string>
 <string name="sol_discover_existing_inline">Discover existing wallets</string>
 <string name="sol_software_discover_help">Scans for your Solana accounts on %1$s that already have history, so you can re-add wallets created previously.</string>
@@ -1062,7 +1078,7 @@
 <string name="sol_connect_device">Connect the device and approve any prompt, then tap Add wallet.</string>
 <string name="sol_connecting">Connecting…</string>
 <string name="sol_hardware_discover_help">Scans this device for your Solana accounts on %1$s that already have history, so you can re-add wallets created previously.</string>
-<string name="sol_already_added_device">Already added on this device</string>
+<string name="sol_already_added_device">Already added on this phone</string>
 
     <!-- ln -->
 <string name="ln_lightning_settings">Lightning settings</string>
@@ -1070,7 +1086,7 @@
 <string name="ln_settings_accounts_note">Each account is one LNDHub-compatible credential set (server URL + username + password). Multiple accounts are supported; switch which one\'s active from the Lightning wallet\'s account picker. The per-account server URL and TLS-validation toggle (the Lightning equivalent of an RPC/explorer override) live on the Edit account screen.</string>
 <string name="ln_manage_accounts">Manage accounts</string>
 <string name="ln_security">Security</string>
-<string name="ln_security_note">Lightning passwords are sealed in the device keystore (StrongBox/TEE). Account metadata (label, server, username) is included in the settings backup; passwords are NOT exported.</string>
+<string name="ln_security_note">Lightning passwords are sealed in this phone\'s keystore (StrongBox/TEE). Account metadata (label, server, username) is included in the settings backup; passwords are never exported.</string>
 <string name="ln_receive_lightning">Receive Lightning</string>
 <string name="ln_invoice">Invoice</string>
 <string name="ln_amount_sat">Amount (sat)</string>
@@ -1117,7 +1133,7 @@
 <string name="ln_import_note">Scan or paste an lndhub:// connection URL. This is the de-facto BlueWallet standard, exported by Zeus, LNbits (LNDHub extension), Alby and others. Imported values fill the fields below; tap Add account to save.</string>
 <string name="ln_scan_lndhub_qr">Scan lndhub:// QR</string>
 <string name="ln_paste_lndhub_url">Paste lndhub:// URL</string>
-<string name="ln_server_credentials">Server credentials</string>
+<string name="ln_server_credentials">Server login</string>
 <string name="ln_label_hint">Label (e.g. Self-hosted hub)</string>
 <string name="ln_server_url">Server URL (https://...)</string>
 <string name="ln_username">Username</string>
@@ -1130,7 +1146,7 @@
 <string name="ln_username_value">Username: %1$s</string>
 <string name="ln_rotate_password">Rotate password</string>
 <string name="ln_new_password">New password (leave blank to keep current)</string>
-<string name="ln_lightning">Lightning</string>
+<string name="ln_lightning" translatable="false">Lightning</string>
 <string name="ln_no_account">No account</string>
 <string name="ln_switch_account">Switch account</string>
 <string name="ln_no_account_subtitle">Add an LNDHub account to send and receive over Lightning.</string>
@@ -1151,17 +1167,17 @@
     <string name="trx_add_as_custom">Add as custom…</string>
     <string name="trx_add_new_device">Add New Device</string>
     <string name="trx_add_selected">Add selected</string>
-    <string name="trx_add_token_footer">Verified tokens use the metadata from your configured catalog. Custom additions are your responsibility, double-check the contract address against a trusted source before sending value to it.</string>
+    <string name="trx_add_token_footer">Verified tokens use the metadata from your configured catalog (Jupiter strict list by default). Custom additions are your responsibility, double-check the mint address against a trusted source before sending value to it.</string>
     <string name="trx_add_trc20_token">Add TRC-20 token</string>
     <string name="trx_add_tron_wallet">Add Tron wallet</string>
     <string name="trx_add_wallet">Add wallet</string>
     <string name="trx_adding">Adding…</string>
     <string name="trx_advanced">Advanced</string>
-    <string name="trx_already_added_device">Already added on this device</string>
+    <string name="trx_already_added_device">Already added on this phone</string>
     <string name="trx_already_in_wallets">Already in your wallets</string>
     <string name="trx_block_explorer">Block explorer</string>
     <string name="trx_broadcast">Broadcast</string>
-    <string name="trx_broadcast_relative">Broadcast %1$s</string>
+    <string name="trx_broadcast_relative">Broadcast %1$s ago</string>
     <string name="trx_broadcast_transaction">Broadcast transaction</string>
     <string name="trx_catalog_url">Catalog URL</string>
     <string name="trx_connect_device_prompt">Connect the device and approve any prompt, then tap Add wallet.</string>
@@ -1188,13 +1204,13 @@
     <string name="trx_identity_locked_body">Unlock from the Identity tab to read this software wallet.</string>
     <string name="trx_ignore">Ignore</string>
     <string name="trx_invalid_tron_address">Not a valid Tron base58check address.</string>
-    <string name="trx_last_refreshed">Last refreshed %1$s, %2$s verified tokens cached.</string>
+    <string name="trx_last_refreshed">Last refreshed %1$s ago, %2$s verified tokens cached.</string>
     <string name="trx_last_sync">Last sync %1$s</string>
     <string name="trx_loading">Loading…</string>
     <string name="trx_logo_base_url">Logo base URL</string>
     <string name="trx_network_fee">Network fee</string>
-    <string name="trx_network_label">Network: %1$s</string>
-    <string name="trx_network_settings_help">Each Tron network has its own TronGrid endpoint and TronScan explorer. Wallets are address-compatible across networks; this picker only changes which overrides you\'re editing.</string>
+    <string name="trx_network_label">Chain: %1$s</string>
+    <string name="trx_network_settings_help">Each Tron chain has its own TronGrid endpoint and TronScan explorer. Wallets are address-compatible across chains; this picker only changes which set of overrides you\'re editing.</string>
     <string name="trx_no_device_registered">No Ledger or security key is registered yet. Register one to add its Tron wallet.</string>
     <string name="trx_no_transactions_yet">No transactions yet</string>
     <string name="trx_no_trc20_tokens">No TRC-20 tokens yet.</string>
@@ -1204,7 +1220,7 @@
     <string name="trx_open_in_tronscan">Open in TronScan</string>
     <string name="trx_pay_to">Pay to</string>
     <string name="trx_pending">Pending</string>
-    <string name="trx_private_key_owns_address">Your private key owns this address across every Tron compatible network. Network: %1$s</string>
+    <string name="trx_private_key_owns_address">Your private key owns this address across every Tron compatible chain.</string>
     <string name="trx_reading_onchain">Reading symbol, name, decimals on chain…</string>
     <string name="trx_recipient">Recipient</string>
     <string name="trx_refresh_now">Refresh now</string>
@@ -1212,7 +1228,7 @@
     <string name="trx_retry_broadcast">Retry broadcast</string>
     <string name="trx_review">Review</string>
     <string name="trx_rpc_endpoint">RPC endpoint</string>
-    <string name="trx_same_wallet_all_networks">The same wallet works on every Tron network; switch networks from the wallet screen.</string>
+    <string name="trx_same_wallet_all_networks">The same wallet works on every Tron chain; switch chains from the wallet screen.</string>
     <string name="trx_saved">Saved</string>
     <string name="trx_scan_or_copy">Scan or copy. Anything sent to this address arrives in this wallet.</string>
     <string name="trx_scanning">Scanning…</string>
@@ -1228,7 +1244,7 @@
     <string name="trx_token">Token</string>
     <string name="trx_token_catalog">Token catalog</string>
     <string name="trx_token_logos">Token logos</string>
-    <string name="trx_tron">Tron</string>
+    <string name="trx_tron" translatable="false">Tron</string>
     <string name="trx_tron_wallet">Tron wallet</string>
     <string name="trx_tron_wallets">Tron wallets</string>
     <string name="trx_trongrid_url">TronGrid URL</string>
@@ -1242,7 +1258,7 @@
     <!-- walletcommon -->
 <string name="wallet_add_wallet">Add wallet</string>
 <string name="wallet_discover_wallets">Discover wallets</string>
-<string name="wallet_device_kind_serial">%1$s · %2$s</string>
+<string name="wallet_device_kind_serial" translatable="false">%1$s · %2$s</string>
 <string name="wallet_wake_device_hint">Wake your %1$s and approve the prompt when it appears, then tap Continue. A hidden-wallet passphrase opens a different wallet, so it applies to both adding and discovering.</string>
 <string name="wallet_messages">Messages</string>
 <string name="wallet_sign_message">Sign message</string>
@@ -1254,8 +1270,8 @@
 <string name="wallet_signing">Signing</string>
 <string name="wallet_waiting_for_device">Waiting for your %1$s… confirm on the device.</string>
 <string name="wallet_hidden_wallet">Hidden wallet</string>
-<string name="wallet_hidden_wallet_passphrase">Hidden wallet passphrase</string>
-<string name="wallet_reenter_hidden_passphrase">Re-enter this hidden wallet\'s passphrase to sign on the security key. It is never saved.</string>
+<string name="wallet_hidden_wallet_passphrase">Hidden-wallet passphrase</string>
+<string name="wallet_reenter_hidden_passphrase">Re-enter this hidden wallet\'s passphrase to sign. It is never saved.</string>
 <string name="wallet_manage_wallets">Manage wallets</string>
 <string name="wallet_account_number">Account #%1$s</string>
 <string name="wallet_syncing">Syncing…</string>
@@ -1264,7 +1280,7 @@
 <string name="wallet_tap_plus_to_add">Tap + to add one.</string>
 <string name="wallet_active">Active</string>
 <string name="wallet_rename">Rename</string>
-<string name="wallet_switch_network">Switch network</string>
+<string name="wallet_switch_network">Switch chain</string>
 <string name="wallet_asset">Asset</string>
 <string name="wallet_paste">Paste</string>
 <string name="wallet_scan_qr">Scan QR</string>
@@ -1281,7 +1297,6 @@
 <string name="wallet_decrease">Decrease</string>
 <string name="wallet_increase">Increase</string>
 <string name="wallet_wallet_actions">Wallet actions</string>
-<string name="wallet_manage_wallets_caps">Manage Wallets</string>
     <!-- Passport single card (ADR-0039) -->
     <string name="passport_title">Passport</string>
     <string name="passport_share_qr">Share QR</string>
@@ -1314,11 +1329,449 @@
     <string name="present_build_offline_qr_detail">Show a rotating QR a nearby verifier scans. No network.</string>
     <string name="present_online_qr">Online QR</string>
     <string name="present_offline_qr">Offline QR</string>
-    <string name="present_offline_frame">Frame %1$d of %2$d</string>
-    <string name="present_offline_qr_help">Hold steady. The verifier collects every frame, then assembles your presentation locally. No server in the loop.</string>
+    <string name="present_offline_frame">Frame %1$s of %2$s</string>
+    <string name="present_offline_qr_help">Hold steady. The verifier\'s wallet collects every frame, then assembles your Presentation locally. No server in the loop.</string>
     <string name="identity_card_move_to_folder">Move to folder</string>
     <string name="identity_card_delete">Delete</string>
     <string name="identity_card_delete_title">Delete this card?</string>
     <string name="identity_card_delete_body">Removes the local copy from this phone. Elabify issuers do not keep, track, or share your identity information beyond processing your verification.</string>
-    <string name="wallet_wrong_network_address">That looks like a %1$s address. This is a %2$s wallet.</string>
+    <string name="wallet_wrong_network_address">That looks like a %1$s address. This is a Tron wallet.</string>
+
+    <!-- Externalized from Kotlin literals: onboarding, WalletConnect, YubiKey,
+         per-chain message screens and assorted UI. Previously hardcoded, so
+         these rendered English in every locale. -->
+    <string name="app_unlock">Unlock</string>
+    <string name="common_qr_code">QR code</string>
+    <string name="onboarding_set_a_password">Set a password</string>
+    <string name="onboarding_skip_not_recommended">Skip, not recommended</string>
+    <string name="onboarding_tap_your_passport">Hold your passport to the phone</string>
+    <string name="onboarding_add_passport">Add Passport</string>
+    <string name="onboarding_skip_for_now">Skip for now</string>
+    <string name="onboarding_create_your_first_wallet">Create your first wallet</string>
+    <string name="onboarding_add_a_hardware_wallet">Add a hardware wallet</string>
+    <string name="onboarding_create_bitcoin_software_wallet">Create Bitcoin software wallet</string>
+    <string name="onboarding_restore_from_encrypted_backup">Restore from encrypted backup</string>
+    <string name="onboarding_restore">Restore</string>
+    <string name="onboarding_restored">Restored</string>
+    <string name="onboarding_create_new">Create new</string>
+    <string name="onboarding_restore_encrypted_backup">Restore encrypted backup</string>
+    <string name="present_checking_on_chain">Checking on-chain…</string>
+    <string name="present_checking_issuer_certificate">Checking issuer certificate…</string>
+    <string name="present_matched">matched</string>
+    <string name="present_issuer_certificate_matched">Issuer certificate matched</string>
+    <string name="present_verified">Verified</string>
+    <string name="btc_no_active_wallet_pick_one">No active wallet. Pick one in the Bitcoin tab first.</string>
+    <string name="btc_message">Message</string>
+    <string name="btc_signature">Signature</string>
+    <string name="btc_verify_signature">Verify signature</string>
+    <string name="btc_signature_valid">Signature valid</string>
+    <string name="eth_no_active_wallet_pick_one">No active wallet. Pick one in the Ethereum tab first.</string>
+    <string name="eth_address_0x">Address (0x…)</string>
+    <string name="eth_signature_0x">Signature (0x…)</string>
+    <string name="eth_token_requested">Token requested</string>
+    <string name="eth_requested">Requested</string>
+    <string name="eth_you_already_hold">You already hold</string>
+    <string name="sol_no_active_wallet_pick_one">No active wallet. Pick one in the Solana tab first.</string>
+    <string name="sol_signature_base58">Signature (base58)</string>
+    <string name="trx_no_active_wallet_pick_one">No active wallet. Pick one in the Tron tab first.</string>
+    <string name="trx_address_t">Address (T…)</string>
+    <string name="wc_connect_to_an_app">Connect to an app</string>
+    <string name="wc_scan_walletconnect_qr">  Scan WalletConnect QR</string>
+    <string name="wc_or_paste_wc_link">or paste wc: link</string>
+    <string name="wc_active_connections">Active connections</string>
+    <string name="wc_disconnect">Disconnect</string>
+    <string name="wc_relay">Relay</string>
+    <string name="wc_clear_connections">Clear WalletConnect connections</string>
+    <string name="wc_scan_walletconnect_qr_2">Scan WalletConnect QR</string>
+    <string name="wc_wants_to_connect_to_your">wants to connect to your Ethereum wallet. It will be able to request signatures and transactions, which you approve one at a time.</string>
+    <string name="yubikey_tap_security_key">Hold security key to phone</string>
+    <string name="yubikey_connect_and_approve">Connect and approve</string>
+    <string name="yubikey_add_a_security_key">Add a security key</string>
+    <string name="yubikey_name_this_key_e_g">Name this key (e.g. \"Primary YubiKey\")</string>
+    <string name="yubikey_most_security_keys_have_a">Most security keys have a FIDO2 PIN. Enter it here. Leave blank only if your key has no PIN.</string>
+    <string name="yubikey_tap_key_to_enroll">Hold security key to phone to enroll</string>
+    <string name="yubikey_set_a_pin_on_this">Set a PIN on this security key first</string>
+    <string name="yubikey_i_have_set_a_pin">I have set a PIN, try again</string>
+    <string name="yubikey_security_key_enrolled">Security key enrolled</string>
+    <!-- Display settings value labels. Previously hardcoded English on the
+         enums, so these two menus never translated. -->
+    <string name="display_theme_automatic">Automatic</string>
+    <string name="display_theme_light">Light</string>
+    <string name="display_theme_dark">Dark</string>
+    <string name="display_autolock_30s">30 seconds</string>
+    <string name="display_autolock_1m">1 minute</string>
+    <string name="display_autolock_2m">2 minutes</string>
+    <string name="display_autolock_3m">3 minutes</string>
+    <string name="display_autolock_4m">4 minutes</string>
+    <string name="display_autolock_5m">5 minutes</string>
+    <string name="display_autolock_never">Never</string>
+    <string name="settings_language_search">Search languages</string>
+    <string name="settings_language_use_phone">Use Phone Setting</string>
+    <string name="common_selected">Selected</string>
+
+    <!-- Externalized from Kotlin literals, second sweep (gate G21). Same reason
+         as the block above: each of these rendered English in every locale
+         because it never reached the corpus, so no coverage or placeholder
+         check could see it. Grouped by feature; prefixes match the sections
+         higher up in this file. -->
+
+    <!-- app / biometric gate -->
+    <string name="app_unlock_maknoon">Unlock Maknoon</string>
+    <string name="app_confirm_its_you">Confirm it\'s you</string>
+
+    <!-- onboarding -->
+    <string name="onboarding_confirm_password">Confirm password</string>
+    <string name="onboarding_save_password_now">Save it to a password manager now</string>
+    <string name="onboarding_save_password_now_body">This is the last time the password will be shown. Add it to a vetted password manager before you continue.</string>
+    <string name="onboarding_backup_recommended">Strongly recommended</string>
+    <string name="onboarding_backup_recommended_body">Your verified credentials and local wallet data are recoverable only from this encrypted backup plus your password.</string>
+    <string name="onboarding_restore_replaces">Restoring replaces everything</string>
+    <string name="onboarding_restore_replaces_body">Restoring this backup replaces everything on this phone with the backup\'s contents: your recovery phrase / identity, all verified credentials, wallets, and settings. This cannot be undone.</string>
+    <string name="onboarding_not_imported">Not imported</string>
+
+    <!-- identity -->
+    <string name="identity_present_issued_passport_subtitle">Show your verified passport credential</string>
+    <string name="identity_share_passport">Share passport</string>
+    <string name="identity_share_passport_subtitle">Create a verifiable QR to share</string>
+
+    <!-- miniapp -->
+    <string name="miniapp_verify_identity">Verify identity</string>
+    <string name="miniapp_approve_sharing_with">Approve sharing your credential with %1$s</string>
+
+    <!-- present -->
+    <string name="present_share_credential">Share credential</string>
+    <string name="present_releasing_to">Releasing to %1$s</string>
+
+    <!-- devices -->
+    <!--
+         i18n: "Nearby devices" is the Android SYSTEM permission label. Android ships no om,
+         aa or ti system locale, so translating the name alone can point at a control the
+         user cannot find; keep the English alongside where the system itself will show
+         English.
+    -->
+    <string name="devices_ble_permission_required">Bluetooth permission is required to connect to %1$s. Grant Nearby devices permission and retry.</string>
+
+    <!-- iddocument -->
+    <string name="id_lost_connection_to_document">Lost connection to the document. Hold the phone steady against the photo page and try again.</string>
+
+    <!-- wallet (cross-chain) -->
+    <string name="walletc_no_wallets_yet">No wallets yet</string>
+    <string name="walletc_no_wallets_yet_body">Use the + in the top right to pick a network and add your first wallet.</string>
+    <string name="walletc_wallet_not_found">Wallet not found.</string>
+    <string name="walletc_authorize_send_title">Authorize %1$s send</string>
+    <string name="walletc_authorize_send_subtitle">Confirm it\'s you to sign and broadcast.</string>
+    <string name="walletc_authorize_signature_title">Authorize %1$s signature</string>
+    <string name="walletc_authorize_signature_subtitle">Confirm it\'s you to sign.</string>
+
+    <!-- btc -->
+    <string name="btc_could_not_derive_address">Could not derive address: %1$s</string>
+    <string name="btc_open_failed">Open failed: %1$s</string>
+
+    <!-- eth -->
+    <string name="eth_chain_id_positive">Chain ID must be a positive integer.</string>
+    <string name="eth_rpc_url_invalid">RPC URL must be a valid http(s) URL.</string>
+    <string name="eth_tokens_builtin_networks_only">Tokens are only supported on built-in networks.</string>
+    <string name="eth_contract_address_invalid">Contract address is not a valid 0x-prefixed 20-byte address.</string>
+    <string name="eth_decimals_range">Decimals must be 0 to 36.</string>
+    <string name="eth_select_wallet_first">Select a wallet before adding a custom token.</string>
+    <string name="eth_add_token_and_use">Add %1$s (%2$s) and use it</string>
+    <string name="eth_send_token_instead">Send my %1$s (%2$s) instead</string>
+    <string name="eth_switch_and_continue">Switch to %1$s and continue</string>
+
+    <!-- sol -->
+    <string name="sol_could_not_read_mint">Could not read this mint on %1$s. Enter decimals manually.</string>
+    <string name="sol_decimals_whole_number">Decimals must be a whole number</string>
+
+    <!-- ln -->
+    <string name="ln_clipboard_empty">Clipboard is empty.</string>
+
+    <!-- trx -->
+    <string name="trx_contract_address_invalid">Contract address is not valid.</string>
+    <string name="trx_decimals_range">Decimals must be 0 to 18.</string>
+
+    <!-- walletconnect -->
+    <string name="wc_authorize_signature">Authorize signature</string>
+    <string name="wc_authorize_signature_subtitle">Confirm it\'s you to sign for the connected app.</string>
+
+    <!-- yubikey -->
+    <string name="yubikey_security_key_pin">Security key PIN</string>
+    <string name="yubikey_nfc_unavailable">NFC isn\'t available on this phone.</string>
+    <string name="yubikey_needs_pin">This security key has a FIDO2 PIN set. Enter it above, then hold the key to the phone again.</string>
+    <string name="yubikey_confirm_enrolled_to_add">Confirm with one of your already-enrolled security keys to add this new key as another second factor.</string>
+
+    <!-- Externalized from Kotlin literals, third sweep (gate G21 widened to see
+         reason=/desc=/description=/prompt= arguments, six-character labels, and
+         the multi-line "..." + "..." concatenations where the long paragraphs
+         actually live). Each concatenation is ONE resource, not one per
+         fragment: a translator cannot reorder across a Kotlin `+`. Grouped by
+         feature, same prefixes as the sweeps above. -->
+
+    <!-- backup -->
+    <string name="backup_orphan_evm_wallets">%1$s Ethereum wallet(s) belong to a different identity and can\'t sign. Restore the backup that created them, or remove them.</string>
+
+    <!-- sol -->
+    <string name="sol_trezor_firmware_no_ocms">Your Trezor\'s firmware doesn\'t support Solana message signing yet. Update it in Trezor Suite, then try again.</string>
+
+    <!-- yubikey / second factor -->
+    <string name="yubikey_no_second_factor_enrolled">No security key is enrolled. Restore from your 24-word phrase or encrypted backup instead.</string>
+    <string name="yubikey_confirm_with_existing_key">Confirm with a key you already use</string>
+    <string name="yubikey_confirm_with_existing_key_body">Your wallet already has a second factor. Confirm with one of your enrolled security keys so this new key can be added alongside it. Any one of your keys will then unlock your wallet.</string>
+
+    <!-- ln -->
+    <string name="ln_import_looks_like_web_page">That looks like a web wallet page link, not an LNDHub connection. In LNbits, enable the LNDHub extension, open it, and scan the admin QR (an lndhub:// URL).</string>
+    <string name="ln_import_not_an_lndhub_url">Could not read an lndhub:// connection URL. Expected lndhub://login:password@host (the LNDHub extension QR).</string>
+    <string name="ln_send_unrecognized_input">Doesn\'t look like a BOLT11 invoice, LNURL, or Lightning Address. Expected lnbc…, lntb…, lnurl1…, or you@domain.tld.</string>
+
+    <!-- eth: scanned-token sheet -->
+    <string name="eth_token_probe_no_answer">That contract did not answer symbol() or decimals() on %1$s. It may not be an ERC-20, or it may live on a different chain.</string>
+    <string name="eth_token_same_symbol_warning">Two tokens can share a symbol and still be different contracts. A payee may credit only the contract it asked for, so confirm its deposit instructions before sending a different one.</string>
+    <string name="eth_token_check_contract">Check the contract against the payee\'s deposit instructions before adding it.</string>
+
+    <!-- onboarding: the paragraphs the first-run flow reads out -->
+    <string name="onboarding_no_username_needed">A username is not required because all your data is owned on your phone. A password is used to encrypt the backup of your identity and any local assets.</string>
+    <string name="onboarding_passwords_do_not_match">Passwords do not match</string>
+    <string name="onboarding_password_unsafe_characters">Your password contains characters Maknoon cannot use safely: %1$s. Please use only letters, numbers, spaces and punctuation from a standard English keyboard. Other characters can be stored in more than one way, which would make your backup impossible to restore in another wallet.</string>
+    <string name="onboarding_backup_where_you_choose">Maknoon stores an encrypted backup wherever you choose, locked by your password. Without the password the backup is useless to anyone.</string>
+    <string name="onboarding_save_encrypted_backup">Save encrypted backup</string>
+    <string name="onboarding_without_a_backup">Without a backup, losing this phone means losing your identity and any software wallet keys. You can still create one later in Settings.</string>
+    <string name="onboarding_passport_chip_blurb">Maknoon reads your passport\'s chip on this phone and creates a digital identity that you control.</string>
+    <string name="onboarding_bullet_read_here">Read here: your passport chip is read on this phone.</string>
+    <string name="onboarding_bullet_stays_here">Stays here: the photo and chip data never leave this phone.</string>
+    <string name="onboarding_bullet_sent_only_if_you_choose">Sent only if you choose: nothing is shared unless you ask for a verified credential later.</string>
+    <string name="onboarding_bitcoin_only_recommendation">Maknoon supports many digital asset networks. For holding value, we only recommend Bitcoin: it is the only cryptocurrency we trust as a long-term store of value. The safest option is a hardware wallet, but a software Bitcoin wallet is convenient for small amounts.</string>
+    <string name="onboarding_pick_backup_file_blurb">Pick the encrypted backup file you saved earlier. Decryption and verification happen entirely on this phone.</string>
+    <string name="onboarding_choose_backup_file">Choose backup file</string>
+    <string name="onboarding_backup_file_selected">Backup file selected</string>
+    <string name="onboarding_restore_complete">Restore complete</string>
+    <string name="onboarding_restore_completed_with_warnings">Restore completed with warnings</string>
+    <string name="onboarding_restored_with_warnings_body">Your wallet was restored, but some items could not be imported. Review them below before continuing.</string>
+    <string name="onboarding_restored_everything_body">Everything in your backup was restored to this phone.</string>
+
+    <!-- devices: the second-factor promotion blurb + footer, per device kind -->
+    <string name="devices_promote_prompt_yubikey">Add this security key as a second factor. Tap it to the phone over NFC and enter its PIN; it derives a deterministic wrap key so the key can re-protect your recovery phrase.</string>
+    <string name="devices_promote_prompt_ledger">Add this Ledger as a second factor. Unlock it and open the Ethereum app, then approve the signature; the deterministic signature derives the key that seals your recovery secret.</string>
+    <string name="devices_promote_prompt_trezor">Add this Trezor as a second factor. Unlock it and approve the signature on the device.</string>
+    <string name="devices_promote_prompt_seedsigner">SeedSigner is Bitcoin-only and cannot be a second factor. Use a Ledger, Trezor, or security key to wrap the recovery secret.</string>
+    <string name="devices_promote_footer_yubikey">Enrollment uses NFC and an on-key PIN. Your 24-word phrase and encrypted backup still work regardless, so you are never locked out if you lose the key.</string>
+    <string name="devices_promote_footer_ble">Enrollment runs over the device\'s existing Bluetooth transport. Your 24-word phrase and encrypted backup still work regardless.</string>
+    <string name="devices_promote_footer_seedsigner">SeedSigner is Bitcoin-only and cannot participate as a second factor.</string>
+    <string name="devices_serial_mismatch">Connected device serial %1$s does not match %2$s. Connect the correct %3$s.</string>
+
+    <!-- miniapp: the capability registry, i.e. the consent sheet a user reads
+         before granting a mini-app anything. Label + reason per token. -->
+    <string name="app_cap_identity_label">Verify Credentials</string>
+    <string name="app_cap_identity_reason">Receive a customer\'s credentials and perform checks on them.</string>
+    <string name="app_cap_payment_label">Payments</string>
+    <string name="app_cap_payment_reason">Make a payment to a receiving address.</string>
+    <string name="app_cap_eth_read_label">Ethereum: Network Access</string>
+    <string name="app_cap_eth_read_reason">Read Ethereum network state (balances, gas, contract reads) and switch chains.</string>
+    <string name="app_cap_eth_write_label">Ethereum: Write Transactions</string>
+    <string name="app_cap_eth_write_reason">Submit Ethereum transactions from your wallet. You approve each one.</string>
+    <string name="app_cap_eth_sign_label">Ethereum: Sign Messages</string>
+    <string name="app_cap_eth_sign_reason">Sign Ethereum messages and typed data. You approve each one.</string>
+    <string name="app_cap_evm_label">Ethereum wallet</string>
+    <string name="app_cap_evm_reason">Connect and request signatures or transactions</string>
+    <string name="app_cap_wallet_label">Wallets</string>
+    <string name="app_cap_wallet_reason">See your wallet labels, addresses, and assets across networks and chains.</string>
+    <string name="app_cap_scan_label">Scan codes</string>
+    <string name="app_cap_scan_reason">Open the camera to scan a QR or barcode</string>
+    <string name="app_cap_share_label">Share</string>
+    <string name="app_cap_share_reason">Share content using the system share sheet</string>
+    <string name="app_cap_clipboard_label">Clipboard</string>
+    <string name="app_cap_clipboard_reason">Copy text to your clipboard</string>
+
+    <!-- miniapp / commerce: merchant trust tier + why a request is blocked -->
+    <string name="app_merchant_tier_verified">Verified: %1$s</string>
+    <string name="app_merchant_tier_self_signed">Self-signed merchant</string>
+    <string name="app_merchant_tier_unverified_merchant">Unverified merchant</string>
+    <string name="app_merchant_tier_unverified">Unverified</string>
+    <string name="app_merchant_request_sig_invalid">The merchant request signature is invalid or expired.</string>
+    <string name="app_merchant_sig_missing">Missing the merchant\'s payment signature.</string>
+    <string name="app_merchant_sig_mismatch">The merchant\'s payment signature does not verify (possible tampering).</string>
+    <string name="app_merchant_terms_unverifiable">Could not verify the payment terms.</string>
+
+    <!-- iddocument: APDU status words the chip returns while reading -->
+    <string name="id_chip_no_icao_data_groups">This card doesn\'t expose the standard ICAO data groups (chip rejected the read with %1$s). Some national-ID cards use vendor-specific applets that require an issuer-registered service to read.</string>
+    <string name="id_chip_rejected_mrz_key">The chip rejected the document number / birth date / expiry combination (%1$s). Re-check those three values against the data page (watch O vs 0 and 1 vs I), and make sure the expiry is the document\'s expiry date, not its issue date. Passports have no permanent lockout, so retrying after you correct the details is safe.</string>
+    <string name="id_chip_card_locked">The card is locked (%1$s). Wait a moment and try again.</string>
+    <string name="id_chip_wrong_apdu_length">Wrong APDU length (%1$s). This usually means the document\'s chip uses a non-standard format that the ICAO 9303 reader can\'t handle.</string>
+    <string name="id_chip_returned_sw">Chip returned %1$s: %2$s. Hold the phone steady against the card and try again.</string>
+
+    <!-- iddocument: issuance failures (rendered from IDDocumentIssuanceException) -->
+    <string name="id_issuance_missing_chip_material">This document is missing the chip-signed objects needed for issuance. Hold the document to the phone again so Maknoon can capture them.</string>
+    <string name="id_issuance_identity_locked">Maknoon is locked. Unlock first.</string>
+    <string name="id_issuance_sign_failed">Couldn\'t sign the issuance request: %1$s</string>
+    <string name="id_issuance_submit_failed">Issuer rejected the request: %1$s</string>
+    <string name="id_issuance_malformed_response">Unexpected response from issuer: %1$s</string>
+    <string name="id_issuance_did_lookup_failed">Couldn\'t reach the issuer to learn its DID: %1$s</string>
+
+    <!-- Migrated out of Kotlin literals: these rendered English in all 31
+         locales because they reached the screen as a positional argument, or
+         on the line after Text(, where the i18n gate could not see them. -->
+    <string name="app_maknoon_is_locked">Maknoon is locked</string>
+    <string name="app_unlock_with_your_fingerprint">Unlock with your fingerprint, face, or phone PIN.</string>
+    <string name="onboarding_own_your_identity_assets">Own your Identity, Assets, and Privacy</string>
+    <string name="onboarding_your_data_lives_on">Your data lives on this phone. No account, no tracking.</string>
+    <string name="onboarding_verify_and_carry_your_passport">Verify and carry your passport as a digital identity</string>
+    <string name="onboarding_hold_assets_in_a">Hold assets in a secure hardware wallet</string>
+    <string name="onboarding_share_only_what_you">Share only what you choose, with people you trust</string>
+    <string name="onboarding_use_applications_with_your">Use applications with your identity and assets in your wallets together.</string>
+    <string name="present_online_verification_on_chain">Online verification (on-chain)</string>
+    <string name="present_couldnt_reach_the_chain">Couldn\'t reach the chain RPC.</string>
+    <string name="present_issuer_registered">Issuer registered</string>
+    <!--
+         i18n: On-chain check row. Credential REVOCATION (the issuer withdrew it), not
+         cancellation of an action. Several locales' natural word for revoked is the one
+         already spent on Cancel; keep them distinct.
+    -->
+    <string name="present_not_revoked">Not revoked</string>
+    <!--
+         i18n: On-chain check row, beside "Issuer registered" and "Not revoked". Means the
+         credential's anchored Merkle root is still the current one on chain, not "the
+         current root" as a noun phrase. A predicate reads better than a bare label in most
+         languages.
+    -->
+    <string name="present_root_current">Root current</string>
+    <!--
+         i18n: On-chain check row. Whether the passport's CSCA signing certificate was
+         anchored and valid at the time the credential was issued.
+    -->
+    <string name="present_passport_csca_provenance">Passport CSCA provenance</string>
+    <!--
+         i18n: On-chain check row. The credential header's signature, verified against the
+         issuer's on-chain public key.
+    -->
+    <string name="present_header_signature_on_chain_key">Header signature (on-chain key)</string>
+    <string name="present_checks_talk_directly_to">Checks talk directly to the chain over a read-only RPC. No issuer or verifier server is involved.</string>
+    <string name="present_organisation_identity_havid">Organisation identity (HAVID)</string>
+    <string name="present_confirms_the_issuers_real_world">Confirms the issuer\'s real-world X.509 certificate cross-endorses its DID. A local check, no server involved.</string>
+    <string name="present_disclosed_claims_count">Disclosed claims (%1$s)</string>
+    <string name="present_cryptographic_checks">Cryptographic checks</string>
+    <!--
+         i18n: The X.509 Subject DN: the organisation the certificate identifies. NOT
+         "subject" in the sense of topic.
+    -->
+    <string name="present_certificate_subject">Certificate subject</string>
+    <string name="present_this_issuer_publishes_no">This issuer publishes no X.509 organisational certificate.</string>
+    <string name="present_issuer_certificate_does_not">Issuer certificate does not match the DID</string>
+    <string name="present_issuer_identity_could_not">Issuer identity could not be resolved.</string>
+    <string name="btc_hidden_passphrase_wallet_sign">This is a hidden (passphrase) wallet. Enter its passphrase to sign; it is never stored.</string>
+    <string name="btc_youll_confirm_the_message">You\'ll confirm the message on the device screen.</string>
+    <string name="btc_checks_that_a_signature">Checks that a signature was produced by the owner of an address. Paste the address, message, and signature.</string>
+    <string name="btc_signature_does_not_match">Signature does not match this address and message</string>
+    <string name="sol_signs_with_the_solana">Signs with the Solana off-chain message (OCMS) format, the one Ledger and Trezor sign on-device. The signature is bound to this wallet\'s address.</string>
+    <string name="sol_verifies_a_solana_off_chain">Verifies a Solana off-chain message (OCMS) signature. Paste the address, message, and base58 signature produced by a Maknoon, Ledger, or Trezor wallet.</string>
+    <string name="trx_trezor_firmware_doesnt_support">Trezor firmware doesn\'t support Tron message signing (it signs Tron transactions only). Use a software or Ledger Tron wallet to sign a message.</string>
+    <string name="eth_payment_code_token_not_here">This payment code asks for a token that is not in this wallet on %1$s.</string>
+    <string name="eth_reading_the_contract_on">Reading the contract on %1$s…</string>
+    <string name="eth_your_balance_value">Your balance: %1$s</string>
+    <string name="eth_that_code_is_for">That code is for %1$s. This wallet is on %2$s.</string>
+    <string name="wc_connects_this_wallet_to">Connects this wallet to an external app over the WalletConnect relay. EVM (Ethereum) only. You approve every request.</string>
+    <string name="wc_no_active_connections">No active connections.</string>
+    <string name="wc_disconnects_everything_and_clears">Disconnects everything and clears stored connection state. Use this if a connection is stuck, then scan a fresh QR.</string>
+    <string name="wc_no_walletconnect_activity_yet">No WalletConnect activity yet.</string>
+    <string name="wc_you_will_confirm_this">You will confirm this on your device.</string>
+    <string name="yubikey_add_a_security_key_2fa">Add a security key as a second factor</string>
+    <string name="yubikey_you_will_tap_the">You will tap the key once to enroll it. After that, you tap it to unlock sensitive actions (recovery phrase, signing). Your wallet stays protected by your fingerprint plus this key.</string>
+    <string name="yubikey_hold_the_key_against">Hold the key against the phone</string>
+    <string name="yubikey_lay_the_security_key">Lay the security key flat against the top-back of the phone and keep it still until this finishes. Touch the key if it blinks.</string>
+    <string name="yubikey_enrollment_needs_user_verification">Enrollment needs user verification, and this key has no FIDO2 PIN set. Open Yubico Authenticator (or another FIDO2 tool), set a FIDO2 PIN on the key, then come back and try again.</string>
+    <string name="yubikey_this_key_is_now">This key is now your second factor. You will tap it to unlock sensitive actions.</string>
+    <string name="yubikey_choose_which_enrolled_security">Choose which enrolled security key to use. Any one of them unlocks your wallet.</string>
+    <string name="yubikey_hold_your_security_key">Hold your security key against the back of the phone…</string>
+    <string name="yubikey_connecting_approve_the_signature">Connecting. Approve the signature on your %1$s…</string>
+
+    <!-- Second migration pass: an elvis fallback (`e.message ?: "..."`) is what
+         renders whenever the throwable carries no message, which on these paths
+         is the common case; and a literal containing an escaped quote was
+         unreachable to the gate's character class. Both shipped English. -->
+    <string name="credential_tap_to_rename">Tap to rename</string>
+    <string name="wc_connected_app">Connected app</string>
+    <!--
+         i18n: Card TITLE fallback for a WalletConnect peer that sent no name. Must work as
+         a heading, not mid-sentence.
+    -->
+    <string name="wc_an_app">An app</string>
+    <string name="devices_could_not_complete_removal">Could not complete the removal. Try again.</string>
+    <string name="devices_could_not_add_second_factor">Could not add this device as a second factor. Try again.</string>
+    <string name="iddoc_submission_failed">Submission failed.</string>
+    <string name="iddoc_screening_failed">Screening failed.</string>
+    <string name="iddoc_something_went_wrong">Something went wrong.</string>
+    <string name="iddoc_could_not_save_document">Could not save the document.</string>
+    <string name="identity_could_not_load_verify_pay">Could not load the Verify &amp; Pay request.</string>
+    <string name="identity_could_not_create_credential">Could not create the credential to present.</string>
+    <string name="identity_could_not_build_share_image">Could not build the share image.</string>
+    <string name="identity_could_not_receive_credential">Could not receive the credential.</string>
+    <string name="commerce_could_not_load_request">Could not load the request.</string>
+    <string name="commerce_payment_failed">Payment failed.</string>
+    <string name="commerce_signing_failed">Signing failed.</string>
+    <string name="commerce_broadcast_failed">Broadcast failed.</string>
+    <string name="miniapp_could_not_open_app">Could not open app</string>
+    <!--
+         i18n: FRAGMENT, substituted into present_shared_with = "Shared with %1$s", standing
+         in for a verifier's name when it is unknown. Inflect for whatever case that frame
+         needs.
+    -->
+    <string name="present_the_verifier">the verifier</string>
+    <string name="ln_sync_failed">Sync failed.</string>
+    <string name="yubikey_key_did_not_unlock">That security key did not unlock the wallet. Try again.</string>
+    <string name="yubikey_device_did_not_unlock">That device did not unlock the wallet. Try again.</string>
+    <string name="yubikey_could_not_protect_wallet">Could not protect the wallet with this security key.</string>
+    <string name="btc_signs_with_the_wallets">Signs with the wallet\'s first receive address using the standard \"Bitcoin Signed Message\" (Electrum) format.</string>
+    <string name="eth_signs_with_the_eip_191">Signs with the EIP-191 \"personal_sign\" format (the one MetaMask and Etherscan produce). The signature is bound to this wallet\'s address.</string>
+    <string name="eth_verifies_an_eip_191">Verifies an EIP-191 \"personal_sign\" signature (MetaMask / Etherscan). Paste the address, message, and 0x-hex signature from any source.</string>
+    <string name="trx_signs_with_the_tip_191">Signs with the TIP-191 \"TRON Signed Message\" format (the one TronLink / TronWeb verifyMessageV2 produce). The signature is bound to this wallet\'s address.</string>
+    <string name="trx_verifies_a_tip_191">Verifies a TIP-191 \"TRON Signed Message\" signature (TronLink / TronWeb). Paste the T-address, message, and 0x-hex signature from any source.</string>
+
+    <!-- CollectPolicy.denialMessage: merchant-facing copy that renders in the
+         collect sheet AND travels to the POS mini-app in the result envelope.
+         It was hardcoded English because a `when` branch is not a `return`, so
+         the gate's copy-producing-function shape never reached it. The sanctions
+         wording here is the ADR text; the machine `reason` code is unchanged. -->
+    <string name="collect_unrecognized_code">Unrecognized code. Ask the customer to show their Attribute QR.</string>
+    <string name="collect_credential_declined">The customer\'s credential was declined.</string>
+    <!--
+         i18n: FRAGMENT, substituted into collect_denial_missing_claims at %2$s = "The
+         customer shared: %2$s", standing in for the list of disclosed attributes when it is
+         empty.
+    -->
+    <string name="collect_shared_nothing">nothing</string>
+    <!--
+         i18n: FRAGMENT, substituted into collect_denial_wrong_schema at %1$s = "Expected
+         %1$s", standing in for a schema name when none was requested. That slot normally
+         holds a machine schema name, so this is the only value that ever has to agree with
+         the surrounding words.
+    -->
+    <string name="collect_a_different_credential">a different credential</string>
+    <string name="collect_denial_missing_claims">Missing: %1$s. The customer shared: %2$s. Ask them to include the missing attributes and present again.</string>
+    <string name="collect_denial_wrong_schema">Wrong credential type. Expected %1$s, but the customer presented %2$s.</string>
+    <string name="collect_denial_stale_screening">The customer\'s sanctions screening is missing or older than allowed. Ask for a fresh screening.</string>
+    <!--
+         i18n: Sanctions result wording is fixed by the release: "flagged for review", never
+         "clean" and never an assertion of guilt.
+    -->
+    <string name="collect_denial_sanctioned">The customer\'s sanctions screening is flagged for review. Payment blocked.</string>
+    <!--
+         i18n: Merchant-facing POS denial. "this device" here is the MERCHANT'S PHONE, not a
+         hardware wallet, unlike almost every other "device" in this app. Render it as the
+         handset.
+    -->
+    <string name="collect_denial_verification_unavailable">Could not cryptographically verify the credential on this device. A server verify is required.</string>
+    <string name="collect_denial_other">Declined: %1$s</string>
+
+    <!-- i18n: Document-kind copy for the Tap ID document picker. These were
+         `when (this) -> "..."` literals inside the IDDocumentKind enum, which
+         has no Context and so could not resolve a resource; they shipped English
+         in all 31 locales. -->
+    <string name="id_kind_other_title">Other ID document</string>
+    <string name="id_kind_passport_number">Passport number</string>
+    <string name="id_kind_passport_blurb">Any ePassport with the chip symbol on the cover (most passports issued since around 2010).</string>
+    <string name="id_kind_other_blurb">Other ICAO-compatible IDs (EU national ID cards, residence permits, similar formats).</string>
+
+    <!-- i18n: chip-derived document-kind labels, previously English literals
+         in IDDocument.kindLabel. -->
+    <string name="id_kind_id_card">ID card</string>
+    <string name="id_kind_residence_permit">Residence permit</string>
+    <string name="id_kind_visa">Visa</string>
+    <string name="id_kind_document">Document</string>
 </resources>

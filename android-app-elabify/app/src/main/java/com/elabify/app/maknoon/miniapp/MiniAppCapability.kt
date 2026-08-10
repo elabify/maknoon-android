@@ -18,6 +18,10 @@
 
 package com.elabify.app.maknoon.miniapp
 
+import android.content.Context
+import androidx.annotation.StringRes
+import com.elabify.app.maknoon.R
+
 /** Consent tier for a capability token. */
 enum class CapabilityTier(val rawValue: String) {
     AUTO("auto"),
@@ -34,17 +38,26 @@ enum class CapabilityTier(val rawValue: String) {
  * Describes a declarable capability: its token, consent tier, a label and
  * default reason for the disclosure UI, and a Material icon name. A catalog
  * entry may override the reason at install time.
+ *
+ * Label and reason are string RESOURCES, not text: this registry is a static
+ * map with no Context, and it is the copy the consent sheet shows before a user
+ * grants a mini-app anything. Resolving at read time also means an in-app
+ * language change re-renders it, which a text-valued map could not do.
  */
 data class MiniAppCapabilitySpec(
     val token: String,
     val tier: CapabilityTier,
-    val label: String,
+    @StringRes val labelRes: Int,
     /** Default reason; a catalog entry may override. */
-    val reason: String,
+    @StringRes val reasonRes: Int,
     /** Material icon name (e.g. for androidx.compose.material.icons lookup). */
     val icon: String,
 ) {
     val id: String get() = token
+
+    fun label(res: Context): String = res.getString(labelRes)
+
+    fun reason(res: Context): String = res.getString(reasonRes)
 }
 
 /**
@@ -58,14 +71,14 @@ object MiniAppCapabilityRegistry {
     val specs: Map<String, MiniAppCapabilitySpec> = mapOf(
         "identity" to MiniAppCapabilitySpec(
             token = "identity", tier = CapabilityTier.PER_USE,
-            label = "Verify Credentials",
-            reason = "Receive a customer's credentials and perform checks on them.",
+            labelRes = R.string.app_cap_identity_label,
+            reasonRes = R.string.app_cap_identity_reason,
             icon = "Badge",
         ),
         "payment" to MiniAppCapabilitySpec(
             token = "payment", tier = CapabilityTier.PER_USE,
-            label = "Payments",
-            reason = "Make a payment to a receiving address.",
+            labelRes = R.string.app_cap_payment_label,
+            reasonRes = R.string.app_cap_payment_reason,
             icon = "CreditCard",
         ),
         // Hierarchical per-network wallet capabilities (ADR-0057). The dotted
@@ -75,51 +88,51 @@ object MiniAppCapabilityRegistry {
         // sheet runs each time). Bitcoin/Solana are reserved by the ADR.
         "wallet.ethereum.read" to MiniAppCapabilitySpec(
             token = "wallet.ethereum.read", tier = CapabilityTier.INSTALL,
-            label = "Ethereum: Network Access",
-            reason = "Read Ethereum network state (balances, gas, contract reads) and switch chains.",
+            labelRes = R.string.app_cap_eth_read_label,
+            reasonRes = R.string.app_cap_eth_read_reason,
             icon = "Lan",
         ),
         "wallet.ethereum.write" to MiniAppCapabilitySpec(
             token = "wallet.ethereum.write", tier = CapabilityTier.PER_USE,
-            label = "Ethereum: Write Transactions",
-            reason = "Submit Ethereum transactions from your wallet. You approve each one.",
+            labelRes = R.string.app_cap_eth_write_label,
+            reasonRes = R.string.app_cap_eth_write_reason,
             icon = "Send",
         ),
         "wallet.ethereum.sign" to MiniAppCapabilitySpec(
             token = "wallet.ethereum.sign", tier = CapabilityTier.PER_USE,
-            label = "Ethereum: Sign Messages",
-            reason = "Sign Ethereum messages and typed data. You approve each one.",
+            labelRes = R.string.app_cap_eth_sign_label,
+            reasonRes = R.string.app_cap_eth_sign_reason,
             icon = "Draw",
         ),
         // Legacy flat token, superseded by wallet.ethereum.* (expanded at parse).
         "evm" to MiniAppCapabilitySpec(
             token = "evm", tier = CapabilityTier.PER_USE,
-            label = "Ethereum wallet",
-            reason = "Connect and request signatures or transactions",
+            labelRes = R.string.app_cap_evm_label,
+            reasonRes = R.string.app_cap_evm_reason,
             icon = "Link",
         ),
         "wallet" to MiniAppCapabilitySpec(
             token = "wallet", tier = CapabilityTier.INSTALL,
-            label = "Wallets",
-            reason = "See your wallet labels, addresses, and assets across networks and chains.",
+            labelRes = R.string.app_cap_wallet_label,
+            reasonRes = R.string.app_cap_wallet_reason,
             icon = "AccountBalanceWallet",
         ),
         "scan" to MiniAppCapabilitySpec(
             token = "scan", tier = CapabilityTier.PER_USE,
-            label = "Scan codes",
-            reason = "Open the camera to scan a QR or barcode",
+            labelRes = R.string.app_cap_scan_label,
+            reasonRes = R.string.app_cap_scan_reason,
             icon = "QrCodeScanner",
         ),
         "share" to MiniAppCapabilitySpec(
             token = "share", tier = CapabilityTier.INSTALL,
-            label = "Share",
-            reason = "Share content using the system share sheet",
+            labelRes = R.string.app_cap_share_label,
+            reasonRes = R.string.app_cap_share_reason,
             icon = "Share",
         ),
         "clipboard" to MiniAppCapabilitySpec(
             token = "clipboard", tier = CapabilityTier.INSTALL,
-            label = "Clipboard",
-            reason = "Copy text to your clipboard",
+            labelRes = R.string.app_cap_clipboard_label,
+            reasonRes = R.string.app_cap_clipboard_reason,
             icon = "ContentCopy",
         ),
     )
@@ -146,11 +159,14 @@ object MiniAppCapabilityRegistry {
      * Specs for the given tokens that should be disclosed at install
      * (INSTALL / PER_USE), sorted PER_USE-first then alphabetically by label.
      * AUTO and unknown tokens are dropped.
+     *
+     * [res] resolves the labels the sort runs on: the order the consent sheet
+     * shows must follow the LOCALIZED label, not the English one.
      */
-    fun disclosable(tokens: Set<String>): List<MiniAppCapabilitySpec> =
+    fun disclosable(tokens: Set<String>, res: Context): List<MiniAppCapabilitySpec> =
         tokens.mapNotNull { specs[it.lowercase()] }
             .sortedWith(
                 compareBy<MiniAppCapabilitySpec> { it.tier != CapabilityTier.PER_USE }
-                    .thenBy { it.label }
+                    .thenBy { it.label(res) }
             )
 }

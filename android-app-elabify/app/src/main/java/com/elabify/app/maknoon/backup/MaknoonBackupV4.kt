@@ -39,6 +39,7 @@ package com.elabify.app.maknoon.backup
 
 import android.content.Context
 import android.util.Base64
+import com.elabify.app.maknoon.R
 import com.elabify.app.maknoon.iddocument.IDDocument
 import com.elabify.app.maknoon.iddocument.IDDocumentKind
 import com.elabify.app.maknoon.iddocument.IDDocumentStore
@@ -561,8 +562,7 @@ object MaknoonBackupV4 {
             val orphans = ethStore.wallets.count { ethereumWalletOrphaned(it, sw) }
             if (orphans > 0) {
                 warnings.add(
-                    "$orphans Ethereum wallet(s) belong to a different identity and can't sign. " +
-                        "Restore the backup that created them, or remove them.",
+                    ctx.getString(R.string.backup_orphan_evm_wallets, orphans.toString()),
                 )
             }
         }

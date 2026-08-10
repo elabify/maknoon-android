@@ -9,6 +9,7 @@ package com.elabify.app.maknoon.ui.wallet.common
 
 import android.content.Context
 import androidx.fragment.app.FragmentActivity
+import com.elabify.app.maknoon.R
 import com.elabify.app.maknoon.ui.BiometricGate
 
 /**
@@ -22,8 +23,8 @@ suspend fun authorizeSend(context: Context, chainDisplayName: String): Boolean {
     val activity = context as? FragmentActivity ?: return true
     return BiometricGate.authenticate(
         activity,
-        title = "Authorize $chainDisplayName send",
-        subtitle = "Confirm it's you to sign and broadcast.",
+        title = context.getString(R.string.walletc_authorize_send_title, chainDisplayName),
+        subtitle = context.getString(R.string.walletc_authorize_send_subtitle),
     )
 }
 
@@ -37,7 +38,7 @@ suspend fun authorizeSignature(context: Context, chainDisplayName: String): Bool
     val activity = context as? FragmentActivity ?: return true
     return BiometricGate.authenticate(
         activity,
-        title = "Authorize $chainDisplayName signature",
-        subtitle = "Confirm it's you to sign.",
+        title = context.getString(R.string.walletc_authorize_signature_title, chainDisplayName),
+        subtitle = context.getString(R.string.walletc_authorize_signature_subtitle),
     )
 }

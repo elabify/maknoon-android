@@ -132,7 +132,7 @@ internal fun BitcoinSignMessageScreen(
             verticalArrangement = Arrangement.spacedBy(14.dp),
         ) {
             if (active == null) {
-                Text("No active wallet. Pick one in the Bitcoin tab first.", color = MaterialTheme.colorScheme.error)
+                Text(stringResource(R.string.btc_no_active_wallet_pick_one), color = MaterialTheme.colorScheme.error)
                 return@Column
             }
 
@@ -146,7 +146,7 @@ internal fun BitcoinSignMessageScreen(
                 LabeledCopyableField(label = stringResource(R.string.wallet_signing_address), value = signingAddress)
             } else {
                 Text(
-                    "Signs with the wallet's first receive address using the standard \"Bitcoin Signed Message\" (Electrum) format.",
+                    stringResource(R.string.btc_signs_with_the_wallets),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -155,7 +155,7 @@ internal fun BitcoinSignMessageScreen(
             OutlinedTextField(
                 value = message,
                 onValueChange = { message = it },
-                label = { Text("Message") },
+                label = { Text(stringResource(R.string.btc_message)) },
                 minLines = 3,
                 modifier = Modifier.fillMaxWidth(),
             )
@@ -164,10 +164,10 @@ internal fun BitcoinSignMessageScreen(
                 PassphraseField(
                     value = hostPassphrase,
                     onValueChange = { hostPassphrase = it },
-                    label = "Hidden wallet passphrase",
+                    label = stringResource(R.string.wallet_hidden_wallet_passphrase),
                 )
                 Text(
-                    "This is a hidden (passphrase) wallet. Enter its passphrase to sign; it is never stored.",
+                    stringResource(R.string.btc_hidden_passphrase_wallet_sign),
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -235,7 +235,7 @@ internal fun BitcoinSignMessageScreen(
             }
             if (isHardware) {
                 Text(
-                    "You'll confirm the message on the device screen.",
+                    stringResource(R.string.btc_youll_confirm_the_message),
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -284,27 +284,27 @@ internal fun BitcoinVerifyMessageScreen(onClose: () -> Unit) {
             verticalArrangement = Arrangement.spacedBy(14.dp),
         ) {
             Text(
-                "Checks that a signature was produced by the owner of an address. Paste the address, message, and signature.",
+                stringResource(R.string.btc_checks_that_a_signature),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
             OutlinedTextField(
                 value = address,
                 onValueChange = { address = it; result = null },
-                label = { Text("Address") },
+                label = { Text(stringResource(R.string.walletc_address)) },
                 modifier = Modifier.fillMaxWidth(),
             )
             OutlinedTextField(
                 value = message,
                 onValueChange = { message = it; result = null },
-                label = { Text("Message") },
+                label = { Text(stringResource(R.string.btc_message)) },
                 minLines = 3,
                 modifier = Modifier.fillMaxWidth(),
             )
             OutlinedTextField(
                 value = signature,
                 onValueChange = { signature = it; result = null },
-                label = { Text("Signature") },
+                label = { Text(stringResource(R.string.btc_signature)) },
                 minLines = 2,
                 modifier = Modifier.fillMaxWidth(),
             )
@@ -318,14 +318,14 @@ internal fun BitcoinVerifyMessageScreen(onClose: () -> Unit) {
                         signature = signature.trim(),
                     )
                 },
-            ) { Text("Verify signature") }
+            ) { Text(stringResource(R.string.btc_verify_signature)) }
             when (result) {
                 true -> Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                     Icon(Icons.Filled.CheckCircle, contentDescription = null, tint = Color(0xFF2E7D32))
-                    Text("Signature valid", color = Color(0xFF2E7D32))
+                    Text(stringResource(R.string.btc_signature_valid), color = Color(0xFF2E7D32))
                 }
                 false -> Text(
-                    "Signature does not match this address and message",
+                    stringResource(R.string.btc_signature_does_not_match),
                     color = MaterialTheme.colorScheme.error,
                 )
                 null -> {}

@@ -120,7 +120,7 @@ internal fun BitcoinWalletsScreen(
                 OutlinedTextField(
                     value = draft,
                     onValueChange = { draft = it },
-                    label = { Text(stringResource(R.string.btc_wallet_label_lc)) },
+                    label = { Text(stringResource(R.string.walletc_wallet_label)) },
                     singleLine = true,
                 )
             },

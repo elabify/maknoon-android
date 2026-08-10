@@ -11,6 +11,10 @@
 // shapes the verdict envelope once this returns.
 
 package com.elabify.app.maknoon.ui.miniapp
+import android.icu.util.ULocale
+import android.icu.util.MeasureUnit
+import android.icu.util.Measure
+import android.icu.text.MeasureFormat
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -85,7 +89,28 @@ fun IdentityMiniAppSheets(
     }
 }
 
-private data class SheetCred(val cid: String, val label: String, val holder: String, val sdn: String?)
+private data class SheetCred(
+    val cid: String,
+    val label: String,
+    val holder: String,
+    val sdn: String?,
+    /** Unix seconds the credential was issued, or 0 when the handler sent none. */
+    val issuedAt: Long,
+)
+
+/** Issue date plus the short credential id: the two fields that actually differ
+ *  between a user's own passports. The label, holder and issuer lines above are
+ *  identical for two passports from one issuer under one identity, which made
+ *  the picker a stack of clones and read as "it just picks one". Data only, so
+ *  it adds no translatable prose to a sheet that ships in 31 languages. */
+private fun credentialSubtitle(c: SheetCred): String {
+    val shortCid = if (c.cid.length > 10) c.cid.take(10) else c.cid
+    if (c.issuedAt <= 0L) return shortCid
+    val date = java.text.DateFormat
+        .getDateInstance(java.text.DateFormat.MEDIUM)
+        .format(java.util.Date(c.issuedAt * 1000))
+    return "$date \u00b7 $shortCid"
+}
 
 /** The 0x the holder DID encodes (did:elabify:...:holder:0x…), so the user sees
  *  which passport/identity is being disclosed; falls back to a shortened DID. */
@@ -127,6 +152,7 @@ fun MiniAppIdentitySheet(
                         label = o.optString("label"),
                         holder = o.optString("holder"),
                         sdn = if (o.has("sdn")) o.optString("sdn") else null,
+                        issuedAt = o.optLong("issuedAt", 0L),
                     ),
                 )
             }
@@ -219,6 +245,12 @@ fun MiniAppIdentitySheet(
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                             )
                         }
+                        Text(
+                            credentialSubtitle(c),
+                            style = MaterialTheme.typography.bodySmall,
+                            fontFamily = FontFamily.Monospace,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
                     }
                 }
             }
@@ -276,8 +308,8 @@ private suspend fun consent(activity: FragmentActivity?, appTitle: String): Bool
         BiometricGate.Availability.AVAILABLE ->
             BiometricGate.authenticate(
                 activity,
-                title = "Verify identity",
-                subtitle = "Approve sharing your credential with $appTitle",
+                title = activity.getString(R.string.miniapp_verify_identity),
+                subtitle = activity.getString(R.string.miniapp_approve_sharing_with, appTitle),
             )
         else -> true
     }
@@ -292,9 +324,25 @@ internal fun stringList(arr: JSONArray?): List<String> {
     return out
 }
 
+/**
+ * Human duration, formatted by ICU rather than by us. Mirrors the iOS
+ * DateComponentsFormatter path.
+ *
+ * This was a hand-rolled ladder emitting "year(s)" / "month(s)" / "day(s)". The
+ * "(s)" hack cannot be translated: Arabic has six plural forms, and the machine
+ * translator rendered the same trick elsewhere as a literal Arabic
+ * parenthetical. ICU already ships correctly pluralized, correctly translated
+ * durations for every locale, so deferring to it is less code and more correct
+ * than authoring three plural keys by hand.
+ */
 internal fun humanAge(seconds: Long): String {
     val days = seconds / 86_400
-    if (days != 0L && days % 365 == 0L) return "${days / 365} year(s)"
-    if (days >= 30) return "${days / 30} month(s)"
-    return "$days day(s)"
+    val (amount, unit) = when {
+        days != 0L && days % 365 == 0L -> (days / 365) to MeasureUnit.YEAR
+        days >= 30 -> (days / 30) to MeasureUnit.MONTH
+        else -> days to MeasureUnit.DAY
+    }
+    return MeasureFormat
+        .getInstance(ULocale.getDefault(), MeasureFormat.FormatWidth.WIDE)
+        .format(Measure(amount, unit))
 }

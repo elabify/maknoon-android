@@ -148,6 +148,8 @@ fun ScanVerifierSheet(
      *  fetches the CommerceRequest and opens the Verify & Pay sheet. */
     onCommerce: (String) -> Unit = {},
 ) {
+    val requestRejectedMsg = stringResource(R.string.present_request_rejected)
+    val theVerifierLabel = stringResource(R.string.present_the_verifier)
     var phase by remember { mutableStateOf<ScanPhase>(ScanPhase.Scanning) }
     var selectedCredId by remember { mutableStateOf<String?>(null) }
     var sending by remember { mutableStateOf(false) }
@@ -178,7 +180,7 @@ fun ScanVerifierSheet(
                 return@launch
             }
             if (!decision.isValid) {
-                phase = ScanPhase.Rejected(decision.reason ?: "Request rejected.")
+                phase = ScanPhase.Rejected(decision.reason ?: requestRejectedMsg)
                 return@launch
             }
             val held = actions.heldCredentials()
@@ -206,7 +208,7 @@ fun ScanVerifierSheet(
                 }
                 val outcome = actions.postToCallback(presentation, callback)
                 if (outcome.status in 200..299) {
-                    phase = ScanPhase.Sent(decision.request.verifierName ?: "the verifier")
+                    phase = ScanPhase.Sent(decision.request.verifierName ?: theVerifierLabel)
                 } else {
                     sendError = "Verifier responded HTTP ${outcome.status}. " +
                         outcome.bodyText.take(200)

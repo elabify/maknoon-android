@@ -21,7 +21,9 @@
 
 package com.elabify.app.maknoon.ui.miniapp
 
+import android.content.Context
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -59,6 +61,7 @@ fun MiniAppCollectSheet(
     val maxAgeSec = if (payload.has("maxAgeSec") && !payload.isNull("maxAgeSec")) payload.optLong("maxAgeSec") else null
     val requestUrl = payload.optString("requestURL").takeUnless { it.isEmpty() }
 
+    val context = LocalContext.current
     val askToPresent = stringResource(R.string.app_ask_customer_present)
     var status by remember { mutableStateOf(askToPresent) }
     var isError by remember { mutableStateOf(false) }
@@ -71,6 +74,7 @@ fun MiniAppCollectSheet(
     fun finish(presentationJson: String) {
         if (done) return
         val verdict = CollectPolicy.evaluate(
+            context = context,
             presentationJson = presentationJson,
             requestedSchema = schema,
             requiredClaims = requiredClaims,
@@ -79,7 +83,7 @@ fun MiniAppCollectSheet(
         )
         if (verdict == null) {
             isError = true
-            status = "Unrecognized code. Ask the customer to show their Attribute QR."
+            status = context.getString(R.string.collect_unrecognized_code)
             return
         }
         if (verdict.optString("decision") == "GRANT") {
@@ -89,7 +93,8 @@ fun MiniAppCollectSheet(
             lastDenied = verdict.toString()
             isError = true
             showRetry = true
-            status = verdict.optString("message").ifEmpty { "The customer's credential was declined." }
+            status = verdict.optString("message")
+                .ifEmpty { context.getString(R.string.collect_credential_declined) }
         }
     }
 
@@ -159,6 +164,7 @@ fun MiniAppCollectSheet(
 internal object CollectPolicy {
 
     fun evaluate(
+        context: Context,
         presentationJson: String,
         requestedSchema: String?,
         requiredClaims: List<String>,
@@ -193,7 +199,7 @@ internal object CollectPolicy {
         reasons.add("verification_unavailable")
 
         val decision = if (cryptoOK && reasons.isEmpty()) "GRANT" else "DENY"
-        val message = denialMessage(reasons, missing, disclosedKeys.toList(), requestedSchema, actualSchema)
+        val message = denialMessage(context, reasons, missing, disclosedKeys.toList(), requestedSchema, actualSchema)
 
         return JSONObject().apply {
             put("decision", decision)
@@ -237,6 +243,7 @@ internal object CollectPolicy {
     /** Build a merchant-facing explanation for a DENY. Pure + internal so it is
      *  unit-testable. Returns null only when there is no reason (a GRANT). */
     fun denialMessage(
+        context: Context,
         reasons: List<String>,
         missing: List<String>,
         disclosedKeys: List<String>,
@@ -246,18 +253,20 @@ internal object CollectPolicy {
         val first = reasons.firstOrNull() ?: return null
         return when (first) {
             "missing_claims" -> {
-                val shared = if (disclosedKeys.isEmpty()) "nothing" else disclosedKeys.sorted().joinToString(", ")
-                "Missing: ${missing.joinToString(", ")}. The customer shared: $shared. Ask them to include the missing attributes and present again."
+                val shared = if (disclosedKeys.isEmpty()) context.getString(R.string.collect_shared_nothing)
+                             else disclosedKeys.sorted().joinToString(", ")
+                context.getString(R.string.collect_denial_missing_claims, missing.joinToString(", "), shared)
             }
             "wrong_schema" ->
-                "Wrong credential type. Expected ${requestedSchema ?: "a different credential"}, but the customer presented $actualSchema."
-            "stale_screening" ->
-                "The customer's sanctions screening is missing or older than allowed. Ask for a fresh screening."
-            "sanctioned" ->
-                "The customer's sanctions screening is not clean (flagged). Payment blocked."
-            "verification_unavailable" ->
-                "Could not cryptographically verify the credential on this device. A server verify is required."
-            else -> "Declined: $first"
+                context.getString(
+                    R.string.collect_denial_wrong_schema,
+                    requestedSchema ?: context.getString(R.string.collect_a_different_credential),
+                    actualSchema,
+                )
+            "stale_screening" -> context.getString(R.string.collect_denial_stale_screening)
+            "sanctioned" -> context.getString(R.string.collect_denial_sanctioned)
+            "verification_unavailable" -> context.getString(R.string.collect_denial_verification_unavailable)
+            else -> context.getString(R.string.collect_denial_other, first)
         }
     }
 

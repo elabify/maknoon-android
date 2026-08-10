@@ -190,7 +190,7 @@ object CommerceMerchantPolicy {
         }
         "wrong_schema" -> "The customer presented the wrong credential type."
         "stale_screening" -> "The customer's sanctions screening is missing or too old."
-        "sanctioned" -> "The customer's sanctions screening is not clean (flagged)."
+        "sanctioned" -> "The customer's sanctions screening is flagged for review."
         "rail_not_accepted" -> "The customer chose a payment rail this merchant does not accept."
         "nonce_mismatch" -> "The response did not match this request (replay or stale QR)."
         "verification_failed" -> "The credential failed cryptographic verification."

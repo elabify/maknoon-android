@@ -72,7 +72,7 @@ internal fun EthereumNetworkPickerScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text(stringResource(R.string.eth_select_network)) },
+                title = { Text(stringResource(R.string.eth_select_chain)) },
                 navigationIcon = { IconButton(onClick = onDone) { Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.common_back)) } },
             )
         },

@@ -54,6 +54,7 @@ import com.elabify.musnad.wallet.ethereum.EthereumTokenRegistry
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import com.elabify.app.maknoon.ui.wallet.common.relativeSince
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
@@ -101,7 +102,7 @@ internal fun EthereumSettingsScreen(onCustomNetworks: () -> Unit, onDone: () -> 
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
             OutlinedButton(onClick = onCustomNetworks, modifier = Modifier.fillMaxWidth()) {
-                Icon(Icons.Filled.Public, contentDescription = null); Spacer(Modifier.width(6.dp)); Text(stringResource(R.string.eth_manage_networks))
+                Icon(Icons.Filled.Public, contentDescription = null); Spacer(Modifier.width(6.dp)); Text(stringResource(R.string.eth_manage_chains))
             }
 
             Text(stringResource(R.string.eth_chain), style = MaterialTheme.typography.titleSmall)
@@ -128,7 +129,7 @@ internal fun EthereumSettingsScreen(onCustomNetworks: () -> Unit, onDone: () -> 
             Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 val last = registry.lastFetched
                 if (last != null) {
-                    Text(stringResource(R.string.eth_catalog_last_refreshed, ethRelativeSince(last), registry.totalEntries.toString()), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text(stringResource(R.string.eth_catalog_last_refreshed, relativeSince(last), registry.totalEntries.toString()), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 } else {
                     Text(stringResource(R.string.eth_not_yet_fetched), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }

@@ -33,6 +33,8 @@
 
 package com.elabify.app.maknoon.ui.devices
 
+import java.util.Locale
+
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -879,7 +881,7 @@ private fun probeBitcoin(xpub: String, fingerprint: String?, cfg: ProbeConfig.Bi
     val btc = balanceSat / 100_000_000.0
     return ActivityProbe(
         active = active,
-        summary = if (active) String.format("%d tx, %.8f BTC, active", txCount, btc) else "empty",
+        summary = if (active) String.format(Locale.US, "%d tx, %.8f BTC, active", txCount, btc) else "empty",
     )
 }
 
@@ -1257,7 +1259,7 @@ private fun probeSolana(address: String, cfg: ProbeConfig.Solana): ActivityProbe
     val sol = lamports / 1_000_000_000.0
     return ActivityProbe(
         active = active,
-        summary = if (active) String.format("%.6f SOL, active", sol) else "empty",
+        summary = if (active) String.format(Locale.US, "%.6f SOL, active", sol) else "empty",
     )
 }
 
@@ -1270,7 +1272,7 @@ private fun probeTron(addressBase58: String, cfg: ProbeConfig.Tron): ActivityPro
     val trx = sun / 1_000_000.0
     return ActivityProbe(
         active = active,
-        summary = if (active) String.format("%.6f TRX, active", trx) else "empty",
+        summary = if (active) String.format(Locale.US, "%.6f TRX, active", trx) else "empty",
     )
 }
 

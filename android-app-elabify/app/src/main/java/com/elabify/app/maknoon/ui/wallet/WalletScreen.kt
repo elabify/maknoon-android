@@ -23,6 +23,8 @@
 
 package com.elabify.app.maknoon.ui.wallet
 
+import androidx.compose.ui.res.stringResource
+
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -223,16 +225,16 @@ private fun WalletList(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Wallet") },
+                title = { Text(stringResource(R.string.devices_wallet)) },
                 navigationIcon = {
                     IconButton(onClick = onOpenSettings) {
-                        Icon(Icons.Filled.Settings, contentDescription = "Settings")
+                        Icon(Icons.Filled.Settings, contentDescription = stringResource(R.string.common_settings))
                     }
                 },
                 actions = {
                     Box {
                         IconButton(onClick = { addMenuOpen = true }) {
-                            Icon(Icons.Filled.Add, contentDescription = "Add wallet")
+                            Icon(Icons.Filled.Add, contentDescription = stringResource(R.string.wallet_add_wallet))
                         }
                         DropdownMenu(
                             expanded = addMenuOpen,
@@ -268,9 +270,8 @@ private fun WalletList(
             ) {
                 EmptyState(
                     icon = Icons.Outlined.AccountBalanceWallet,
-                    title = "No wallets yet",
-                    subtitle = "Use the + in the top right to pick a network and add your " +
-                        "first wallet.",
+                    title = stringResource(R.string.walletc_no_wallets_yet),
+                    subtitle = stringResource(R.string.walletc_no_wallets_yet_body),
                     iconSize = 56.dp,
                 )
             }

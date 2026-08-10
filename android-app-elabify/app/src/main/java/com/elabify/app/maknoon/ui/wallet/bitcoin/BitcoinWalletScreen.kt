@@ -69,6 +69,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import com.elabify.app.maknoon.R
 import com.elabify.app.maknoon.ui.components.AddressChip
 import com.elabify.app.maknoon.ui.components.Banner
 import com.elabify.app.maknoon.ui.components.BannerVariant
@@ -261,7 +262,7 @@ private fun BitcoinDashboard(
                 BitcoinWalletEngine.openWithResult(descriptor, env.filesDirPath, words, loadBip39Passphrase(context))
             }
         }
-        opened.onFailure { error = "Open failed: ${it.message ?: it}" }
+        opened.onFailure { error = context.getString(R.string.btc_open_failed, "${it.message ?: it}") }
         val result = opened.getOrNull() ?: return@LaunchedEffect
         engine = result.wallet
         // Persist the freshly-derived public-key cache so the next open is

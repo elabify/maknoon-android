@@ -65,7 +65,7 @@ internal fun EthereumTransactionListScreen(walletId: UUID, ownerAddress: String,
     LaunchedEffect(walletId) {
         loading = true
         error = null
-        if (descriptor == null) { error = "Wallet not found."; loading = false; return@LaunchedEffect }
+        if (descriptor == null) { error = context.getString(R.string.walletc_wallet_not_found); loading = false; return@LaunchedEffect }
         val result = withContext(Dispatchers.IO) {
             runCatching {
                 EthereumWallet(descriptor).recentTransactions(

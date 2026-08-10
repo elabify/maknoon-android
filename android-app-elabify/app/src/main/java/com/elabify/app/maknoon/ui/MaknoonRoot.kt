@@ -1,5 +1,9 @@
 package com.elabify.app.maknoon.ui
+import com.elabify.app.maknoon.R
 
+import androidx.compose.ui.res.stringResource
+
+import androidx.annotation.StringRes
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -64,14 +68,20 @@ import kotlinx.coroutines.withContext
 // | Apps. Icons match the iOS SF Symbols as closely as Material allows, and
 // like iOS swap outline (unselected) -> filled (selected): AccountCircle ~
 // person.crop.circle, CreditCard = creditcard, GridView ~ square.grid.2x2.
+//
+// The label is a string RESOURCE, not a String. As literals in this enum's
+// constructor the three tab names shipped English in all 31 locales: an enum
+// constructor cannot call stringResource, and the strings themselves already
+// existed and were translated, so the only thing missing was the indirection.
+// iOS had them localized, which is how the gap showed up.
 private enum class Tab(
-    val label: String,
+    @StringRes val labelRes: Int,
     val icon: ImageVector,
     val selectedIcon: ImageVector,
 ) {
-    IDENTITY("Identity", Icons.Outlined.AccountCircle, Icons.Filled.AccountCircle),
-    WALLET("Wallet", Icons.Outlined.CreditCard, Icons.Filled.CreditCard),
-    APPS("Apps", Icons.Outlined.GridView, Icons.Filled.GridView),
+    IDENTITY(R.string.identity_title, Icons.Outlined.AccountCircle, Icons.Filled.AccountCircle),
+    WALLET(R.string.devices_wallet, Icons.Outlined.CreditCard, Icons.Filled.CreditCard),
+    APPS(R.string.app_apps, Icons.Outlined.GridView, Icons.Filled.GridView),
 }
 
 @Composable
@@ -182,10 +192,10 @@ private fun MainTabs() {
                             icon = {
                                 Icon(
                                     if (selected == tab) tab.selectedIcon else tab.icon,
-                                    contentDescription = tab.label,
+                                    contentDescription = stringResource(tab.labelRes),
                                 )
                             },
-                            label = { Text(tab.label) },
+                            label = { Text(stringResource(tab.labelRes)) },
                             // Mirror iOS .tint(.purple): selected tab is the brand
                             // purple (icon + label), unselected is muted, and no
                             // filled pill (iOS shows selection by colour alone).
@@ -243,6 +253,9 @@ private fun LockScreen(onUnlocked: () -> Unit) {
     val scope = rememberCoroutineScope()
     val lifecycleOwner = LocalLifecycleOwner.current
     var attempting by remember { mutableStateOf(false) }
+    // Resolved here: attempt() below is a plain local fun, not a composable.
+    val promptTitle = stringResource(R.string.app_unlock_maknoon)
+    val promptSubtitle = stringResource(R.string.app_confirm_its_you)
 
     fun attempt() {
         val act = activity ?: return
@@ -258,7 +271,7 @@ private fun LockScreen(onUnlocked: () -> Unit) {
             // guard anyway so `attempting` is ALWAYS cleared and the button stays
             // live for a retry.
             val ok = runCatching {
-                BiometricGate.authenticate(act, title = "Unlock Maknoon", subtitle = "Confirm it's you")
+                BiometricGate.authenticate(act, title = promptTitle, subtitle = promptSubtitle)
             }.getOrDefault(false)
             attempting = false
             if (ok) onUnlocked()
@@ -291,17 +304,17 @@ private fun LockScreen(onUnlocked: () -> Unit) {
                 modifier = Modifier.size(48.dp),
             )
             Text(
-                "Maknoon is locked",
+                stringResource(R.string.app_maknoon_is_locked),
                 style = MaterialTheme.typography.titleMedium,
                 modifier = Modifier.padding(top = Spacing.md),
             )
             Text(
-                "Unlock with your fingerprint, face, or device PIN.",
+                stringResource(R.string.app_unlock_with_your_fingerprint),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.padding(top = Spacing.xs, bottom = Spacing.lg),
             )
-            Button(onClick = { attempt() }) { Text("Unlock") }
+            Button(onClick = { attempt() }) { Text(stringResource(R.string.app_unlock)) }
         }
     }
 }

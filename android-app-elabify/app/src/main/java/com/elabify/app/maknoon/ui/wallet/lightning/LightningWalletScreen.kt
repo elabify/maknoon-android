@@ -151,6 +151,7 @@ private fun LightningDashboard(
     onAddAccount: () -> Unit,
     onChanged: () -> Unit,
 ) {
+    val syncFailedMsg = stringResource(R.string.ln_sync_failed)
     val context = LocalContext.current
     val env = remember { LightningEnv.get(context) }
 
@@ -190,7 +191,7 @@ private fun LightningDashboard(
             val fiat = FiatReference.caption("bitcoin", bal / 100_000_000.0)
             data = DashboardData(balanceSat = bal, txs = txs, fiat = fiat)
         } else {
-            error = balanceResult.exceptionOrNull()?.let { it.message ?: it.toString() } ?: "Sync failed."
+            error = balanceResult.exceptionOrNull()?.let { it.message ?: it.toString() } ?: syncFailedMsg
             historyResult.getOrNull()?.let { data = (data ?: DashboardData(0, emptyList())).copy(txs = it) }
         }
         syncing = false

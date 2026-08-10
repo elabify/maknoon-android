@@ -74,7 +74,7 @@ internal fun TronReceiveScreen(walletId: UUID, onDone: () -> Unit) {
     LaunchedEffect(walletId) {
         loading = true
         if (descriptor == null) {
-            error = "Wallet not found."
+            error = context.getString(R.string.walletc_wallet_not_found)
             loading = false
             return@LaunchedEffect
         }

@@ -46,7 +46,7 @@ fun TapIDDocumentFlow(
     val context = LocalContext.current
     val activity = context as? FragmentActivity
     val idDocumentStore = remember { IDDocumentStore.shared(context) }
-    val reader = remember { IDDocumentReader() }
+    val reader = remember(context) { IDDocumentReader(context) }
     val store = remember { IdentityStore(context) }
     val knownIssuers = remember { KnownIssuersStore(context) }
     val pendingPickups = remember { PendingPickupsStore(context) }

@@ -88,7 +88,7 @@ internal fun BitcoinSettingsScreen(
             Modifier.fillMaxSize().padding(padding).verticalScroll(rememberScrollState()).padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(14.dp),
         ) {
-            Text(stringResource(R.string.btc_network_for_settings), style = MaterialTheme.typography.titleSmall)
+            Text(stringResource(R.string.btc_chain_for_settings), style = MaterialTheme.typography.titleSmall)
             Row {
                 BitcoinNetwork.entries.forEach { net ->
                     FilterChip(
@@ -161,7 +161,7 @@ internal fun BitcoinSettingsScreen(
                 mempoolUrl = env.settings.mempoolURL(network)
                 explorerUrl = env.settings.explorerURL(network)
                 pinnedCert = ""
-            }, modifier = Modifier.fillMaxWidth()) { Text(stringResource(R.string.btc_reset_all_settings)) }
+            }, modifier = Modifier.fillMaxWidth()) { Text(stringResource(R.string.btc_use_default_settings)) }
             if (saved) Text(stringResource(R.string.btc_saved), color = MaterialTheme.colorScheme.primary, style = MaterialTheme.typography.labelMedium)
         }
     }
