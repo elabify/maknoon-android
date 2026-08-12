@@ -49,6 +49,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.ui.text.input.PasswordVisualTransformation
@@ -89,10 +90,11 @@ fun <T> orderChainsForMenu(
  * as a "Passphrase" choice: None / On Device / Type Here. Shared by Add +
  * discover so both screens show the same labels.
  */
+@Composable
 internal fun hiddenSelectionLabel(sel: HiddenWalletSelection): String = when (sel) {
-    HiddenWalletSelection.STANDARD -> "None"
-    HiddenWalletSelection.ON_DEVICE -> "On Device"
-    HiddenWalletSelection.HOST_TYPED -> "Type Here"
+    HiddenWalletSelection.STANDARD -> stringResource(R.string.wallet_hidden_selection_standard)
+    HiddenWalletSelection.ON_DEVICE -> stringResource(R.string.wallet_hidden_selection_on_device)
+    HiddenWalletSelection.HOST_TYPED -> stringResource(R.string.wallet_hidden_selection_type_here)
 }
 
 /**
@@ -314,7 +316,7 @@ fun HardwareStageLine(
         }
         Spacer(Modifier.width(10.dp))
         Text(
-            stage.label(device, account),
+            stage.label(LocalContext.current, device, account),
             style = MaterialTheme.typography.bodyMedium,
         )
     }

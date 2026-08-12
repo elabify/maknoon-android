@@ -149,7 +149,7 @@ internal fun AddSolanaWalletScreen(
     fun createSoftware() {
         if (sandwich == null) { errorText = "Identity is locked. Unlock from the Identity tab first."; return }
         if (walletStore.hasSoftwareWallet(account)) { errorText = "A software wallet at account $account already exists."; return }
-        val baseLabel = label.trim().ifEmpty { "Solana #$account" }
+        val baseLabel = label.trim().ifEmpty { context.getString(R.string.wallet_default_label, "Solana", account.toString()) }
         walletStore.add(
             SolanaWalletDescriptor(label = baseLabel, kind = SolanaWalletKind.Software(account)),
             initialNetwork = walletStore.currentNetwork,
@@ -243,6 +243,7 @@ private fun SolanaSoftwareAutoDiscovery(
     onDone: () -> Unit,
 ) {
     val scope = rememberCoroutineScope()
+    val context = LocalContext.current
     val walletStore = env.walletStore
     var network by remember { mutableStateOf(SolanaNetwork.MAINNET) }
     var scanning by remember { mutableStateOf(false) }
@@ -256,7 +257,7 @@ private fun SolanaSoftwareAutoDiscovery(
     OutlinedButton(
         enabled = sandwich != null && !scanning && !adding,
         onClick = {
-            val sw = sandwich ?: run { onError("Unlock your identity to discover software wallets."); return@OutlinedButton }
+            val sw = sandwich ?: run { onError(context.getString(R.string.wallet_unlock_to_discover)); return@OutlinedButton }
             scanning = true; progress.clear(); found.clear(); selected.clear(); onError(null)
             scope.launch {
                 val rpcURL = env.settings.rpcURL(network)
@@ -266,14 +267,20 @@ private fun SolanaSoftwareAutoDiscovery(
                             sandwich = sw,
                             network = network,
                             rpcURL = rpcURL,
-                            onProgress = { p -> progress.add("Account ${p.account}: ${p.phase::class.simpleName}") },
+                            onProgress = { p -> progress.add(
+                                    context.getString(
+                                        R.string.discover_account_phase,
+                                        p.account.toString(),
+                                        p.phase::class.simpleName ?: "",
+                                    ),
+                                ) },
                         )
                     }
                 }
                 scanning = false
                 result.onSuccess { rows ->
                     rows.forEach { found.add(it); selected.add(it) }
-                    if (rows.isEmpty()) progress.add("No funded accounts found on ${network.displayName}.")
+                    if (rows.isEmpty()) progress.add(context.getString(R.string.discover_no_funded_accounts, network.displayName))
                 }.onFailure { onError(it.message ?: it.toString()) }
             }
         },
@@ -408,7 +415,7 @@ private fun SolanaHardwareSection(
                     }
                     if (exists) throw IllegalStateException("This wallet is already in your list.")
                     val descriptor = SolanaWalletDescriptor(
-                        label = "${dev.label} Solana #$effectiveAccount",
+                        label = context.getString(R.string.wallet_default_label_device, dev.label, "Solana", effectiveAccount.toString()),
                         kind = SolanaWalletKind.Hardware(deviceId = dev.id, account = effectiveAccount, publicKeyBase58 = addr),
                         hidden = HardwarePassphraseRef.toJson(hiddenRef),
                         derivationPath = null,
@@ -445,7 +452,7 @@ private fun SolanaHardwareSection(
             scanning = false; connectIntent = null; dialogRunning = false
             result.onSuccess { rows ->
                 rows.forEach { found.add(it); selected.add(it) }
-                if (rows.isEmpty()) scanProgress.add("No active accounts found.")
+                if (rows.isEmpty()) scanProgress.add(context.getString(R.string.discover_no_active_accounts))
             }.onFailure { onError(it.friendlySolHardwareMessage()) }
         }
     }

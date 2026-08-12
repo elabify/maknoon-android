@@ -10,11 +10,31 @@
 
 package com.elabify.app.maknoon.miniapp
 
+import com.elabify.app.maknoon.ui.common.LocalizedThrowable
+import com.elabify.app.maknoon.R
+import com.elabify.app.maknoon.MaknoonApplication
+import androidx.annotation.StringRes
 import com.elabify.musnad.net.MaknoonHttp
 import com.elabify.musnad.net.NetworkException
 import org.json.JSONObject
 
-class CommerceTransportException(override val message: String) : Exception(message)
+/**
+ * A commerce transport failure, with copy the holder can read.
+ *
+ * Resolves its @StringRes lazily against the application context, the same
+ * shape IDDocumentIssuanceException uses: these are thrown deep in networking
+ * and coroutine code where no composable, and therefore no Context, is in
+ * scope. It was English literals before, shown verbatim in every locale.
+ */
+class CommerceTransportException(
+    @StringRes private val messageRes: Int,
+    private val detail: String? = null,
+) : Exception(), LocalizedThrowable {
+    override val message: String
+        get() = MaknoonApplication.appContext.let { ctx ->
+            if (detail == null) ctx.getString(messageRes) else ctx.getString(messageRes, detail)
+        }
+}
 
 /**
  * The holder to merchant payload, stored-and-forwarded by the server and polled
@@ -81,7 +101,7 @@ class CommerceTransport(private val http: MaknoonHttp = MaknoonHttp()) {
         val body = JSONObject().put("request", request.toJson()).toString()
         val resp = postOrThrow(joinPath(baseURL, "/v1/commerce-request"), body)
         val id = JSONObject(resp).optStringOrNull("requestId")
-            ?: throw CommerceTransportException("Could not read the server response: missing requestId")
+            ?: throw CommerceTransportException(R.string.commerce_bad_response)
         return id
     }
 
@@ -102,13 +122,13 @@ class CommerceTransport(private val http: MaknoonHttp = MaknoonHttp()) {
     private fun getOrThrow(url: String): String = try {
         http.getJson(url)
     } catch (e: NetworkException) {
-        throw CommerceTransportException("Server returned HTTP ${e.status}.")
+        throw CommerceTransportException(R.string.commerce_http_status, e.status.toString())
     }
 
     private fun postOrThrow(url: String, body: String): String = try {
         http.postJson(url, body)
     } catch (e: NetworkException) {
-        throw CommerceTransportException("Server returned HTTP ${e.status}.")
+        throw CommerceTransportException(R.string.commerce_http_status, e.status.toString())
     }
 
     private fun joinPath(base: String, path: String): String {

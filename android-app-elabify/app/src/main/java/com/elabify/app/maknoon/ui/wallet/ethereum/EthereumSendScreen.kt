@@ -35,6 +35,7 @@ import android.content.ClipboardManager
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
+import androidx.annotation.StringRes
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.padding
@@ -141,6 +142,20 @@ private fun isValidEthAddress(s: String): Boolean {
 
 // Native chain tint for Ethereum (iOS uses .indigo for the network chip).
 private val EthIndigo = Color(0xFF5856D6)
+
+// EthereumGasEstimator.Tier lives in the musnad-sdk module and carries a
+// hardcoded English `label` (its raw value / wire name is `Tier.name`, e.g.
+// "SLOW"). The SDK has no Android Context and cannot call stringResource,
+// so the gas-tier chips shipped English in all 31 locales. This app-side
+// extension resolves the display label instead of the SDK's `label`; the
+// SDK enum itself, including `Tier.name`, is untouched.
+@get:StringRes
+private val EthereumGasEstimator.Tier.labelRes: Int
+    get() = when (this) {
+        EthereumGasEstimator.Tier.SLOW -> R.string.eth_gas_slow
+        EthereumGasEstimator.Tier.STANDARD -> R.string.eth_gas_standard
+        EthereumGasEstimator.Tier.FAST -> R.string.eth_gas_fast
+    }
 
 // Shown (and enforced in submit) when a token transfer would go to a contract.
 private const val TOKEN_TO_CONTRACT_ERROR =
@@ -769,7 +784,7 @@ internal fun EthereumSendScreen(walletId: UUID, preselectTokenId: String?, onDon
         // network fee (EIP-1559 three-tier gas picker)
         FormSection(header = stringResource(R.string.eth_network_fee)) {
             FeeSelector(
-                options = EthereumGasEstimator.Tier.entries.map { FeeOption(it.name, it.label) },
+                options = EthereumGasEstimator.Tier.entries.map { FeeOption(it.name, stringResource(it.labelRes)) },
                 selected = tier.name,
                 onSelect = { id -> EthereumGasEstimator.Tier.entries.firstOrNull { it.name == id }?.let { tier = it } },
                 footer = {

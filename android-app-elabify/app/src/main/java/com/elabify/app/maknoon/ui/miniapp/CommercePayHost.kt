@@ -10,6 +10,7 @@
 
 package com.elabify.app.maknoon.ui.miniapp
 
+import com.elabify.app.maknoon.ui.common.userMessage
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -112,7 +113,7 @@ fun CommercePayHost(
             }
         } catch (e: Exception) {
             phaseLabel = null
-            errorText = e.message ?: loadRequestFailedMsg
+            errorText = e.userMessage(context, fallback = loadRequestFailedMsg)
         }
     }
 
@@ -138,7 +139,7 @@ fun CommercePayHost(
                 }
                 doneTxid = txid; phaseLabel = null; paying = false
             } catch (e: Exception) {
-                errorText = e.message ?: paymentFailedMsg; phaseLabel = null; paying = false
+                errorText = e.userMessage(context, fallback = paymentFailedMsg); phaseLabel = null; paying = false
             }
         }
     }
@@ -152,7 +153,7 @@ fun CommercePayHost(
                 val p = withContext(Dispatchers.IO) { driver.prepare(cand, cred, hostPassphrase) }
                 signedPrepared = p; phaseLabel = null; paying = false
             } catch (e: Exception) {
-                errorText = e.message ?: signingFailedMsg; phaseLabel = null; paying = false
+                errorText = e.userMessage(context, fallback = signingFailedMsg); phaseLabel = null; paying = false
             }
         }
     }
@@ -167,7 +168,7 @@ fun CommercePayHost(
                 doneChain = p.chain; doneTxid = txid; signedPrepared = null
                 phaseLabel = null; paying = false
             } catch (e: Exception) {
-                errorText = e.message ?: broadcastFailedMsg; phaseLabel = null; paying = false
+                errorText = e.userMessage(context, fallback = broadcastFailedMsg); phaseLabel = null; paying = false
             }
         }
     }

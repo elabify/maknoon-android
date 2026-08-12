@@ -6,6 +6,7 @@
 
 package com.elabify.app.maknoon.ui.wallet.bitcoin
 
+import com.elabify.app.maknoon.ui.common.userMessage
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -81,7 +82,7 @@ internal fun BitcoinReceiveScreen(
             }
         }
         res.onSuccess { address = it.first; index = it.second }
-            .onFailure { error = context.getString(R.string.btc_could_not_derive_address, "${it.message ?: it}") }
+            .onFailure { error = context.getString(R.string.btc_could_not_derive_address, it.userMessage(context)) }
     }
 
     val uri = remember(address, amount, label) { address?.let { bitcoinUri(it, amount, label) } }

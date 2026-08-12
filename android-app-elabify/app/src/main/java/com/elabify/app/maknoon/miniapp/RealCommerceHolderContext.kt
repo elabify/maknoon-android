@@ -181,7 +181,11 @@ class RealCommerceHolderContext(
             val obj = value.value
             val result = (obj["result"] as? JsonValue.Str)?.value ?: "?"
             val when10 = (obj["screenedAt"] as? JsonValue.Str)?.value?.take(10).orEmpty()
-            return if (when10.isEmpty()) "Sanctions: $result" else "Sanctions: $result (screened $when10)"
+            return if (when10.isEmpty()) {
+                appContext.getString(R.string.commerce_sanctions_claim, result)
+            } else {
+                appContext.getString(R.string.commerce_sanctions_claim_dated, result, when10)
+            }
         }
         return value.displayText()
     }

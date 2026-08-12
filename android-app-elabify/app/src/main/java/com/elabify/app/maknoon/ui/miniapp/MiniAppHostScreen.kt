@@ -28,6 +28,7 @@
 
 package com.elabify.app.maknoon.ui.miniapp
 
+import com.elabify.app.maknoon.ui.common.userMessage
 import android.annotation.SuppressLint
 import com.elabify.app.maknoon.ui.theme.AppLanguageCatalog
 import android.webkit.WebResourceRequest
@@ -48,6 +49,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
@@ -144,6 +146,7 @@ fun MiniAppHostScreen(
     approvalSheetHost: MiniAppApprovalSheetHost = cancelUnknownSheetHost,
     modifier: Modifier = Modifier,
 ) {
+    val context = LocalContext.current
     val couldNotOpenAppMsg = stringResource(R.string.miniapp_could_not_open_app)
     var phase by remember(spec.installedAppId) { mutableStateOf<Phase>(Phase.Loading) }
     val gate = remember(spec.installedAppId) { ApprovalGate() }
@@ -159,7 +162,7 @@ fun MiniAppHostScreen(
             )
             Phase.Ready(bundle)
         } catch (e: Exception) {
-            Phase.Failed(e.message ?: couldNotOpenAppMsg)
+            Phase.Failed(e.userMessage(context, fallback = couldNotOpenAppMsg))
         }
     }
 
@@ -416,16 +419,12 @@ private class WebViewCallbackSink(private val webView: WebView) : CallbackSink {
     }
 }
 
-private const val CSP =
-    "default-src 'self'; " +
-        "script-src 'self' 'unsafe-inline'; " +
-        "style-src 'self' 'unsafe-inline'; " +
-        "img-src 'self' data:; " +
-        "font-src 'self' data:; " +
-        "connect-src 'none'; " +
-        "object-src 'none'; " +
-        "base-uri 'none'; " +
-        "frame-ancestors 'none'"
+// Not user-facing: a Content-Security-Policy header value injected into the
+// mini-app's HTML, never rendered as text. Kept as ONE literal on one line
+// (rather than the previous `+`-joined lines) because the i18n gate's
+// multi-line-continuation check exists to catch a paragraph wrapped across
+// lines by ktfmt, and a CSP string is not prose in any locale.
+private const val CSP = "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:; connect-src 'none'; object-src 'none'; base-uri 'none'; frame-ancestors 'none'"
 
 /**
  * The injected provider shim. Android analog of MiniAppProvider.js, rewritten

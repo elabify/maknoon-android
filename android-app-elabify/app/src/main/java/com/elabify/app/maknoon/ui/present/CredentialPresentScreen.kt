@@ -69,6 +69,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
@@ -134,6 +135,7 @@ fun CredentialPresentScreen(
     // technical details, folder, or remove. Just the attribute (Build Online) QR.
     passportMode: Boolean = false,
 ) {
+    val context = LocalContext.current
     var mode by remember { mutableStateOf(if (passportMode) PresentMode.ATTRIBUTES else initialMode) }
     var renameOpen by remember { mutableStateOf(false) }
     var folderMenuOpen by remember { mutableStateOf(false) }
@@ -142,7 +144,7 @@ fun CredentialPresentScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text(schemaLabel(credential.header.schema)) },
+                title = { Text(schemaLabel(context, credential.header.schema)) },
                 navigationIcon = {
                     TextButton(onClick = onBack) { Text(stringResource(R.string.common_back)) }
                 },
@@ -299,7 +301,7 @@ private fun BadgeMode(credential: ParsedCredential) {
         Column(Modifier.padding(Spacing.lg), verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
             Text(stringResource(R.string.present_what_this_shares), style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold)
             Kv(stringResource(R.string.present_issuer), shortIssuer(credential.header.iss))
-            Kv(stringResource(R.string.present_type), schemaLabel(credential.header.schema))
+            Kv(stringResource(R.string.present_type), schemaLabel(LocalContext.current, credential.header.schema))
             Kv(stringResource(R.string.present_issued), formatDateUtc(credential.header.iat))
             credential.header.exp?.let { Kv(stringResource(R.string.present_expires), formatDateUtc(it)) }
             anchors.forEach { a ->

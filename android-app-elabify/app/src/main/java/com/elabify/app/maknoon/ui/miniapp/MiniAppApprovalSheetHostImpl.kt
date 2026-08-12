@@ -31,6 +31,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import com.elabify.app.maknoon.R
 import com.elabify.app.maknoon.miniapp.ApprovalRequest
@@ -164,6 +165,7 @@ class MiniAppApprovalSheetHostImpl(
         }
 
         val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+        val context = LocalContext.current
         val preparingLabel = stringResource(R.string.app_preparing)
         var status by remember(request.id) { mutableStateOf(preparingLabel) }
         var qrPayload by remember(request.id) { mutableStateOf<String?>(null) }
@@ -178,6 +180,7 @@ class MiniAppApprovalSheetHostImpl(
             val verdict = withContext(Dispatchers.IO) {
                 runCatching {
                     commerceCoordinator.runMerchantFlow(
+                        context = context,
                         pending = pending,
                         shouldContinue = { !cancelled },
                         onStatus = { status = it },

@@ -150,7 +150,7 @@ internal fun AddTronWalletScreen(
     fun createSoftware() {
         val sw = sandwich ?: run { errorText = "Identity is locked. Unlock from the Identity tab first."; return }
         if (walletStore.hasSoftwareWallet(account)) { errorText = "A software wallet at account $account already exists."; return }
-        val baseLabel = label.trim().ifEmpty { "Tron #$account" }
+        val baseLabel = label.trim().ifEmpty { context.getString(R.string.wallet_default_label, "Tron", account.toString()) }
         scope.launch {
             creating = true; errorText = null
             val result = withContext(Dispatchers.IO) {
@@ -262,7 +262,7 @@ private fun TronSoftwareAutoDiscovery(
     OutlinedButton(
         enabled = sandwich != null && !scanning && !adding,
         onClick = {
-            val sw = sandwich ?: run { onError("Unlock your identity to discover software wallets."); return@OutlinedButton }
+            val sw = sandwich ?: run { onError(context.getString(R.string.wallet_unlock_to_discover)); return@OutlinedButton }
             scanning = true; progress.clear(); found.clear(); selected.clear(); onError(null)
             scope.launch {
                 val rpcURL = TronStores.settings(context).rpcURL(network)
@@ -272,14 +272,20 @@ private fun TronSoftwareAutoDiscovery(
                             sandwich = sw,
                             network = network,
                             rpcURL = rpcURL,
-                            onProgress = { p -> progress.add("Account ${p.account}: ${p.phase::class.simpleName}") },
+                            onProgress = { p -> progress.add(
+                                    context.getString(
+                                        R.string.discover_account_phase,
+                                        p.account.toString(),
+                                        p.phase::class.simpleName ?: "",
+                                    ),
+                                ) },
                         )
                     }
                 }
                 scanning = false
                 result.onSuccess { rows ->
                     rows.forEach { found.add(it); selected.add(it) }
-                    if (rows.isEmpty()) progress.add("No funded accounts found on ${network.displayName}.")
+                    if (rows.isEmpty()) progress.add(context.getString(R.string.discover_no_funded_accounts, network.displayName))
                 }.onFailure { onError(it.message ?: it.toString()) }
             }
         },
@@ -412,7 +418,7 @@ private fun TronHardwareSection(
                     }
                     if (exists) throw IllegalStateException("This wallet is already in your list.")
                     val descriptor = TronWalletDescriptor(
-                        label = "${dev.label} Tron #$effectiveAccount",
+                        label = context.getString(R.string.wallet_default_label_device, dev.label, "Tron", effectiveAccount.toString()),
                         kind = TronWalletKind.Hardware(deviceId = dev.id, account = effectiveAccount, addressBase58Check = addr),
                         hidden = HardwarePassphraseRef.toJson(hiddenRef),
                         derivationPath = null,
@@ -449,7 +455,7 @@ private fun TronHardwareSection(
             scanning = false; connectIntent = null; dialogRunning = false
             result.onSuccess { rows ->
                 rows.forEach { found.add(it); selected.add(it) }
-                if (rows.isEmpty()) scanProgress.add("No active accounts found.")
+                if (rows.isEmpty()) scanProgress.add(context.getString(R.string.discover_no_active_accounts))
             }.onFailure { onError(it.friendlyTronHardwareMessage()) }
         }
     }

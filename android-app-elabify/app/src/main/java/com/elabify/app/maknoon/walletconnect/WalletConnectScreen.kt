@@ -180,7 +180,7 @@ fun WalletConnectScreen(onClose: () -> Unit) {
                 Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                     Text(stringResource(R.string.wc_relay), modifier = Modifier.weight(1f))
                     Text(
-                        if (relayConnected) "Connected" else "Not connected",
+                        if (relayConnected) stringResource(R.string.wc_relay_connected) else stringResource(R.string.wc_relay_not_connected),
                         color = if (relayConnected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }

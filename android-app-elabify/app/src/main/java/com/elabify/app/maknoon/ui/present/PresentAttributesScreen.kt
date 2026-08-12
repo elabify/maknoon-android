@@ -368,7 +368,7 @@ fun PresentAttributesScreen(
                     val required = requiredKeys.contains(key)
                     // sdnScreen-aware so a sanctions object expands to
                     // "Sanctions: clean (screened ...)" instead of "3 fields".
-                    val value = attrValue(credential, key)
+                    val value = attrValue(context, credential, key)
                     val on = selected[key] == true
                     // Each claim is a tinted rounded cell; a selected claim picks
                     // up the brand surface tint so the disclosure set reads at a

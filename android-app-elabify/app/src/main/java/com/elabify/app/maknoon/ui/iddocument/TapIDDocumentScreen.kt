@@ -18,6 +18,7 @@
 
 package com.elabify.app.maknoon.ui.iddocument
 
+import com.elabify.app.maknoon.ui.common.userMessage
 import android.graphics.BitmapFactory
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
@@ -63,6 +64,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.ImageBitmap
@@ -140,6 +142,7 @@ fun TapIDDocumentScreen(
     onClose: () -> Unit,
     skipKindPicker: Boolean = false,
 ) {
+    val context = LocalContext.current
     val somethingWentWrongMsg = stringResource(R.string.iddoc_something_went_wrong)
     // Onboarding's "Scan your passport" is passport-specific, so it skips the
     // document-kind picker and opens the passport form directly.
@@ -207,7 +210,7 @@ fun TapIDDocumentScreen(
                                 readResult = read(parameters) { msg -> scanStatus = msg }
                                 step = TapStep.Review
                             } catch (e: Throwable) {
-                                lastError = e.message ?: somethingWentWrongMsg
+                                lastError = e.userMessage(context, fallback = somethingWentWrongMsg)
                                 step = TapStep.Error
                             }
                         }
@@ -495,6 +498,7 @@ private fun ReviewStep(
     save: suspend (IDDocumentReadResult) -> String,
     onSaved: (String) -> Unit,
 ) {
+    val context = LocalContext.current
     val couldNotSaveDocMsg = stringResource(R.string.iddoc_could_not_save_document)
     val doc = result.document
     var saving by remember { mutableStateOf(false) }
@@ -508,7 +512,7 @@ private fun ReviewStep(
                 val id = save(result)
                 onSaved(id)
             } catch (e: Throwable) {
-                saveError = e.message ?: couldNotSaveDocMsg
+                saveError = e.userMessage(context, fallback = couldNotSaveDocMsg)
                 saving = false
                 saveRequested = false
             }
@@ -589,6 +593,7 @@ private fun MintedStep(
     onRetryIssuance: () -> Unit,
 ) {
     val submissionFailedMsg = stringResource(R.string.iddoc_submission_failed)
+    val context = LocalContext.current
     // Fire the issuance request when the state flips to Submitting.
     if (issuance is TapIssuance.Submitting && savedId != null) {
         LaunchedEffect(savedId) {
@@ -603,7 +608,7 @@ private fun MintedStep(
                     },
                 )
             } catch (e: Throwable) {
-                onIssuanceResult(TapIssuance.Failed(e.message ?: submissionFailedMsg))
+                onIssuanceResult(TapIssuance.Failed(e.userMessage(context, fallback = submissionFailedMsg)))
             }
         }
     }

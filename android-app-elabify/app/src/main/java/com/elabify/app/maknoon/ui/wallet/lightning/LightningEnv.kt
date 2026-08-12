@@ -13,6 +13,7 @@ package com.elabify.app.maknoon.ui.wallet.lightning
 import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
+import com.elabify.app.maknoon.R
 import com.elabify.musnad.wallet.lightning.LightningAccount
 import com.elabify.musnad.wallet.lightning.LightningAccountStore
 import com.elabify.musnad.wallet.lightning.LndHubClient
@@ -67,9 +68,9 @@ internal fun hostOf(serverURL: String): String =
     runCatching { URI(serverURL).host }.getOrNull() ?: serverURL
 
 /** "username · host" subtitle used in the account picker + rows. */
-internal fun accountSubtitle(a: LightningAccount): String {
+internal fun accountSubtitle(context: Context, a: LightningAccount): String {
     val parts = arrayListOf("${a.username}@${hostOf(a.serverURL)}")
-    if (a.allowInsecureTLS) parts.add("insecure TLS")
+    if (a.allowInsecureTLS) parts.add(context.getString(R.string.ln_insecure_tls_badge))
     return parts.joinToString(" · ")
 }
 

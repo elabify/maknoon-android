@@ -360,7 +360,7 @@ internal fun TronSendScreen(walletId: UUID, preselectTokenId: String?, onDone: (
     // TRC-20. The selected option mirrors `selectedToken` (null -> native).
     val assetOptions = remember(availableTokens) {
         buildList {
-            add(AssetOption(id = NATIVE_ASSET_ID, symbol = "TRX", label = "TRX (native)"))
+            add(AssetOption(id = NATIVE_ASSET_ID, symbol = "TRX", label = context.getString(R.string.eth_asset_native, "TRX")))
             // Native first, then tokens alphabetically by symbol (ADR-0033 Phase 2b round-2).
             availableTokens.sortedBy { it.symbol.lowercase() }.forEach { token ->
                 add(AssetOption(id = token.id, symbol = token.symbol, label = "${token.symbol} - ${token.name}"))

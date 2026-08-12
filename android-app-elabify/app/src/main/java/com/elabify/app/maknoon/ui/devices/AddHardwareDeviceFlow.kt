@@ -306,8 +306,22 @@ private fun RegisterDeviceSheet(
                     Spacer(Modifier.width(10.dp))
                     Column {
                         Text(kind.displayName, style = MaterialTheme.typography.titleSmall)
+                        // The body carries a %1$s for the transport. It was
+                        // fetched with no argument, so the raw placeholder
+                        // rendered on screen in EVERY language, English
+                        // included. iOS supplies its `transportName` here; this
+                        // is the Android peer of that switch.
                         Text(
-                            stringResource(R.string.devices_register_card_body),
+                            stringResource(
+                                R.string.devices_register_card_body,
+                                when (kind) {
+                                    DeviceKind.YUBIKEY -> "NFC"
+                                    DeviceKind.LEDGER, DeviceKind.TREZOR ->
+                                        stringResource(R.string.devices_transport_bluetooth)
+                                    DeviceKind.SEEDSIGNER ->
+                                        stringResource(R.string.devices_transport_camera)
+                                },
+                            ),
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )

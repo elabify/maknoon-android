@@ -141,7 +141,8 @@ internal fun EthereumSettingsScreen(onCustomNetworks: () -> Unit, onDone: () -> 
                             refreshing = true
                             val url = catalogDraft.ifEmpty { EthereumTokenRegistry.DEFAULT_CATALOG_URL }
                             withContext(Dispatchers.IO) { runCatching { registry.refresh(url) } }
-                            catalogStatus = registry.lastError ?: "Refreshed ${registry.totalEntries} tokens."
+                            catalogStatus = registry.lastError
+                                ?: context.getString(R.string.wallet_catalog_refreshed_now, registry.totalEntries.toString())
                             refreshing = false
                         }
                     },

@@ -50,13 +50,22 @@ import com.elabify.musnad.hardware.trezor.HardwarePassphraseRef
 import com.elabify.musnad.wallet.bitcoin.BitcoinWalletEngine
 import com.elabify.musnad.wallet.bitcoin.BitcoinWalletException
 import com.elabify.musnad.wallet.bitcoin.FeeRecommended
+import androidx.annotation.StringRes
 import androidx.compose.ui.platform.LocalContext
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
-private enum class BumpFeeMode(val label: String) {
-    FASTEST("Fastest"), HALF_HOUR("30 min"), HOUR("1 hour"), ECONOMY("Economy"), CUSTOM("Custom");
+// Copy lives in string RESOURCES, not in this enum: an enum has no Context
+// and cannot call stringResource, so these chip labels shipped English in
+// all 31 locales. Same shape as SendFeeMode in BitcoinSendScreen.kt (this
+// enum has no persisted id, so no wire value to preserve here).
+private enum class BumpFeeMode(@StringRes val labelRes: Int) {
+    FASTEST(R.string.btc_fee_fastest),
+    HALF_HOUR(R.string.btc_fee_half_hour),
+    HOUR(R.string.btc_fee_hour),
+    ECONOMY(R.string.btc_fee_economy),
+    CUSTOM(R.string.walletc_custom);
 
     fun rate(rec: FeeRecommended?): Long = when (this) {
         FASTEST -> rec?.fastestFee ?: 0
@@ -93,6 +102,14 @@ internal fun BumpFeeSheet(
     var customSatsPerVb by remember { mutableStateOf("20") }
     var feeRec by remember { mutableStateOf<FeeRecommended?>(null) }
     var state by remember { mutableStateOf<BumpState>(BumpState.Idle) }
+    // Same missing-argument bug as BitcoinSendScreen: the hardware label
+    // carries a %1$s for the device name.
+    val fallbackDeviceName = stringResource(R.string.devices_fallback_device)
+    val boundDeviceLabel = remember(descriptor.id) {
+        (descriptor.kind as? BitcoinWalletKind.Hardware)?.let { hw ->
+            DeviceRegistry(context).find(hw.deviceId)?.label
+        } ?: fallbackDeviceName
+    }
     val isSoftware = descriptor.softwareAccountOrNull() != null
     // The pre-sign device-ready confirmation (ADR-0033), opened for hardware
     // wallets when the user taps Sign. It hosts the readiness copy and the
@@ -135,7 +152,7 @@ internal fun BumpFeeSheet(
                         FilterChip(
                             selected = feeMode == mode,
                             onClick = { feeMode = mode },
-                            label = { Text(mode.label) },
+                            label = { Text(stringResource(mode.labelRes)) },
                             modifier = Modifier.padding(end = 4.dp),
                         )
                     }
@@ -188,7 +205,12 @@ internal fun BumpFeeSheet(
                             )
                         }
                     },
-                ) { Text(if (isSoftware) stringResource(R.string.btc_sign_replacement) else stringResource(R.string.btc_sign_using_hardware)) }
+                ) {
+                    Text(
+                        if (isSoftware) stringResource(R.string.btc_sign_replacement)
+                        else stringResource(R.string.btc_sign_using_hardware, boundDeviceLabel),
+                    )
+                }
                 is BumpState.Signed -> Button(onClick = {
                     scope.launch {
                         state = BumpState.Broadcasting

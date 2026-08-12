@@ -128,6 +128,7 @@ private fun AccountsList(
     onBack: () -> Unit,
 ) {
     @Suppress("UNUSED_EXPRESSION") reload
+    val context = LocalContext.current
     val accounts = env.accountStore.accounts
     val activeId = env.activeAccount?.id
 
@@ -144,7 +145,7 @@ private fun AccountsList(
         // always), unlike the seed chains; otherwise this is the same shared
         // Bitcoin-identical manage list as every other chain.
         WalletManageList(
-            rows = accounts.map { ManageWalletRow(it.id.toString(), it.label, accountSubtitle(it), it.id == activeId) },
+            rows = accounts.map { ManageWalletRow(it.id.toString(), it.label, accountSubtitle(context, it), it.id == activeId) },
             emptyTitle = stringResource(R.string.ln_no_account_yet),
             onActivate = { id -> env.accountStore.setActive(java.util.UUID.fromString(id)); onMutated() },
             onEdit = { id -> accounts.firstOrNull { it.id.toString() == id }?.let { onEdit(it) } },

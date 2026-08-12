@@ -208,7 +208,7 @@ class IDDocumentReader(private val context: Context) {
         }
 
         android.util.Log.d("IDDocNfc", "read: PassportService open, attempting access control")
-        onProgress("Reading and checking the passport chip on this phone.")
+        onProgress(context.getString(R.string.id_read_progress_chip))
         // PACE first (reads EF.CardAccess at the master file, no applet selection
         // needed). tryPACE returns false when the chip publishes no CardAccess,
         // so we fall through to BAC.
@@ -265,7 +265,7 @@ class IDDocumentReader(private val context: Context) {
         // about that accessor crashing the NFC thread applies to the AndyQ
         // library, but the principle stands: the issuer-side parser owns CMS
         // extraction, the DSC is embedded in the SOD anyway).
-        onProgress("Reading passport data on this phone.")
+        onProgress(context.getString(R.string.id_read_progress_data))
         val sodFile: SODFile = try {
             val raw = readRaw(service, PassportService.EF_SOD)
             android.util.Log.d("IDDocNfc", "read: SOD ${raw.size} bytes")
@@ -280,7 +280,7 @@ class IDDocumentReader(private val context: Context) {
         }
 
         // ---- DG1 (MRZ) ---------------------------------------------------
-        onProgress("Reading passport data on this phone.")
+        onProgress(context.getString(R.string.id_read_progress_data))
         val dg1File: DG1File = try {
             val raw = readRaw(service, PassportService.EF_DG1)
             rawChipData["dg1"] = raw
@@ -301,7 +301,7 @@ class IDDocumentReader(private val context: Context) {
         // (JPEG / JPEG2000) so the model carries portraitJpeg; the UI decodes
         // them to a Bitmap when it needs to render.
         var portraitJpeg: ByteArray? = null
-        onProgress("Reading passport data on this phone.")
+        onProgress(context.getString(R.string.id_read_progress_data))
         try {
             val raw = readRaw(service, PassportService.EF_DG2)
             rawChipData["dg2"] = raw
@@ -312,7 +312,7 @@ class IDDocumentReader(private val context: Context) {
 
         // ---- DG11 (additional personal details) --------------------------
         var dg11File: DG11File? = null
-        onProgress("Reading passport data on this phone.")
+        onProgress(context.getString(R.string.id_read_progress_data))
         try {
             val raw = readRaw(service, PassportService.EF_DG11)
             rawChipData["dg11"] = raw
@@ -322,7 +322,7 @@ class IDDocumentReader(private val context: Context) {
         }
 
         // ---- DG12 (additional document details) --------------------------
-        onProgress("Reading passport data on this phone.")
+        onProgress(context.getString(R.string.id_read_progress_data))
         try {
             val raw = readRaw(service, PassportService.EF_DG12)
             rawChipData["dg12"] = raw
@@ -334,7 +334,7 @@ class IDDocumentReader(private val context: Context) {
 
         // ---- DG15 (Active Authentication public key) ---------------------
         var dg15File: DG15File? = null
-        onProgress("Reading passport data on this phone.")
+        onProgress(context.getString(R.string.id_read_progress_data))
         try {
             val raw = readRaw(service, PassportService.EF_DG15)
             rawChipData["dg15"] = raw
@@ -352,7 +352,7 @@ class IDDocumentReader(private val context: Context) {
         var aaSignatureHex: String? = null
         var aaVerified: Boolean? = null
         if (dg15File != null) {
-            onProgress("Reading and checking the passport chip on this phone.")
+            onProgress(context.getString(R.string.id_read_progress_chip))
             try {
                 val challenge = ByteArray(8).also { SecureRandom().nextBytes(it) }
                 val response = service.doAA(
@@ -429,7 +429,7 @@ class IDDocumentReader(private val context: Context) {
             readAt = System.currentTimeMillis(),
         )
 
-        onProgress("Passport read successfully")
+        onProgress(context.getString(R.string.id_read_success))
         android.util.Log.d(
             "IDDocNfc",
             "read: complete name='${document.surname} ${document.givenNames}' dgs=${rawChipData.keys.joinToString()} portrait=${portraitJpeg != null}",

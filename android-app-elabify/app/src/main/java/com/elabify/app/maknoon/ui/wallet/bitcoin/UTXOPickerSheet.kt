@@ -37,6 +37,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.dp
@@ -67,6 +68,7 @@ internal fun UTXOPickerSheet(
     onApply: (Set<UtxoKey>) -> Unit,
     onDismiss: () -> Unit,
 ) {
+    val context = LocalContext.current
     var rows by remember { mutableStateOf<List<UtxoRow>>(emptyList()) }
     var loading by remember { mutableStateOf(true) }
     var sel by remember { mutableStateOf(selection) }
@@ -98,18 +100,18 @@ internal fun UTXOPickerSheet(
                     Row {
                         Text(stringResource(R.string.btc_selected), Modifier.weight(1f), style = MaterialTheme.typography.bodyMedium)
                         Text(
-                            formatSatsCompact(selectedSat, network.ticker),
+                            formatSatsCompact(context, selectedSat, network.ticker),
                             fontFamily = FontFamily.Monospace,
                             color = if (selectedSat >= amountNeededSat) Color(0xFF2E7D32) else MaterialTheme.colorScheme.onSurface,
                         )
                     }
                     Row {
                         Text(stringResource(R.string.btc_needed), Modifier.weight(1f), style = MaterialTheme.typography.bodyMedium)
-                        Text(formatSatsCompact(amountNeededSat, network.ticker), fontFamily = FontFamily.Monospace)
+                        Text(formatSatsCompact(context, amountNeededSat, network.ticker), fontFamily = FontFamily.Monospace)
                     }
                     Text(
                         if (selectedSat < amountNeededSat)
-                            stringResource(R.string.btc_add_more_fee_excluded, formatSatsCompact(amountNeededSat - selectedSat, network.ticker))
+                            stringResource(R.string.btc_add_more_fee_excluded, formatSatsCompact(context, amountNeededSat - selectedSat, network.ticker))
                         else stringResource(R.string.btc_selection_covers),
                         style = MaterialTheme.typography.labelSmall,
                     )
@@ -151,7 +153,7 @@ internal fun UTXOPickerSheet(
                                         Text(row.confirmation, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                                     }
                                     Text(
-                                        formatSatsCompact(row.valueSat, network.ticker),
+                                        formatSatsCompact(context, row.valueSat, network.ticker),
                                         fontFamily = FontFamily.Monospace,
                                         style = MaterialTheme.typography.bodyMedium,
                                     )

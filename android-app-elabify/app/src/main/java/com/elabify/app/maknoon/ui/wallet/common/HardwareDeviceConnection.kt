@@ -23,6 +23,7 @@
 
 package com.elabify.app.maknoon.ui.wallet.common
 
+import android.content.Context
 import com.elabify.app.maknoon.MaknoonApplication
 import com.elabify.app.maknoon.R
 import com.elabify.musnad.devices.DeviceKind
@@ -80,14 +81,18 @@ enum class HardwareStage {
  * 0-based [account] for SCANNING so it reads "Scanning account 2...". Shared by
  * every chain's discover rendering so the copy cannot drift.
  */
-fun HardwareStage.label(device: RegisteredDevice, account: Long? = null): String {
+fun HardwareStage.label(context: Context, device: RegisteredDevice, account: Long? = null): String {
     val name = device.label.ifBlank { device.kind.displayName }
     return when (this) {
         HardwareStage.CONNECTING -> "Connecting to $name..."
         HardwareStage.CONNECTED -> "Connected"
         HardwareStage.AWAITING_DEVICE -> "Confirm on your ${device.kind.displayName}"
         HardwareStage.SCANNING ->
-            if (account != null) "Scanning account $account..." else "Scanning..."
+            if (account != null) {
+                context.getString(R.string.wallet_scanning_account, account.toString())
+            } else {
+                "Scanning..."
+            }
         HardwareStage.DONE -> "Done"
     }
 }
@@ -169,8 +174,7 @@ suspend fun <T> withHardwareDevice(
                 if (sameKindCount == 1) {
                     android.util.Log.w(
                         "HardwareConn",
-                        "Re-binding ${device.kind.displayName} serial ${device.serial} -> $liveSerial " +
-                            "(sole device of kind; likely a cross-platform backup restore).",
+                        "Re-binding ${device.kind.displayName} serial ${device.serial} -> $liveSerial (sole device of kind; likely a cross-platform backup restore).",
                     )
                     registry.rebindSerial(device.id, liveSerial)
                 } else {

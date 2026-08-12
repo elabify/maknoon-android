@@ -129,7 +129,10 @@ internal fun LightningTxRow(tx: LightningTx) {
         Column(horizontalAlignment = Alignment.End) {
             val v = tx.value ?: 0L
             val sign = if (outgoing) "-" else "+"
-            Text("$sign${formatSats(kotlin.math.abs(v))} sat", style = MaterialTheme.typography.bodyMedium)
+            Text(
+                stringResource(R.string.ln_amount_sat_signed, sign, formatSats(kotlin.math.abs(v))),
+                style = MaterialTheme.typography.bodyMedium,
+            )
             tx.fee?.takeIf { it > 0 }?.let {
                 Text(stringResource(R.string.ln_fee_value, formatSats(it)), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }

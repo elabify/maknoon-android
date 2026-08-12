@@ -688,7 +688,7 @@ private suspend fun runSweep(
                 while (consecutiveEmpty < EMPTY_ACCOUNT_GAP_LIMIT && account <= MAX_ACCOUNT_INDEX) {
                     emitStage(HardwareStage.SCANNING)
                     emitAccount(account)
-                    progress.add("Account $account: scanning…")
+                    progress.add(context.getString(R.string.discover_account_scanning, account.toString()))
                     // Read the receive identity off the device (in-session).
                     val identity = when (chain) {
                         DiscoverChain.BITCOIN ->
@@ -718,10 +718,10 @@ private suspend fun runSweep(
                     if (probe.active) {
                         consecutiveEmpty = 0
                         rows.add(entry)
-                        progress.add("Account $account: ${probe.summary}")
+                        progress.add(context.getString(R.string.discover_account_phase, account.toString(), probe.summary))
                     } else {
                         consecutiveEmpty++
-                        progress.add("Account $account: empty")
+                        progress.add(context.getString(R.string.discover_account_empty, account.toString()))
                     }
                     account++
                 }
@@ -751,8 +751,13 @@ private suspend fun runSweep(
             // dedups against existing wallets when persisting the selection.
             selected.add(it)
         }
-        progress.add("Stopped after $EMPTY_ACCOUNT_GAP_LIMIT consecutive empty accounts.")
-        if (rows.isEmpty()) progress.add("No active accounts found.")
+        progress.add(
+            context.getString(
+                R.string.discover_stopped_after_empty,
+                EMPTY_ACCOUNT_GAP_LIMIT.toString(),
+            ),
+        )
+        if (rows.isEmpty()) progress.add(context.getString(R.string.discover_no_active_accounts))
         emitStage(HardwareStage.DONE)
     }.onFailure {
         onError(it.friendlyMessage())
@@ -945,7 +950,7 @@ internal suspend fun sweepBitcoinAccounts(
             while (consecutiveEmpty < EMPTY_ACCOUNT_GAP_LIMIT && account <= MAX_ACCOUNT_INDEX) {
                 onStage?.let { runCatching { it(HardwareStage.SCANNING) } }
                 onScanningAccount?.let { runCatching { it(account) } }
-                onProgress("Account $account: scanning…")
+                onProgress(context.getString(R.string.discover_account_scanning, account.toString()))
                 val xpub = wallet.getBitcoinAccountXpub(account = account, networkCoinType = coinType)
                 val probe = if (probeConfig == null) {
                     ActivityProbe(active = false, summary = "endpoint unavailable")
@@ -970,10 +975,10 @@ internal suspend fun sweepBitcoinAccounts(
                 if (probe.active) {
                     consecutiveEmpty = 0
                     rows.add(entry)
-                    onProgress("Account $account: ${probe.summary}")
+                    onProgress(context.getString(R.string.discover_account_phase, account.toString(), probe.summary))
                 } else {
                     consecutiveEmpty++
-                    onProgress("Account $account: empty")
+                    onProgress(context.getString(R.string.discover_account_empty, account.toString()))
                 }
                 account++
             }
@@ -1028,7 +1033,7 @@ internal suspend fun sweepEthereumAccounts(
             while (consecutiveEmpty < EMPTY_ACCOUNT_GAP_LIMIT && account <= MAX_ACCOUNT_INDEX) {
                 onStage?.let { runCatching { it(HardwareStage.SCANNING) } }
                 onScanningAccount?.let { runCatching { it(account) } }
-                onProgress("Account $account: scanning…")
+                onProgress(context.getString(R.string.discover_account_scanning, account.toString()))
                 val address = wallet.getEthereumAddress(account)
                 val probe = if (probeConfig == null) {
                     ActivityProbe(active = false, summary = "endpoint unavailable")
@@ -1052,10 +1057,10 @@ internal suspend fun sweepEthereumAccounts(
                 if (probe.active) {
                     consecutiveEmpty = 0
                     rows.add(entry)
-                    onProgress("Account $account: ${probe.summary}")
+                    onProgress(context.getString(R.string.discover_account_phase, account.toString(), probe.summary))
                 } else {
                     consecutiveEmpty++
-                    onProgress("Account $account: empty")
+                    onProgress(context.getString(R.string.discover_account_empty, account.toString()))
                 }
                 account++
             }
@@ -1107,7 +1112,7 @@ internal suspend fun sweepTronAccounts(
             while (consecutiveEmpty < EMPTY_ACCOUNT_GAP_LIMIT && account <= MAX_ACCOUNT_INDEX) {
                 onStage?.let { runCatching { it(HardwareStage.SCANNING) } }
                 onScanningAccount?.let { runCatching { it(account) } }
-                onProgress("Account $account: scanning…")
+                onProgress(context.getString(R.string.discover_account_scanning, account.toString()))
                 val address = wallet.getTronAddress(account)
                 val probe = if (probeConfig == null) {
                     ActivityProbe(active = false, summary = "endpoint unavailable")
@@ -1131,10 +1136,10 @@ internal suspend fun sweepTronAccounts(
                 if (probe.active) {
                     consecutiveEmpty = 0
                     rows.add(entry)
-                    onProgress("Account $account: ${probe.summary}")
+                    onProgress(context.getString(R.string.discover_account_phase, account.toString(), probe.summary))
                 } else {
                     consecutiveEmpty++
-                    onProgress("Account $account: empty")
+                    onProgress(context.getString(R.string.discover_account_empty, account.toString()))
                 }
                 account++
             }
@@ -1186,7 +1191,7 @@ internal suspend fun sweepSolanaAccounts(
             while (consecutiveEmpty < EMPTY_ACCOUNT_GAP_LIMIT && account <= MAX_ACCOUNT_INDEX) {
                 onStage?.let { runCatching { it(HardwareStage.SCANNING) } }
                 onScanningAccount?.let { runCatching { it(account) } }
-                onProgress("Account $account: scanning…")
+                onProgress(context.getString(R.string.discover_account_scanning, account.toString()))
                 val address = wallet.getSolanaAddress(account)
                 val probe = if (probeConfig == null) {
                     ActivityProbe(active = false, summary = "endpoint unavailable")
@@ -1210,10 +1215,10 @@ internal suspend fun sweepSolanaAccounts(
                 if (probe.active) {
                     consecutiveEmpty = 0
                     rows.add(entry)
-                    onProgress("Account $account: ${probe.summary}")
+                    onProgress(context.getString(R.string.discover_account_phase, account.toString(), probe.summary))
                 } else {
                     consecutiveEmpty++
-                    onProgress("Account $account: empty")
+                    onProgress(context.getString(R.string.discover_account_empty, account.toString()))
                 }
                 account++
             }

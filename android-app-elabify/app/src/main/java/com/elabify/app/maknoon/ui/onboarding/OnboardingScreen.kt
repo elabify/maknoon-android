@@ -525,7 +525,21 @@ fun OnboardingScreen(onComplete: () -> Unit) {
                 Button(
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(Radii.md),
-                    onClick = { onComplete() },
+                    onClick = {
+                        // A restored backup can carry a different app language
+                        // than the device was using. The preference is already
+                        // written, but stringResource() resolves against the
+                        // Activity's Configuration, so the UI would stay in the
+                        // old language until the next launch. recreate() re-runs
+                        // attachBaseContext, which is what the language picker
+                        // does. Deferred to here so the confirmation the user is
+                        // reading is not torn down under them.
+                        if (restoreReport?.languageChanged == true) {
+                            (context as? android.app.Activity)?.recreate()
+                        } else {
+                            onComplete()
+                        }
+                    },
                 ) { Text(stringResource(R.string.common_continue)) }
             }
 

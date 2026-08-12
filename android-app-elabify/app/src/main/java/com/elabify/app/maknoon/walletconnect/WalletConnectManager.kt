@@ -19,6 +19,7 @@ import android.content.Context
 import android.util.Log
 import com.elabify.app.maknoon.BuildConfig
 import com.elabify.app.maknoon.MaknoonApplication
+import com.elabify.app.maknoon.R
 import com.elabify.app.maknoon.ui.wallet.ethereum.EthereumDeviceSigner
 import com.elabify.app.maknoon.ui.wallet.ethereum.EthereumStores
 import com.elabify.app.maknoon.ui.wallet.ethereum.loadEthereumSandwich
@@ -361,7 +362,11 @@ object WalletConnectManager {
     fun approveRequest(hostPassphrase: String? = null) {
         val pending = _pendingRequest.value ?: return
         _pendingRequest.value = null
-        _signingMessage.value = if (pending.isHardware) "Confirm on your device…" else "Signing…"
+        _signingMessage.value = if (pending.isHardware) {
+            appCtx().getString(R.string.wallet_confirm_on_device)
+        } else {
+            "Signing…"
+        }
         scope.launch {
             try {
                 val result = sign(pending, hostPassphrase)
@@ -695,7 +700,13 @@ object WalletConnectManager {
             append("Network: $chainId\n")
             append("To: $to\n")
             append("Value: ${ethDisplay(value)}\n")
-            append(if (dataLen > 0) "Data: $dataLen bytes (contract call)" else "Data: none")
+            append(
+                if (dataLen > 0) {
+                    appCtx().getString(R.string.wc_data_bytes_contract_call, dataLen.toString())
+                } else {
+                    appCtx().getString(R.string.wc_data_none)
+                },
+            )
         }
     }
 

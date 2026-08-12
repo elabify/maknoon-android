@@ -28,6 +28,9 @@
 
 package com.elabify.app.maknoon.iddocument
 
+import com.elabify.app.maknoon.ui.common.LocalizedThrowable
+import com.elabify.app.maknoon.ui.common.userMessage
+import com.elabify.app.maknoon.ui.common.hostOf
 import androidx.annotation.StringRes
 import com.elabify.app.maknoon.MaknoonApplication
 import com.elabify.app.maknoon.R
@@ -53,7 +56,7 @@ import org.json.JSONObject
 sealed class IDDocumentIssuanceException(
     @StringRes private val messageRes: Int,
     private val detail: String? = null,
-) : Exception() {
+) : Exception(), LocalizedThrowable {
     override val message: String
         get() = MaknoonApplication.appContext.let { ctx ->
             if (detail == null) ctx.getString(messageRes)
@@ -223,10 +226,15 @@ class IDDocumentIssuanceClient(
         val submitUrl = "$baseUrl/v1/passport-attestation/submit-packet"
         val respBody = try {
             http.postJson(submitUrl, packet.toString())
-        } catch (e: NetworkException) {
-            throw IDDocumentIssuanceException.SubmitFailed("HTTP ${e.status}: ${e.body.take(200)}")
         } catch (e: Exception) {
-            throw IDDocumentIssuanceException.SubmitFailed(e.message ?: e.toString())
+            // The detail is interpolated into a localized sentence, so it has
+            // to be localized too. It used to be the raw exception text, which
+            // on a phone with no network meant an Arabic sentence wrapped
+            // around Android's English "Unable to resolve host ...". Both an
+            // HTTP status line and a transport failure are covered here.
+            throw IDDocumentIssuanceException.SubmitFailed(
+                e.userMessage(MaknoonApplication.appContext, hostOf(submitUrl)),
+            )
         }
 
         try {
@@ -315,12 +323,10 @@ class IDDocumentIssuanceClient(
     private fun fetchIssuerDid(baseUrl: String): String {
         val body = try {
             http.getJson("$baseUrl/v1/issuer/info")
-        } catch (e: NetworkException) {
-            throw IDDocumentIssuanceException.IssuerDidLookupFailed(
-                "HTTP ${e.status}: ${e.body.take(200)}",
-            )
         } catch (e: Exception) {
-            throw IDDocumentIssuanceException.IssuerDidLookupFailed(e.message ?: e.toString())
+            throw IDDocumentIssuanceException.IssuerDidLookupFailed(
+                e.userMessage(MaknoonApplication.appContext, hostOf(baseUrl)),
+            )
         }
         return try {
             JSONObject(body).getString("did")

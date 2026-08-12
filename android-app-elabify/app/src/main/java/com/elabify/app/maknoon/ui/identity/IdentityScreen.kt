@@ -24,6 +24,7 @@
 
 package com.elabify.app.maknoon.ui.identity
 
+import com.elabify.app.maknoon.ui.common.userMessage
 import android.graphics.BitmapFactory
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
@@ -381,7 +382,7 @@ fun IdentityScreen(
                     var imported = false
                     while (!imported && attempt < 30) {
                         attempt++
-                        onStatus("Checking the issuer (attempt $attempt)…")
+                        onStatus(context.getString(R.string.issuance_checking_issuer, attempt.toString()))
                         val outcome = withContext(Dispatchers.IO) { client.pickup(pickupUrl) }
                         when (outcome) {
                             is com.elabify.musnad.net.PickupOutcome.Ready -> {
@@ -402,17 +403,17 @@ fun IdentityScreen(
                                     MaknoonStore.open(context).credentials().all().any { it.cid == entity.cid }
                                 }
                                 if (alreadySaved) {
-                                    onStatus("This credential is already in your wallet.")
+                                    onStatus(context.getString(R.string.credential_already_in_wallet))
                                 } else {
                                     withContext(Dispatchers.IO) {
                                         MaknoonStore.open(context).credentials().upsert(entity)
                                     }
-                                    onStatus("Credential received")
+                                    onStatus(context.getString(R.string.credential_received))
                                 }
                                 imported = true
                             }
                             is com.elabify.musnad.net.PickupOutcome.Pending -> {
-                                onStatus("Issuer is still anchoring. Retrying in 10s…")
+                                onStatus(context.getString(R.string.issuer_still_anchoring))
                                 kotlinx.coroutines.delay(10_000)
                             }
                         }
@@ -489,7 +490,7 @@ fun IdentityScreen(
                 try {
                     request = withContext(Dispatchers.IO) { CommerceTransport().fetchRequest(url) }
                 } catch (e: Exception) {
-                    loadError = e.message ?: loadVerifyPayFailedMsg
+                    loadError = e.userMessage(context, fallback = loadVerifyPayFailedMsg)
                 }
             }
             val req = request
@@ -833,7 +834,7 @@ fun IdentityScreen(
                         presentError = null
                         presentNeedsSecondFactor = true
                     } catch (e: Throwable) {
-                        presentError = e.message ?: createCredentialFailedMsg
+                        presentError = e.userMessage(context, fallback = createCredentialFailedMsg)
                     }
                 }
             }
@@ -922,7 +923,7 @@ fun IdentityScreen(
                                 presentError = null
                                 presentNeedsSecondFactor = true
                             } catch (e: Throwable) {
-                                presentError = e.message ?: buildShareImageFailedMsg
+                                presentError = e.userMessage(context, fallback = buildShareImageFailedMsg)
                             }
                         }
                     },
@@ -1394,7 +1395,7 @@ private fun PendingPickupRow(
                 verticalArrangement = Arrangement.spacedBy(2.dp),
             ) {
                 Text(
-                    entry.humanLabel,
+                    entry.displayLabel(LocalContext.current),
                     style = MaterialTheme.typography.bodyMedium,
                     fontWeight = FontWeight.Medium,
                 )
@@ -1506,7 +1507,7 @@ private fun buildHubCards(
                     ?.let { PassportPairing.key(it) }
                     ?.let { docKeys.contains(it) } == true
         }
-        .mapNotNull { entity -> credentialHubCard(entity) }
+        .mapNotNull { entity -> credentialHubCard(context, entity) }
 
     val documentCards = documents.map { documentHubCard(context, it) }
 
@@ -1519,9 +1520,9 @@ private fun buildHubCards(
     )
 }
 
-private fun credentialHubCard(entity: CredentialEntity): HubCard.Credential? {
+private fun credentialHubCard(context: Context, entity: CredentialEntity): HubCard.Credential? {
     val parsed = runCatching { ParsedCredential.parse(entity.credentialJson) }.getOrNull()
-    val title = schemaLabel(entity.schema)
+    val title = schemaLabel(context, entity.schema)
     val issuerLabel = shortIssuerName(entity.issuerDid)
     val expiryMillis = parsed?.header?.exp?.let { it * 1000L }
     val statusLevel = expiryStatus(expiryMillis, System.currentTimeMillis())

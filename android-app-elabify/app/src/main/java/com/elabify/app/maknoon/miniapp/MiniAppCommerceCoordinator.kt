@@ -14,6 +14,8 @@
 
 package com.elabify.app.maknoon.miniapp
 
+import com.elabify.app.maknoon.R
+import android.content.Context
 import java.util.concurrent.ConcurrentHashMap
 import org.json.JSONArray
 import org.json.JSONObject
@@ -65,6 +67,11 @@ class MiniAppCommerceCoordinator(
      *   { decision: "GRANT"|"DENY", reason, missing[], message, txHash, disclosed{} }
      */
     fun runMerchantFlow(
+        // Needed only to resolve the status copy below. This runs on an IO
+        // dispatcher far from any composable, so a Context is the only way
+        // these strings reach the corpus; passing pre-resolved strings would
+        // put the choice of WHICH message in the UI, where it does not belong.
+        context: Context,
         pending: Pending,
         pollIntervalMs: Long = 2_000,
         shouldContinue: () -> Boolean = { true },
@@ -75,7 +82,7 @@ class MiniAppCommerceCoordinator(
         // 1. Host the signed request; surface its short URL as a small QR.
         val id = transport.hostRequest(base, pending.request)
         onQr(base.trimEnd('/') + "/v1/commerce-request/$id")
-        onStatus("Waiting for the customer to confirm...")
+        onStatus(context.getString(R.string.commerce_waiting_customer))
 
         // 2. Poll for the holder's SEALED response.
         while (shouldContinue()) {
@@ -86,13 +93,13 @@ class MiniAppCommerceCoordinator(
                 val opened = CommerceSeal.open(env, pending.responseKeypair)
                 CommerceServerResponse.fromJson(opened)
             } catch (_: Exception) {
-                onStatus("Received a response but couldn't decrypt it. Ask the customer to try again.")
+                onStatus(context.getString(R.string.commerce_decrypt_failed))
                 continue
             }
             return finish(resp, pending)
         }
         // Cancelled before a response arrived; the gate cancel path handles 4001.
-        throw CommerceTransportException("Verify & Pay was cancelled before the customer responded.")
+        throw CommerceTransportException(R.string.commerce_cancelled)
     }
 
     /**

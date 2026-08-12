@@ -191,9 +191,12 @@ internal fun TronSignMessageScreen(
             ) {
                 if (signing) {
                     CircularProgressIndicator(modifier = Modifier.size(18.dp), strokeWidth = 2.dp)
-                    Text("  " + if (isHardware) "Confirm on your device…" else "Signing…")
+                    Text("  " + if (isHardware) stringResource(R.string.wallet_confirm_on_device) else "Signing…")
                 } else {
-                    Text(if (isHardware) "Sign on device" else stringResource(R.string.wallet_sign_message))
+                    Text(
+                        if (isHardware) stringResource(R.string.wallet_sign_on_device)
+                        else stringResource(R.string.wallet_sign_message),
+                    )
                 }
             }
             if (isHardware) {

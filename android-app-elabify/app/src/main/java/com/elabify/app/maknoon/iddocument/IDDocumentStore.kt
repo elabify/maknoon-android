@@ -21,6 +21,9 @@
 
 package com.elabify.app.maknoon.iddocument
 
+import com.elabify.app.maknoon.ui.common.LocalizedThrowable
+import com.elabify.app.maknoon.R
+import com.elabify.app.maknoon.MaknoonApplication
 import android.content.Context
 import android.content.SharedPreferences
 import android.util.Base64
@@ -34,7 +37,16 @@ import org.json.JSONObject
 
 /** Thrown by [IDDocumentStore.save] when the same document (type + issuer + number
  *  + DOB + expiry) is already saved. Carries a user-friendly message (ADR-0037). */
-class DuplicateIDDocumentException(message: String) : Exception(message)
+class DuplicateIDDocumentException :
+    Exception(), LocalizedThrowable {
+    // Resolved lazily against the application context: thrown from a store
+    // with no Context in scope. Marked LocalizedThrowable so userMessage()
+    // shows THIS rather than a generic fallback: "already saved" is the whole
+    // point of the message, and it is the difference between a user retrying
+    // forever and a user understanding they are done.
+    override val message: String
+        get() = MaknoonApplication.appContext.getString(R.string.iddoc_already_saved)
+}
 
 class IDDocumentStore(
     context: Context,
@@ -101,7 +113,7 @@ class IDDocumentStore(
      *  the SAME stored id is allowed (idempotent update). */
     private fun requireNotDuplicate(doc: IDDocument) {
         val clash = _documents.value.any { it.id != doc.id && it.dedupeKey == doc.dedupeKey }
-        if (clash) throw DuplicateIDDocumentException("This document is already saved.")
+        if (clash) throw DuplicateIDDocumentException()
     }
 
     /** Remove a saved document by id. No-op if absent. */

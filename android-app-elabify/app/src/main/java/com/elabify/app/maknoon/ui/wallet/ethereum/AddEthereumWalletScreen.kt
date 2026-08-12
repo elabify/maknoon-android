@@ -155,7 +155,7 @@ internal fun AddEthereumWalletScreen(
     fun createSoftware() {
         val sw = sandwich ?: run { errorText = "Identity is locked. Unlock from the Identity tab first."; return }
         if (walletStore.hasSoftwareWallet(account)) { errorText = "A software wallet at account $account already exists."; return }
-        val baseLabel = label.trim().ifEmpty { "Ethereum #$account" }
+        val baseLabel = label.trim().ifEmpty { context.getString(R.string.wallet_default_label, "Ethereum", account.toString()) }
         scope.launch {
             creating = true; errorText = null
             val result = withContext(Dispatchers.IO) {
@@ -280,7 +280,7 @@ private fun SoftwareAutoDiscovery(
     OutlinedButton(
         enabled = sandwich != null && !scanning && !adding,
         onClick = {
-            val sw = sandwich ?: run { onError("Unlock your identity to discover software wallets."); return@OutlinedButton }
+            val sw = sandwich ?: run { onError(context.getString(R.string.wallet_unlock_to_discover)); return@OutlinedButton }
             scanning = true; progress.clear(); found.clear(); selected.clear(); onError(null)
             scope.launch {
                 val settings = EthereumStores.settings(context)
@@ -292,14 +292,20 @@ private fun SoftwareAutoDiscovery(
                             rpcURL = settings.rpcURL(network),
                             explorerAPIURL = settings.explorerAPIURL(network),
                             apiKey = settings.explorerAPIKey(network),
-                            onProgress = { p -> progress.add("Account ${p.account}: ${p.phase::class.simpleName}") },
+                            onProgress = { p -> progress.add(
+                                    context.getString(
+                                        R.string.discover_account_phase,
+                                        p.account.toString(),
+                                        p.phase::class.simpleName ?: "",
+                                    ),
+                                ) },
                         )
                     }
                 }
                 scanning = false
                 result.onSuccess { rows ->
                     rows.forEach { found.add(it); selected.add(it) }
-                    if (rows.isEmpty()) progress.add("No funded accounts found on ${network.displayName}.")
+                    if (rows.isEmpty()) progress.add(context.getString(R.string.discover_no_funded_accounts, network.displayName))
                 }.onFailure { onError(it.message ?: it.toString()) }
             }
         },
@@ -435,7 +441,7 @@ private fun EthereumHardwareSection(
                     }
                     if (exists) throw IllegalStateException("This wallet is already in your list.")
                     val descriptor = EthereumWalletDescriptor(
-                        label = "${dev.label} Ethereum #$effectiveAccount",
+                        label = context.getString(R.string.wallet_default_label_device, dev.label, "Ethereum", effectiveAccount.toString()),
                         kind = EthereumWalletKind.Hardware(deviceId = dev.id, account = effectiveAccount, address = addr),
                         cachedAddress = addr,
                         hidden = hiddenRef?.wireId,
@@ -473,7 +479,7 @@ private fun EthereumHardwareSection(
             scanning = false; connectIntent = null; dialogRunning = false
             result.onSuccess { rows ->
                 rows.forEach { found.add(it); selected.add(it) }
-                if (rows.isEmpty()) scanProgress.add("No active accounts found.")
+                if (rows.isEmpty()) scanProgress.add(context.getString(R.string.discover_no_active_accounts))
             }.onFailure { onError(it.friendlyEthHardwareMessage()) }
         }
     }

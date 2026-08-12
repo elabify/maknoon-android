@@ -10,6 +10,7 @@ package com.elabify.app.maknoon.ui.wallet.bitcoin
 import java.util.Locale
 
 import android.content.Context
+import com.elabify.app.maknoon.R
 import com.elabify.musnad.identity.IdentitySandwich
 import com.elabify.musnad.identity.IdentityStore
 import com.elabify.musnad.wallet.PrefsBitcoinStore
@@ -100,9 +101,9 @@ fun formatSignedBtc(sats: Long): String {
 fun formatSats(sats: Long): String = "%,d sats".format(Locale.US, sats)
 
 /** A compact balance / address label: "12,345 sats" under 100k, else BTC. */
-fun formatSatsCompact(sats: Long, ticker: String): String =
+fun formatSatsCompact(context: Context, sats: Long, ticker: String): String =
     if (sats >= 100_000) String.format(Locale.US, "%.8f %s", sats / 100_000_000.0, ticker)
-    else "$sats sats"
+    else context.getString(R.string.btc_sats_compact, sats.toString())
 
 fun shortMiddle(s: String, head: Int = 8, tail: Int = 6): String =
     if (s.length <= head + tail + 1) s else "${s.take(head)}…${s.takeLast(tail)}"

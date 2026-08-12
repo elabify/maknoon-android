@@ -9,6 +9,8 @@
 
 package com.elabify.app.maknoon.ui.present
 
+import android.content.Context
+import com.elabify.app.maknoon.R
 import com.elabify.musnad.data.CredentialEntity
 import com.elabify.musnad.present.JsonValue
 import com.elabify.musnad.present.ParsedCredential
@@ -51,16 +53,16 @@ internal object MatchMaknoon {
 }
 
 /** Human label for a credential schema URI (mirrors iOS SchemaPalette). */
-internal fun schemaLabel(schemaUri: String): String = when (schemaUri) {
+internal fun schemaLabel(context: Context, schemaUri: String): String = when (schemaUri) {
     "elabify://schema/global/passport/v1" -> "Passport"
-    "elabify://schema/adgm/emiratesId/v1" -> "Emirates ID"
+    "elabify://schema/adgm/emiratesId/v1" -> context.getString(R.string.schema_label_emirates_id)
     "elabify://schema/global/musnadMaknoon/v1" -> "Musnad-Maknoon membership"
     "elabify://schema/global/walletControlEth/v1" -> "Ethereum wallet control"
     "elabify://schema/global/walletControlBtc/v1" -> "Bitcoin wallet control"
     "elabify://schema/global/corporateIdentity/v1" -> "Corporate identity"
     "elabify://schema/global/corporateOfficer/v1" -> "Corporate officer"
     else -> {
-        val tail = schemaUri.split("/").filter { it.isNotEmpty() }.takeLast(2).joinToString("/")
+        val tail = schemaUri.split('/').filter { it.isNotEmpty() }.takeLast(2).joinToString("/")
         if (tail.isEmpty()) "Verified credential" else tail
     }
 }
@@ -84,14 +86,18 @@ internal fun shortIssuerName(issuerDid: String): String {
  * Display value for a required claim on the confirm screen, sdnScreen-aware
  * (mirrors iOS ScanVerifierSheet.attrValue / CommercePaySheet).
  */
-internal fun attrValue(parsed: ParsedCredential?, key: String): String {
+internal fun attrValue(context: Context, parsed: ParsedCredential?, key: String): String {
     val value = parsed?.claims?.get(key) ?: return "-"
     if (key == "sdnScreen" && value is JsonValue.Obj) {
         val obj = value.value
         val result = (obj["result"] as? JsonValue.Str)?.value ?: "?"
         val screenedAt = (obj["screenedAt"] as? JsonValue.Str)?.value
         val when10 = screenedAt?.take(10).orEmpty()
-        return if (when10.isEmpty()) "Sanctions: $result" else "Sanctions: $result (screened $when10)"
+        return if (when10.isEmpty()) {
+            context.getString(R.string.commerce_sanctions_claim, result)
+        } else {
+            context.getString(R.string.commerce_sanctions_claim_dated, result, when10)
+        }
     }
     return value.displayText()
 }

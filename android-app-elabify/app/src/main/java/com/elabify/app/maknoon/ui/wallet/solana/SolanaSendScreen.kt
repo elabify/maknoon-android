@@ -22,6 +22,7 @@
 
 package com.elabify.app.maknoon.ui.wallet.solana
 
+import android.content.Context
 import java.util.Locale
 
 import androidx.compose.foundation.layout.Arrangement
@@ -181,7 +182,7 @@ internal fun SolanaSendScreen(
                 AssetOption(
                     id = "sol",
                     symbol = "SOL",
-                    label = "SOL (native)",
+                    label = context.getString(R.string.eth_asset_native, "SOL"),
                     balance = nativeLamports?.let { formatSol(it) },
                 ),
             )
@@ -544,7 +545,7 @@ internal fun SolanaSendScreen(
             )
             ReviewRow(
                 label = stringResource(R.string.sol_network_fee),
-                value = priorityFeeReviewValue(priorityFee),
+                value = priorityFeeReviewValue(context, priorityFee),
             )
         }
 
@@ -682,9 +683,13 @@ internal fun SolanaSendScreen(
 }
 
 /** Review-row value for the priority fee (iOS priorityFeeReviewValue). */
-private fun priorityFeeReviewValue(priorityFee: String): String {
+private fun priorityFeeReviewValue(context: Context, priorityFee: String): String {
     val micro = priorityFee.toLongOrNull() ?: 0L
-    return if (micro == 0L) "default (no priority)" else "$micro µ-lamports / CU"
+    return if (micro == 0L) {
+        context.getString(R.string.sol_priority_fee_default)
+    } else {
+        context.getString(R.string.sol_priority_fee_value, micro.toString())
+    }
 }
 
 /** Strip a "solana:" URI prefix + query string from a scanned / pasted value

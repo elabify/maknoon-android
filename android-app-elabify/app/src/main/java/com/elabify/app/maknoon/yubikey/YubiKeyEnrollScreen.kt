@@ -336,7 +336,7 @@ internal fun YubiKeyEnrollScreen(
                     PassphraseField(
                         value = pin,
                         onValueChange = { pin = it },
-                        label = "FIDO2 PIN",
+                        label = stringResource(R.string.yubikey_fido2_pin),
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.NumberPassword),
                         supportingText = {
                             Text(stringResource(R.string.yubikey_most_security_keys_have_a))

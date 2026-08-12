@@ -71,10 +71,16 @@ data class HardwareSignAppReadiness(
     val isTestnetVariant: Boolean = false,
 ) {
     companion object {
+        // The exact, case-sensitive names of the Ledger Bitcoin apps: never
+        // translated, since the instruction has to match what the device itself
+        // shows in its app list.
+        private const val LEDGER_APP_BITCOIN = "Bitcoin"
+        private const val LEDGER_APP_BITCOIN_TEST = "Bitcoin Test"
+
         /** Bitcoin readiness: "Bitcoin" on mainnet, "Bitcoin Test" otherwise. */
         fun bitcoin(isMainnet: Boolean): HardwareSignAppReadiness =
             HardwareSignAppReadiness(
-                ledgerAppName = if (isMainnet) "Bitcoin" else "Bitcoin Test",
+                ledgerAppName = if (isMainnet) LEDGER_APP_BITCOIN else LEDGER_APP_BITCOIN_TEST,
                 isTestnetVariant = !isMainnet,
             )
 

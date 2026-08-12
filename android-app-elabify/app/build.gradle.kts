@@ -80,7 +80,7 @@ android {
         // dev value. versionName/MARKETING stays at the release. Mirrors the iOS
         // CURRENT_PROJECT_VERSION=run_number approach (ADR-0048 0.6.3 hardening).
         versionCode = System.getenv("ANDROID_VERSION_CODE")?.toIntOrNull() ?: 11
-        versionName = "0.7.0"
+        versionName = "0.7.1"
         buildConfigField("String", "GIT_COMMIT", "\"${gitShortSha()}\"")
         // WalletConnect / Reown Cloud project id (ADR-0049). Public client id,
         // allowlisted by app id in Reown Cloud; not a secret.

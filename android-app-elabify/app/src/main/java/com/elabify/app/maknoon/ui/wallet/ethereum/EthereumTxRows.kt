@@ -145,7 +145,7 @@ internal fun PendingEthereumTxRow(tx: PendingEthereumTx, explorerBase: String) {
             Text(shortHex(tx.counterparty), style = MaterialTheme.typography.labelSmall, fontFamily = FontFamily.Monospace, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
         Text(
-            "${if (inbound) "+" else "-"}$human",
+            "${if (inbound) '+' else '-'}$human",
             style = MaterialTheme.typography.bodyMedium,
             fontFamily = FontFamily.Monospace,
             color = tint,

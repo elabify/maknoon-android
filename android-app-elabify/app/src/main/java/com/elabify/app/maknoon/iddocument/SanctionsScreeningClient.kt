@@ -15,6 +15,10 @@
 
 package com.elabify.app.maknoon.iddocument
 
+import com.elabify.app.maknoon.ui.common.LocalizedThrowable
+import com.elabify.app.maknoon.R
+import com.elabify.app.maknoon.MaknoonApplication
+import androidx.annotation.StringRes
 import com.elabify.musnad.net.MaknoonHttp
 import com.elabify.musnad.net.NetworkException
 import kotlinx.coroutines.Dispatchers
@@ -27,17 +31,27 @@ import org.json.JSONObject
 // already exposes the human-readable label.
 
 /** Typed failures for sanctions screening, mirroring iOS SanctionsScreeningError. */
-sealed class SanctionsScreeningException(message: String) : Exception(message) {
+sealed class SanctionsScreeningException(
+    @StringRes private val messageRes: Int,
+    private val detail: String? = null,
+) : Exception(), LocalizedThrowable {
+    // Lazily resolved against the application context: these are thrown from
+    // IO code with no Context in scope. Same shape as
+    // IDDocumentIssuanceException. Previously English literals, shown verbatim
+    // to every holder in every locale.
+    override val message: String
+        get() = MaknoonApplication.appContext.let { ctx ->
+            if (detail == null) ctx.getString(messageRes) else ctx.getString(messageRes, detail)
+        }
+
     /** The issuer has sanctions screening turned off (HTTP 503). */
-    object ScreeningDisabled : SanctionsScreeningException(
-        "This issuer has sanctions screening turned off.",
-    )
+    object ScreeningDisabled : SanctionsScreeningException(R.string.sanctions_disabled)
 
     class RequestFailed(detail: String) :
-        SanctionsScreeningException("Screening request failed: $detail")
+        SanctionsScreeningException(R.string.sanctions_request_failed, detail)
 
     class MalformedResponse(detail: String) :
-        SanctionsScreeningException("Unexpected response from the screening service: $detail")
+        SanctionsScreeningException(R.string.sanctions_bad_response)
 }
 
 /** Screens a scanned-passport subject against the issuer's OpenSanctions proxy. */

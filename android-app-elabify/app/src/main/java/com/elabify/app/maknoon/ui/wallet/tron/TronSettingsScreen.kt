@@ -121,7 +121,8 @@ internal fun TronSettingsScreen(onDone: () -> Unit) {
                             refreshing = true
                             val url = catalogDraft.ifEmpty { TronTokenCatalog.DEFAULT_CATALOG_URL }
                             withContext(Dispatchers.IO) { runCatching { catalog.refresh(url) } }
-                            catalogStatus = catalog.lastError ?: "Refreshed ${catalog.entriesByContract.size} tokens."
+                            catalogStatus = catalog.lastError
+                                ?: context.getString(R.string.wallet_catalog_refreshed_now, catalog.entriesByContract.size.toString())
                             refreshing = false
                         }
                     },

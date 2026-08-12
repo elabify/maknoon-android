@@ -197,8 +197,8 @@ internal fun BitcoinAddressesScreen(
                                     Box(Modifier.weight(1f))
                                     Text(
                                         when {
-                                            row.balanceSat > 0 -> formatSatsCompact(row.balanceSat, ticker)
-                                            row.totalReceivedSat > 0 -> formatSatsCompact(row.totalReceivedSat, ticker)
+                                            row.balanceSat > 0 -> formatSatsCompact(context, row.balanceSat, ticker)
+                                            row.totalReceivedSat > 0 -> formatSatsCompact(context, row.totalReceivedSat, ticker)
                                             else -> "-"
                                         },
                                         fontFamily = FontFamily.Monospace,

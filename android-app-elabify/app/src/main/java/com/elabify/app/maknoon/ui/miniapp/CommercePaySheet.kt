@@ -364,7 +364,7 @@ class CommercePayDriver(
         hostPassphrase: String? = null,
     ): Prepared {
         val amount = candidate.rail.amount
-            ?: throw CommerceTransportException("Merchant did not specify an amount.")
+            ?: throw CommerceTransportException(R.string.commerce_no_amount)
 
         // 1. Identity disclosure always uses the holder's consumer sandwich.
         val presentation = ctx.buildPresentation(matched, requiredClaims.toSet(), request.verifierRequest)
@@ -432,7 +432,7 @@ class CommercePayDriver(
                 // post. The merchant matches the invoice it issued.
                 val bolt11 = candidate.rail.address
                 if (bolt11.isEmpty()) {
-                    throw CommerceTransportException("Merchant did not provide a Lightning invoice.")
+                    throw CommerceTransportException(R.string.commerce_no_invoice)
                 }
                 settlementRef = bolt11
                 broadcastFn = { ctx.payLightningBolt11(w.account, bolt11) }
@@ -452,7 +452,7 @@ class CommercePayDriver(
      */
     fun finalizeAndBroadcast(prepared: Prepared): String {
         val pub = terms.responseKey
-            ?: throw CommerceTransportException("Merchant did not provide an encryption key.")
+            ?: throw CommerceTransportException(R.string.commerce_no_key)
         val serverResponse = CommerceServerResponse(
             requestId = request.requestId, presentation = prepared.presentation,
             rail = prepared.rail, txHash = prepared.settlementRef,

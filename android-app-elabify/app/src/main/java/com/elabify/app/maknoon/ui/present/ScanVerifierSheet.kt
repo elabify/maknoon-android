@@ -24,6 +24,7 @@
 
 package com.elabify.app.maknoon.ui.present
 
+import android.content.Context
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -66,6 +67,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
@@ -405,7 +407,7 @@ private fun ConfirmView(
         // Matching credential picker.
         SectionHeader(stringResource(R.string.present_your_matching_credential))
         Text(
-            schemaLabel(selected.schema),
+            schemaLabel(LocalContext.current, selected.schema),
             style = MaterialTheme.typography.bodyLarge,
             fontWeight = FontWeight.SemiBold,
         )
@@ -431,7 +433,7 @@ private fun ConfirmView(
                     FilterChip(
                         selected = c.cid == selected.cid,
                         onClick = { onSelect(c.cid) },
-                        label = { Text(credLabel(c)) },
+                        label = { Text(credLabel(LocalContext.current, c)) },
                     )
                 }
             }
@@ -464,7 +466,7 @@ private fun ConfirmView(
                     Text(key, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium)
                     Spacer(Modifier.weight(1f))
                     Text(
-                        attrValue(parsed, key),
+                        attrValue(LocalContext.current, parsed, key),
                         style = MaterialTheme.typography.bodyMedium,
                         textAlign = TextAlign.End,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -575,8 +577,8 @@ private fun looksLikeCommerceRequest(s: String): Boolean {
     return isUrl && t.contains("/commerce-request/", ignoreCase = true)
 }
 
-private fun credLabel(c: CredentialEntity): String {
-    val base = schemaLabel(c.schema)
+private fun credLabel(context: Context, c: CredentialEntity): String {
+    val base = schemaLabel(context, c.schema)
     return if (!c.nickname.isNullOrEmpty()) "$base - ${c.nickname}" else base
 }
 

@@ -91,6 +91,7 @@ fun SecondFactorRecoverDialog(
         enrolledSecondFactors(registry).filter { it.id != exclude?.id }
     }
     val noFactorMessage = stringResource(R.string.yubikey_no_second_factor_enrolled)
+    val notASecondFactorMessage = stringResource(R.string.device_kind_not_second_factor)
 
     // Which enrolled device the user will confirm with. Auto-selected when there
     // is exactly one; otherwise the user picks from the list first.
@@ -139,7 +140,7 @@ fun SecondFactorRecoverDialog(
             )
         else ->
             androidx.compose.runtime.LaunchedEffect(Unit) {
-                onError("This device kind cannot be used as a second factor.")
+                onError(notASecondFactorMessage)
             }
     }
 }

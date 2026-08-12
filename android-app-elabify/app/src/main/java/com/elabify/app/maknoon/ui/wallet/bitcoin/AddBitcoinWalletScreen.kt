@@ -181,7 +181,7 @@ internal fun AddBitcoinWalletScreen(
             errorText = "Account $account already exists on ${chain.displayName}. Pick another to avoid a duplicate."
             return
         }
-        val name = label.trim().ifEmpty { "Bitcoin #$account" }
+        val name = label.trim().ifEmpty { context.getString(R.string.wallet_default_label, "Bitcoin", account.toString()) }
         creating = true
         errorText = null
         env.store.add(
@@ -322,7 +322,7 @@ private fun SoftwareAutoDiscovery(
         enabled = enabled && !scanning && !adding,
         onClick = {
             val words = loadRecoveryWords(context)
-            if (words == null) { onError("Unlock your identity to discover software wallets."); return@OutlinedButton }
+            if (words == null) { onError(context.getString(R.string.wallet_unlock_to_discover)); return@OutlinedButton }
             scanning = true
             progress.clear(); found.clear(); selected.clear(); onError(null)
             scope.launch {
@@ -333,14 +333,20 @@ private fun SoftwareAutoDiscovery(
                             passphrase = loadBip39Passphrase(context),
                             networks = listOf(network),
                             electrumURL = { env.settings.electrumURL(it) },
-                            onProgress = { p -> progress.add("Account ${p.account}: ${p.phase::class.simpleName}") },
+                            onProgress = { p -> progress.add(
+                                    context.getString(
+                                        R.string.discover_account_phase,
+                                        p.account.toString(),
+                                        p.phase::class.simpleName ?: "",
+                                    ),
+                                ) },
                         )
                     }
                 }
                 scanning = false
                 result.onSuccess { rows ->
                     rows.forEach { found.add(it); selected.add(it) }
-                    if (rows.isEmpty()) progress.add("No funded accounts found on ${network.displayName}.")
+                    if (rows.isEmpty()) progress.add(context.getString(R.string.discover_no_funded_accounts, network.displayName))
                 }.onFailure { onError(it.message ?: it.toString()) }
             }
         },
@@ -475,7 +481,9 @@ private fun HardwareSection(
     fun runAdd() {
         val dev = device ?: return
         val hiddenRef = HardwarePassphraseRef.persist(hidden)
-        val baseLabel = label.trim().ifEmpty { "${dev.label} Bitcoin #$effectiveAccount" }
+        val baseLabel = label.trim().ifEmpty {
+            context.getString(R.string.wallet_default_label_device, dev.label, "Bitcoin", effectiveAccount.toString())
+        }
         creating = true; onError(null); stage = null
         scope.launch {
             val result = withContext(Dispatchers.IO) {
@@ -537,7 +545,7 @@ private fun HardwareSection(
             scanning = false; connectIntent = null; dialogRunning = false
             result.onSuccess { rows ->
                 rows.forEach { found.add(it); selected.add(it) }
-                if (rows.isEmpty()) scanProgress.add("No active accounts found.")
+                if (rows.isEmpty()) scanProgress.add(context.getString(R.string.discover_no_active_accounts))
             }.onFailure { onError(it.friendlyBtcHardwareMessage()) }
         }
     }

@@ -6,6 +6,7 @@
 
 package com.elabify.app.maknoon.ui.identity
 
+import com.elabify.app.maknoon.ui.common.userMessage
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
@@ -37,6 +38,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -70,6 +72,7 @@ fun ReceiveCredentialScreen(
     onReceived: () -> Unit,
     onClose: () -> Unit,
 ) {
+    val context = LocalContext.current
     val receiveFailedMsg = stringResource(R.string.identity_could_not_receive_credential)
     var phase by remember { mutableStateOf<ReceivePhase>(ReceivePhase.Scan) }
     var manualUrl by remember { mutableStateOf("") }
@@ -89,7 +92,7 @@ fun ReceiveCredentialScreen(
                 receive(pickupUrl!!) { msg -> phase = ReceivePhase.Working(msg) }
                 phase = ReceivePhase.Done
             } catch (e: Throwable) {
-                phase = ReceivePhase.Error(e.message ?: receiveFailedMsg)
+                phase = ReceivePhase.Error(e.userMessage(context, fallback = receiveFailedMsg))
             }
         }
     }

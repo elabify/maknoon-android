@@ -10,6 +10,8 @@
 
 package com.elabify.app.maknoon.ui.wallet.bitcoin
 
+import android.content.Context
+import com.elabify.app.maknoon.ui.common.userMessage
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -262,7 +264,7 @@ private fun BitcoinDashboard(
                 BitcoinWalletEngine.openWithResult(descriptor, env.filesDirPath, words, loadBip39Passphrase(context))
             }
         }
-        opened.onFailure { error = context.getString(R.string.btc_open_failed, "${it.message ?: it}") }
+        opened.onFailure { error = context.getString(R.string.btc_open_failed, it.userMessage(context)) }
         val result = opened.getOrNull() ?: return@LaunchedEffect
         engine = result.wallet
         // Persist the freshly-derived public-key cache so the next open is
@@ -283,6 +285,7 @@ private fun BitcoinDashboard(
             null
         }
         refreshBitcoin(
+            context = context,
             env = env,
             engine = result.wallet,
             descriptor = descriptor,
@@ -305,6 +308,7 @@ private fun BitcoinDashboard(
         if (e != null && descriptor != null) {
             scope.launch {
                 refreshBitcoin(
+                    context = context,
                     env = env,
                     engine = e,
                     descriptor = descriptor,
@@ -555,6 +559,10 @@ private fun lastSyncSummary(active: BitcoinWalletDescriptor): String {
  *  first sync / incremental after, address-book mirror, mark-synced. All
  *  BDK + network work runs on Dispatchers.IO. */
 suspend fun refreshBitcoin(
+    // Only for the failure copy: this runs off the main thread with no
+    // composable in scope, so a Context is how the sync error reaches a
+    // translated string instead of a raw exception.
+    context: Context,
     env: BitcoinWalletEnv,
     engine: BitcoinWalletEngine,
     descriptor: BitcoinWalletDescriptor,
@@ -612,7 +620,7 @@ suspend fun refreshBitcoin(
         onStoreChanged()
         refreshFiat(env, descriptor, bal, setFiat)
     }.onFailure {
-        setError("Sync failed: ${it.message ?: it}")
+        setError(context.getString(R.string.btc_sync_failed, it.userMessage(context)))
     }
     setSyncing(false)
 }

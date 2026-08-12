@@ -9,6 +9,7 @@
 
 package com.elabify.app.maknoon.ui.iddocument
 
+import com.elabify.app.maknoon.ui.common.userMessage
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -155,6 +156,7 @@ fun IDDocumentDetailScreen(
     currentFolderId: String? = null,
     onAssignFolder: (String?) -> Unit = {},
 ) {
+    val context = LocalContext.current
     val submissionFailedMsg = stringResource(R.string.iddoc_submission_failed)
     val screeningFailedMsg = stringResource(R.string.iddoc_screening_failed)
     // FLAG_SECURE for the lifetime of this screen: the document's chip-signed
@@ -188,7 +190,7 @@ fun IDDocumentDetailScreen(
                         DetailIssuance.PendingReview(outcome.pendingId, outcome.proofPreVerified, outcome.reason)
                 }
             } catch (e: Throwable) {
-                issuance = DetailIssuance.Failed(e.message ?: submissionFailedMsg)
+                issuance = DetailIssuance.Failed(e.userMessage(context, fallback = submissionFailedMsg))
             }
         }
     }
@@ -199,7 +201,7 @@ fun IDDocumentDetailScreen(
                 runSanctions()
                 sanctions = DetailSanctions.Idle
             } catch (e: Throwable) {
-                sanctions = DetailSanctions.Failed(e.message ?: screeningFailedMsg)
+                sanctions = DetailSanctions.Failed(e.userMessage(context, fallback = screeningFailedMsg))
             }
         }
     }

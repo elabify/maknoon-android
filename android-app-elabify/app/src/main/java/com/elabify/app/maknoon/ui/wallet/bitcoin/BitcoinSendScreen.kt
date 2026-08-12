@@ -13,6 +13,7 @@ package com.elabify.app.maknoon.ui.wallet.bitcoin
 
 import java.util.Locale
 
+import androidx.annotation.StringRes
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -79,13 +80,28 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
 /** The fee tiers shown in the segmented picker, mirroring iOS FeeMode. `id`
- *  is the stable key carried through the shared FeeSelector. */
-private enum class SendFeeMode(val id: String, val label: String) {
-    FASTEST("fastest", "Fastest"),
-    HALF_HOUR("halfHour", "30 min"),
-    HOUR("hour", "1 hour"),
-    ECONOMY("economy", "Economy"),
-    CUSTOM("custom", "Custom");
+ *  is the stable key carried through the shared FeeSelector; it is also the
+ *  cross-platform wire value, so it must never change. */
+private enum class SendFeeMode(val id: String) {
+    FASTEST("fastest"),
+    HALF_HOUR("halfHour"),
+    HOUR("hour"),
+    ECONOMY("economy"),
+    CUSTOM("custom");
+
+    // Copy lives in string RESOURCES, not in this enum: an enum has no
+    // Context and cannot call stringResource, so the chip labels shipped
+    // English in all 31 locales. Same shape as IDDocumentKind's
+    // displayNameRes (iddocument/IDDocument.kt). `id` above is unaffected.
+    @get:StringRes
+    val labelRes: Int
+        get() = when (this) {
+            FASTEST -> R.string.btc_fee_fastest
+            HALF_HOUR -> R.string.btc_fee_half_hour
+            HOUR -> R.string.btc_fee_hour
+            ECONOMY -> R.string.btc_fee_economy
+            CUSTOM -> R.string.walletc_custom
+        }
 
     fun rate(rec: FeeRecommended?): Long = when (this) {
         FASTEST -> rec?.fastestFee ?: 0
@@ -159,6 +175,16 @@ internal fun BitcoinSendScreen(
     var showReadySheet by remember { mutableStateOf(false) }
 
     val isSoftware = active?.softwareAccountOrNull() != null
+    // The hardware sign button's label carries a %1$s for the device name. It
+    // was fetched with no argument, so the raw placeholder rendered on the
+    // button in EVERY language, English included. iOS passes
+    // `boundDevice?.label ?? "device"` here; this is its peer.
+    val fallbackDeviceName = stringResource(R.string.devices_fallback_device)
+    val boundDeviceLabel = remember(active?.id) {
+        (active?.kind as? BitcoinWalletKind.Hardware)?.let { hw ->
+            DeviceRegistry(context).find(hw.deviceId)?.label
+        } ?: fallbackDeviceName
+    }
     // A host-typed hidden (second-factor) wallet needs the passphrase re-entered
     // before signing; on-device entry + standard wallets do not.
     val needsHostPassphrase = remember(active?.id) {
@@ -383,7 +409,7 @@ internal fun BitcoinSendScreen(
         //    rate caption or custom sats/vB field (iOS feeSection).
         FormSection(header = stringResource(R.string.btc_fee)) {
             FeeSelector(
-                options = SendFeeMode.entries.map { FeeOption(it.id, it.label) },
+                options = SendFeeMode.entries.map { FeeOption(it.id, stringResource(it.labelRes)) },
                 selected = feeMode.id,
                 onSelect = { feeMode = SendFeeMode.fromId(it) },
                 footer = {
@@ -467,7 +493,8 @@ internal fun BitcoinSendScreen(
             when (val s = sendState) {
                 is SendState.Idle -> {
                     PrimaryActionButton(
-                        text = if (isSoftware) stringResource(R.string.btc_sign) else stringResource(R.string.btc_sign_using_hardware),
+                        text = if (isSoftware) stringResource(R.string.btc_sign)
+                        else stringResource(R.string.btc_sign_using_hardware, boundDeviceLabel),
                         enabled = canSubmit,
                         onClick = {
                             val e = engine ?: return@PrimaryActionButton

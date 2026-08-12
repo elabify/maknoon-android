@@ -22,6 +22,7 @@
 
 package com.elabify.app.maknoon.ui.present
 
+import com.elabify.app.maknoon.ui.common.userMessage
 import android.widget.Toast
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
@@ -173,6 +174,7 @@ fun VerifyOtherSheet(
 ) {
     var phase by remember { mutableStateOf<VerifyPhase>(VerifyPhase.Scanning) }
     val scope = rememberCoroutineScope()
+    val context = LocalContext.current
 
     // Offline multi-frame accumulator (elabify-frames-1). Persists across the
     // continuous scanner's repeated callbacks while a transmission is collected.
@@ -244,7 +246,7 @@ fun VerifyOtherSheet(
                         val p = actions.fetchDrop(env.dropId)
                         phase = VerifyPhase.Verdict(p, actions.verifyOffline(p))
                     } catch (e: Exception) {
-                        phase = VerifyPhase.Rejected("Could not fetch drop: ${e.message ?: e}")
+                        phase = VerifyPhase.Rejected(context.getString(R.string.verify_fetch_drop_failed, e.userMessage(context)))
                     }
                 }
                 return
@@ -436,7 +438,7 @@ private fun BadgeViewBody(b: BadgeView, actions: VerifyOtherActions, onScanAnoth
 
         SectionHeader(stringResource(R.string.present_what_this_shows))
         Kv(stringResource(R.string.present_issuer), shortIssuerName(b.iss))
-        Kv(stringResource(R.string.present_type), schemaLabel(b.schema))
+        Kv(stringResource(R.string.present_type), schemaLabel(LocalContext.current, b.schema))
         Kv(stringResource(R.string.present_cid), b.cid)
         Kv(stringResource(R.string.present_issued), formatDate(b.iat))
         b.exp?.let { Kv(stringResource(R.string.present_expires), formatDate(it)) }
@@ -593,7 +595,7 @@ private fun VerdictBody(
 
         ExpandableSection(stringResource(R.string.present_credential), SectionStatus.NEUTRAL) {
             Kv(stringResource(R.string.present_issuer), presentation.header.iss)
-            Kv(stringResource(R.string.present_schema), schemaLabel(presentation.header.schema))
+            Kv(stringResource(R.string.present_schema), schemaLabel(LocalContext.current, presentation.header.schema))
             Kv(stringResource(R.string.present_cid), presentation.header.cid)
         }
 

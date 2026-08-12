@@ -8,10 +8,11 @@
 //     immediately.
 //   - The Identity tab drives a poll sweep on load and then every ~10s while
 //     entries remain (see IdentityScreen's pending-pickup LaunchedEffect),
-//     calling [pollOnce]. Each entry's pickup URL is polled via the SDK
-//     com.elabify.musnad.net.IssuerClient.pickup; a Ready credential is parsed
-//     and upserted into the encrypted credentials DAO (the exact import logic
-//     the Receive flow uses), then the entry is removed.
+//     calling [pollOnce]. Each entry's pickup URL goes through the SDK facade
+//     (MusnadIssuance.resolvePickup -> acceptIssuance), which polls, parses and
+//     upserts into the encrypted credentials DAO, then the entry is removed.
+//     Note the facade also enforces MaknoonConfig.allowedIssuerHosts, a check
+//     this store did not have when it called IssuerClient directly.
 //   - Entries can be cancelled by the user; that just removes the row locally.
 //     The server-side credential is untouched and can be re-fetched later.
 //   - Persisted to SharedPreferences so a pending pickup survives an app
@@ -25,12 +26,11 @@
 
 package com.elabify.app.maknoon.ui.identity
 
+import com.elabify.app.maknoon.R
 import android.content.Context
-import com.elabify.musnad.data.CredentialEntity
-import com.elabify.musnad.data.MaknoonStore
-import com.elabify.musnad.net.IssuerClient
-import com.elabify.musnad.net.PickupOutcome
-import com.elabify.musnad.present.ParsedCredential
+import android.net.Uri
+import com.elabify.app.maknoon.MaknoonSdkProvider
+import com.elabify.maknoon.MaknoonError
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -57,6 +57,24 @@ data class PendingPickup(
     val schemaUri: String?,
     val startedAt: Long,
 )
+
+/**
+ * The label to draw for [this] row, in the language active right now.
+ *
+ * [PendingPickup.humanLabel] is a PERSISTED value, so it cannot hold localized
+ * text: a pickup queued in Arabic and viewed after switching to English would
+ * still read Arabic. The stored value is therefore treated as a stable
+ * sentinel, mapped to a resource here, and any label we do not recognize (a
+ * future issuer-supplied one) is shown as stored.
+ *
+ * Doing it this way also repairs rows already on disk from before the string
+ * existed, which a write-time fix would not.
+ */
+fun PendingPickup.displayLabel(context: Context): String = when (humanLabel) {
+    PendingPickupsStore.PASSPORT_LABEL ->
+        context.getString(R.string.pending_pickup_verified_identity)
+    else -> humanLabel
+}
 
 /**
  * On-disk store of pending issuance pickups, with a single-sweep poller.
@@ -98,48 +116,33 @@ class PendingPickupsStore(context: Context) {
      *   bump its reload key to surface the new card).
      */
     suspend fun pollOnce(): Boolean = withContext(Dispatchers.IO) {
+        val issuance = MaknoonSdkProvider.sdk(appContext).issuance
         var importedAny = false
         // Snapshot so a cancel during the sweep does not surprise us.
         for (entry in _pending.value) {
-            val origin = originOf(entry.pickupUrl)
-            val outcome = runCatching {
-                IssuerClient(origin).pickup(entry.pickupUrl)
-            }.getOrNull() ?: continue // transient: retry next sweep
-            if (outcome is PickupOutcome.Ready) {
-                val imported = runCatching { importCredential(outcome.credentialJson) }
-                    .getOrDefault(false)
-                if (imported) {
-                    cancel(entry.credentialId)
-                    importedAny = true
-                }
+            // resolvePickup does pickup -> parse -> preview; acceptIssuance
+            // does the upsert. Together they are the pickup/parse/upsert this
+            // store used to open-code against IssuerClient + MaknoonStore.
+            //
+            // Three outcomes, and the middle one is why the facade grew
+            // MaknoonError.IssuanceNotReady: "not minted yet" is the ordinary
+            // answer for most of a pickup's life and must not look like a
+            // fault. Both non-ready cases retry next sweep; they differ only
+            // in what they mean, which matters for logging and backoff.
+            val preview = try {
+                issuance.resolvePickup(Uri.parse(entry.pickupUrl))
+            } catch (_: MaknoonError.IssuanceNotReady) {
+                continue                    // still minting
+            } catch (_: MaknoonError) {
+                continue                    // transient: retry next sweep
+            }
+            runCatching { issuance.acceptIssuance(preview) }.onSuccess {
+                cancel(entry.credentialId)
+                importedAny = true
             }
         }
         importedAny
     }
-
-    // ---- import (mirrors the Receive route's pickup -> parse -> upsert) ----
-
-    private suspend fun importCredential(credentialJson: String): Boolean {
-        val parsed = ParsedCredential.parse(credentialJson)
-        val entity = CredentialEntity(
-            cid = parsed.header.cid,
-            issuerDid = parsed.header.iss,
-            subjectDid = parsed.header.sub,
-            schema = parsed.header.schema,
-            credentialJson = credentialJson,
-            nickname = null,
-            createdAt = System.currentTimeMillis(),
-        )
-        MaknoonStore.open(appContext).credentials().upsert(entity)
-        return true
-    }
-
-    /** Derive the issuer origin (scheme://host[:port]) for the IssuerClient. */
-    private fun originOf(pickupUrl: String): String = runCatching {
-        val u = java.net.URI(pickupUrl)
-        val port = if (u.port > 0) ":${u.port}" else ""
-        "${u.scheme}://${u.host}$port"
-    }.getOrDefault(pickupUrl)
 
     // ---- persistence ----
 

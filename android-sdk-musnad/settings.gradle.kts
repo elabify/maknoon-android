@@ -32,3 +32,5 @@ includeBuild("../elabify-core/bindings/kotlin")
 
 rootProject.name = "musnad-sdk"
 include(":musnad-sdk")
+// Standalone consumer that embeds the SDK facade and exercises every public API.
+include(":embed-tests")

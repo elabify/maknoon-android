@@ -22,6 +22,7 @@
 
 package com.elabify.app.maknoon.ui.settings
 
+import com.elabify.app.maknoon.ui.common.userMessage
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
@@ -653,7 +654,10 @@ private fun VerifyBackupSheet(onDone: () -> Unit) {
             status = if (result.isSuccess) {
                 VerifyBackupStatus.Ok(result.getOrThrow())
             } else {
-                VerifyBackupStatus.Failed(result.exceptionOrNull()?.message ?: wrongPasswordError)
+                VerifyBackupStatus.Failed(
+                    result.exceptionOrNull()?.userMessage(context, fallback = wrongPasswordError)
+                        ?: wrongPasswordError,
+                )
             }
         }
     }
@@ -1028,7 +1032,11 @@ fun EncryptedBackupScreen(onBack: () -> Unit) {
                 exportSummary = result.getOrNull()
             } else {
                 statusIsError = true
-                backupStatus = String.format(saveFailedFmt, result.exceptionOrNull()?.message ?: unknownError)
+                backupStatus = String.format(
+                    saveFailedFmt,
+                    result.exceptionOrNull()?.userMessage(context, fallback = unknownError)
+                        ?: unknownError,
+                )
             }
         }
     }

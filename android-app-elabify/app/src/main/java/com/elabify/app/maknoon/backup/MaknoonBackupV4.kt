@@ -37,6 +37,7 @@
 
 package com.elabify.app.maknoon.backup
 
+import com.elabify.app.maknoon.ui.common.userMessage
 import android.content.Context
 import android.util.Base64
 import com.elabify.app.maknoon.R
@@ -381,7 +382,7 @@ object MaknoonBackupV4 {
 
     /** Per-chain wallet count lines from a walletState object. Shared by the
      *  EXPORT manifest and the IMPORT confirmation so the two read identically. */
-    fun walletLines(ws: JSONObject?): List<String> {
+    fun walletLines(context: Context, ws: JSONObject?): List<String> {
         if (ws == null) return emptyList()
         val out = mutableListOf<String>()
         val walletKeys = linkedMapOf(
@@ -394,27 +395,31 @@ object MaknoonBackupV4 {
             val b64 = ws.optString(key, "")
             if (b64.isEmpty()) continue
             val n = runCatching { JSONArray(unb64Utf8(b64)).length() }.getOrDefault(0)
-            if (n > 0) out.add("$label wallets ($n)")
+            // The chain name stays English: Bitcoin, Ethereum, Solana and
+            // Tron are proper nouns. Only the sentence around it is
+            // translated, and the count goes through %s rather than %d so
+            // the digits follow the app locale, not the resource locale.
+            if (n > 0) out.add(context.getString(R.string.backup_item_wallets, label, n.toString()))
         }
         return out
     }
 
     /** Build the export summary by counting what [buildExtra] produced. */
     fun summarize(context: Context, extra: JSONObject): ExportSummary {
-        val items = mutableListOf("Identity & recovery phrase")
+        val items = mutableListOf(context.getString(R.string.backup_item_identity))
         val ws = extra.optJSONObject("walletState")
-        items.addAll(walletLines(ws))
-        if (ws != null) items.add("Networks, RPC/explorer overrides, tokens, currency & display")
+        items.addAll(walletLines(context, ws))
+        if (ws != null) items.add(context.getString(R.string.backup_item_settings))
         extra.optJSONObject("settings")?.let { s ->
-            s.optJSONArray("knownIssuers")?.takeIf { it.length() > 0 }?.let { items.add("Trusted issuers (${it.length()})") }
-            s.optJSONArray("devices")?.takeIf { it.length() > 0 }?.let { items.add("Hardware devices (${it.length()})") }
-            s.optJSONArray("addressBook")?.takeIf { it.length() > 0 }?.let { items.add("Address book (${it.length()})") }
+            s.optJSONArray("knownIssuers")?.takeIf { it.length() > 0 }?.let { items.add(context.getString(R.string.backup_item_issuers, it.length().toString())) }
+            s.optJSONArray("devices")?.takeIf { it.length() > 0 }?.let { items.add(context.getString(R.string.backup_item_devices, it.length().toString())) }
+            s.optJSONArray("addressBook")?.takeIf { it.length() > 0 }?.let { items.add(context.getString(R.string.backup_item_address_book, it.length().toString())) }
         }
-        extra.optJSONArray("lightningAccounts")?.takeIf { it.length() > 0 }?.let { items.add("Lightning accounts (${it.length()})") }
+        extra.optJSONArray("lightningAccounts")?.takeIf { it.length() > 0 }?.let { items.add(context.getString(R.string.backup_item_lightning, it.length().toString())) }
         extra.optJSONObject("credentials")?.optJSONArray("credentials")?.takeIf { it.length() > 0 }
-            ?.let { items.add("Credentials (${it.length()})") }
+            ?.let { items.add(context.getString(R.string.backup_item_credentials, it.length().toString())) }
         extra.optJSONObject("idDocuments")?.optJSONArray("documents")?.takeIf { it.length() > 0 }
-            ?.let { items.add("ID documents / passports (${it.length()})") }
+            ?.let { items.add(context.getString(R.string.backup_item_id_documents, it.length().toString())) }
         return ExportSummary(items)
     }
 
@@ -515,6 +520,23 @@ object MaknoonBackupV4 {
     data class RestoreReport(
         val restored: List<String> = emptyList(),
         val warnings: List<String> = emptyList(),
+        /**
+         * True when the backup carried a different `display.language` than the
+         * device was using.
+         *
+         * The scalar restore writes the preference, but writing it is not
+         * enough: `stringResource()` resolves against the Activity's
+         * Configuration, which only changes when attachBaseContext re-runs. The
+         * language-picker path calls `Activity.recreate()` for exactly this
+         * reason; restore had no equivalent, so the setting was correct and the
+         * UI stayed in the old language until the next launch.
+         *
+         * Reported rather than acted on here: restore runs mid-onboarding and
+         * recreating the Activity immediately would destroy the confirmation
+         * screen the user has not read yet. The caller recreates when the user
+         * continues.
+         */
+        val languageChanged: Boolean = false,
     ) {
         val hadWarnings: Boolean get() = warnings.isNotEmpty()
     }
@@ -527,13 +549,16 @@ object MaknoonBackupV4 {
         store: IdentityStore,
     ): RestoreReport {
         val ctx = context.applicationContext
+        val languageBefore = ctx
+            .getSharedPreferences("UserDefaults", Context.MODE_PRIVATE)
+            .getString("display.language", "").orEmpty()
         // Decrypt + identity FIRST. A wrong passphrase / tampered blob throws
         // here; the caller surfaces it as the error case (restore not done).
         val plaintext = EncryptedBackup.decrypt(blob, passphrase)
         val json = JSONObject(String(plaintext, Charsets.UTF_8))
         IdentitySandwich.restoreFromEncryptedBackup(blob, passphrase, nowSec, store)
 
-        val restored = mutableListOf("Identity & recovery phrase")
+        val restored = mutableListOf(ctx.getString(R.string.backup_item_identity))
         val warnings = mutableListOf<String>()
 
         // walletState (on-chain wallets + network/URL overrides + fiat/display prefs)
@@ -542,10 +567,10 @@ object MaknoonBackupV4 {
                 .onSuccess {
                     // Same per-chain lines the export manifest shows, so the two
                     // can be compared 1:1.
-                    restored.addAll(walletLines(ws))
-                    restored.add("Networks, RPC/explorer overrides, tokens, currency & display")
+                    restored.addAll(walletLines(ctx, ws))
+                    restored.add(ctx.getString(R.string.backup_item_settings))
                 }
-                .onFailure { warnings.add("Wallet state: ${it.message ?: "could not import"}") }
+                .onFailure { warnings.add(ctx.getString(R.string.backup_warn_wallet_state, it.userMessage(ctx))) }
         }
 
         // ADR-0063: after both the seed and the wallet descriptors are in place,
@@ -576,10 +601,10 @@ object MaknoonBackupV4 {
                     if (host.isNotEmpty()) {
                         runCatching { db.issuers().upsert(IssuerEntity(host, true, null)) }
                             .onSuccess { n++ }
-                            .onFailure { warnings.add("Trusted issuer '$host': ${it.message ?: "failed"}") }
+                            .onFailure { warnings.add(ctx.getString(R.string.backup_warn_issuer, host, it.userMessage(ctx))) }
                     }
                 }
-                if (n > 0) restored.add("Trusted issuers ($n)")
+                if (n > 0) restored.add(ctx.getString(R.string.backup_item_issuers, n.toString()))
             }
             // Devices live in DeviceRegistry (SharedPreferences), NOT the Room DB.
             // replaceAll preserves the original UUIDs + promotions so a restored
@@ -591,12 +616,18 @@ object MaknoonBackupV4 {
                     }.getOrNull()
                 }
                 if (arr.length() > devices.size) {
-                    warnings.add("Hardware devices: ${arr.length() - devices.size} of ${arr.length()} could not be read")
+                    warnings.add(
+                        ctx.getString(
+                            R.string.backup_warn_devices_partial,
+                            (arr.length() - devices.size).toString(),
+                            arr.length().toString(),
+                        ),
+                    )
                 }
                 if (devices.isNotEmpty()) {
                     runCatching { com.elabify.musnad.devices.DeviceRegistry(ctx).replaceAll(devices) }
-                        .onSuccess { restored.add("Hardware devices (${devices.size})") }
-                        .onFailure { warnings.add("Hardware devices: ${it.message ?: "failed"}") }
+                        .onSuccess { restored.add(ctx.getString(R.string.backup_item_devices, devices.size.toString())) }
+                        .onFailure { warnings.add(ctx.getString(R.string.backup_warn_devices, it.userMessage(ctx))) }
                 }
             }
             settings.optJSONArray("addressBook")?.let { arr ->
@@ -613,9 +644,9 @@ object MaknoonBackupV4 {
                                 network = AddressBookNetwork.fromKey(e.optString("network")),
                             ),
                         )
-                    }.onSuccess { n++ }.onFailure { warnings.add("Address book entry: ${it.message ?: "failed"}") }
+                    }.onSuccess { n++ }.onFailure { warnings.add(ctx.getString(R.string.backup_warn_address_book, it.userMessage(ctx))) }
                 }
-                if (n > 0) restored.add("Address book ($n)")
+                if (n > 0) restored.add(ctx.getString(R.string.backup_item_address_book, n.toString()))
             }
         }
 
@@ -640,12 +671,12 @@ object MaknoonBackupV4 {
                             password = item.optString("password"),
                         ),
                     )
-                }.onFailure { warnings.add("Lightning account: ${it.message ?: "failed"}") }
+                }.onFailure { warnings.add(ctx.getString(R.string.backup_warn_lightning_account, it.userMessage(ctx))) }
             }
             if (items.isNotEmpty()) {
                 runCatching { LightningAccountStore(ctx).importFromEncryptedBackup(items) }
-                    .onSuccess { restored.add("Lightning accounts (${items.size})") }
-                    .onFailure { warnings.add("Lightning accounts: ${it.message ?: "failed"}") }
+                    .onSuccess { restored.add(ctx.getString(R.string.backup_item_lightning, items.size.toString())) }
+                    .onFailure { warnings.add(ctx.getString(R.string.backup_warn_lightning, it.userMessage(ctx))) }
             }
         }
 
@@ -670,9 +701,9 @@ object MaknoonBackupV4 {
                             createdAt = header.optLong("iat", System.currentTimeMillis() / 1000L) * 1000L,
                         ),
                     )
-                }.onSuccess { n++ }.onFailure { warnings.add("Credential: ${it.message ?: "failed"}") }
+                }.onSuccess { n++ }.onFailure { warnings.add(ctx.getString(R.string.backup_warn_credential, it.userMessage(ctx))) }
             }
-            if (n > 0) restored.add("Credentials ($n)")
+            if (n > 0) restored.add(ctx.getString(R.string.backup_item_credentials, n.toString()))
         }
 
         // idDocuments
@@ -681,9 +712,9 @@ object MaknoonBackupV4 {
             var n = 0
             for (i in 0 until arr.length()) {
                 runCatching { docStore.save(decodeIdDocument(arr.getJSONObject(i))) }
-                    .onSuccess { n++ }.onFailure { warnings.add("ID document: ${it.message ?: "failed"}") }
+                    .onSuccess { n++ }.onFailure { warnings.add(ctx.getString(R.string.backup_warn_id_document, it.userMessage(ctx))) }
             }
-            if (n > 0) restored.add("ID documents / passports ($n)")
+            if (n > 0) restored.add(ctx.getString(R.string.backup_item_id_documents, n.toString()))
         }
 
         // Post-restore reloads so the live UI reflects the restored state. The
@@ -699,6 +730,13 @@ object MaknoonBackupV4 {
         // downloadable trust store) so passport passive-auth works after a restore.
         runCatching { com.elabify.app.maknoon.iddocument.CSCATrustStore(ctx).refresh(force = true) }
 
-        return RestoreReport(restored = restored, warnings = warnings)
+        val languageAfter = ctx
+            .getSharedPreferences("UserDefaults", Context.MODE_PRIVATE)
+            .getString("display.language", "").orEmpty()
+        return RestoreReport(
+            restored = restored,
+            warnings = warnings,
+            languageChanged = languageAfter != languageBefore,
+        )
     }
 }

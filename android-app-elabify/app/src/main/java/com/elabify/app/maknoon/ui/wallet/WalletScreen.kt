@@ -378,7 +378,7 @@ private fun populatedRows(context: android.content.Context): List<NetworkRow> {
             rows.add(
                 NetworkRow(
                     chain = Chain.LIGHTNING,
-                    label = store.activeAccount?.label ?: "Bitcoin Lightning",
+                    label = store.activeAccount?.label ?: Chain.LIGHTNING.title,
                     subtitle = countLabel(accounts.size, "account", "accounts"),
                 ),
             )
@@ -396,7 +396,7 @@ private fun populatedRows(context: android.content.Context): List<NetworkRow> {
                 NetworkRow(
                     chain = Chain.ETHEREUM,
                     label = store.activeWallet?.label ?: "Ethereum",
-                    subtitle = if (net != null) "$net · $count" else count,
+                    subtitle = if (net != null) context.getString(R.string.wallet_network_subtitle, net, count) else count,
                 ),
             )
         }
@@ -413,7 +413,7 @@ private fun populatedRows(context: android.content.Context): List<NetworkRow> {
                 NetworkRow(
                     chain = Chain.SOLANA,
                     label = store.activeWallet?.label ?: "Solana",
-                    subtitle = if (net != null) "$net · $count" else count,
+                    subtitle = if (net != null) context.getString(R.string.wallet_network_subtitle, net, count) else count,
                 ),
             )
         }
@@ -430,7 +430,7 @@ private fun populatedRows(context: android.content.Context): List<NetworkRow> {
                 NetworkRow(
                     chain = Chain.TRON,
                     label = store.activeWallet?.label ?: "Tron",
-                    subtitle = if (net != null) "$net · $count" else count,
+                    subtitle = if (net != null) context.getString(R.string.wallet_network_subtitle, net, count) else count,
                 ),
             )
         }
