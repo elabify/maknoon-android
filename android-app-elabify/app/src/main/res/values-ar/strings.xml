@@ -1563,7 +1563,7 @@
     <string name="settings_advanced_show">إظهار</string>
     <string name="settings_advanced_hide">إخفاء</string>
     <string name="settings_show_testnet_anchors">إظهار مراسي شبكات الاختبار</string>
-    <string name="settings_show_testnet_anchors_footer">إظهار شارات المرساة على السلسلة لسلاسل Testnet (Sepolia, Base Sepolia) على بطاقات بيانات الاعتماد. مُعطّل بشكل افتراضي؛ وتظهر بيانات الاعتماد نفسها دائماً.</string>
+    <string name="settings_show_testnet_anchors_footer">إظهار شارات المرساة على السلسلة لسلاسل Testnet على بطاقات بيانات الاعتماد. مُعطّل بشكل افتراضي؛ وتظهر بيانات الاعتماد نفسها دائماً.</string>
     <string name="app_web3_sign_typed_data">توقيع بيانات منظّمة</string>
     <string name="app_web3_sign_typed_body">يريد هذا التطبيق أن توقّع بيانات منظّمة (EIP-712). لن يتم إرسال أي معاملة.</string>
     <string name="app_web3_domain">النطاق</string>

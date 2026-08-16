@@ -12,7 +12,6 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.systemBarsPadding
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
@@ -50,6 +49,8 @@ import kotlinx.coroutines.withContext
 import com.elabify.app.maknoon.R
 import org.bitcoindevkit.ChainPosition
 import org.bitcoindevkit.LocalOutput
+import androidx.compose.foundation.layout.windowInsetsPadding
+import com.elabify.app.maknoon.ui.safeBarsInsets
 
 private data class UtxoRow(
     val key: UtxoKey,
@@ -89,7 +90,7 @@ internal fun UTXOPickerSheet(
     Dialog(onDismissRequest = onDismiss, properties = DialogProperties(usePlatformDefaultWidth = false)) {
         androidx.compose.material3.Surface(modifier = Modifier.fillMaxSize()) {
             // Edge-to-edge: inset from system bars (Dialog is outside the tab Scaffold).
-            Column(Modifier.fillMaxSize().systemBarsPadding().padding(16.dp)) {
+            Column(Modifier.fillMaxSize().windowInsetsPadding(safeBarsInsets()).padding(16.dp)) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text(stringResource(R.string.btc_select_utxos_title), style = MaterialTheme.typography.titleLarge, modifier = Modifier.weight(1f))
                     TextButton(onClick = onDismiss) { Text(stringResource(R.string.common_cancel)) }

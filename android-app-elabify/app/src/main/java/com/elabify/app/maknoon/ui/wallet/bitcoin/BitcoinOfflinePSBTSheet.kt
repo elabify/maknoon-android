@@ -12,7 +12,6 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.systemBarsPadding
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -58,6 +57,8 @@ import com.elabify.musnad.wallet.bitcoin.BitcoinWalletEngine
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import androidx.compose.foundation.layout.windowInsetsPadding
+import com.elabify.app.maknoon.ui.safeBarsInsets
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -99,7 +100,7 @@ internal fun BitcoinOfflinePSBTSheet(
         Surface(modifier = Modifier.fillMaxSize()) {
             Column(
                 // Edge-to-edge: inset from system bars (Dialog is outside the tab Scaffold).
-                Modifier.fillMaxSize().systemBarsPadding().verticalScroll(rememberScrollState()).padding(16.dp),
+                Modifier.fillMaxSize().windowInsetsPadding(safeBarsInsets()).verticalScroll(rememberScrollState()).padding(16.dp),
                 verticalArrangement = Arrangement.spacedBy(14.dp),
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically) {

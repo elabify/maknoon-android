@@ -156,7 +156,7 @@
     <string name="settings_advanced_show">Nîşan bide</string>
     <string name="settings_advanced_hide">Veşêre</string>
     <string name="settings_show_testnet_anchors">Lengerên testnet nîşan bide</string>
-    <string name="settings_show_testnet_anchors_footer">Li ser qertên bawernameyan nîşanên lengera li ser Chainê ji bo Chainên Testnet (Sepolia, Base Sepolia) nîşan bide. Bi awayê asayî girtî ye; bawername bi xwe her tim xuya dike.</string>
+    <string name="settings_show_testnet_anchors_footer">Li ser qertên bawernameyan nîşanên lengera li ser Chainê ji bo Chainên Testnet nîşan bide. Bi awayê asayî girtî ye; bawername bi xwe her tim xuya dike.</string>
     <string name="settings_hardware_second_factor">Faktorê duyem ê hardware</string>
     <string name="settings_no_identity_devices">Hê tu cîhazên nasnameyê nehatine qeydkirin.</string>
     <string name="settings_register_device_hint">YubiKey an Ledger Nano X ji Mîheng &gt; Cîhaz qeyd bike, paşê vegere vir ku wê wekî faktora duyemîn çalak bikî.</string>

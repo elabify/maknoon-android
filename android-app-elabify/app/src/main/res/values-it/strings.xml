@@ -156,7 +156,7 @@
     <string name="settings_advanced_show">Mostra</string>
     <string name="settings_advanced_hide">Nascondi</string>
     <string name="settings_show_testnet_anchors">Mostra ancoraggi testnet</string>
-    <string name="settings_show_testnet_anchors_footer">Mostra i badge di ancoraggio on-chain per le chain Testnet (Sepolia, Base Sepolia) sulle carte delle credenziali. Disattivato per impostazione predefinita; la credenziale stessa è sempre visibile.</string>
+    <string name="settings_show_testnet_anchors_footer">Mostra i badge di ancoraggio on-chain per le chain Testnet sulle carte delle credenziali. Disattivato per impostazione predefinita; la credenziale stessa è sempre visibile.</string>
     <string name="settings_hardware_second_factor">Secondo fattore hardware</string>
     <string name="settings_no_identity_devices">Ancora nessun dispositivo con supporto identità registrato.</string>
     <string name="settings_register_device_hint">Registra una YubiKey o un Ledger Nano X da Impostazioni &gt; Dispositivi, poi torna qui per attivarlo come secondo fattore.</string>

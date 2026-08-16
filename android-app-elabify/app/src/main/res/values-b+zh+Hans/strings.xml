@@ -1533,7 +1533,7 @@
     <string name="settings_advanced_show">显示</string>
     <string name="settings_advanced_hide">隐藏</string>
     <string name="settings_show_testnet_anchors">显示测试网锚点</string>
-    <string name="settings_show_testnet_anchors_footer">在凭证卡片上显示测试网（Testnet）链（Sepolia、Base Sepolia）的链上锚点徽章。默认关闭；凭证本身始终显示。</string>
+    <string name="settings_show_testnet_anchors_footer">在凭证卡片上显示测试网（Testnet）链的链上锚点徽章。默认关闭；凭证本身始终显示。</string>
     <string name="app_web3_sign_typed_data">签署类型化数据</string>
     <string name="app_web3_sign_typed_body">此应用希望您签署结构化数据（EIP-712）。不会发送任何交易。</string>
     <string name="app_web3_domain">域</string>

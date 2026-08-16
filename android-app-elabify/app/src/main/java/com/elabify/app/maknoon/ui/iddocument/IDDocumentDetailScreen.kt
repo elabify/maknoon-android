@@ -87,6 +87,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.fragment.app.FragmentActivity
 import java.text.DateFormat
 import java.util.Date
+import androidx.activity.compose.LocalActivity
 
 private const val THIRTY_DAYS_MILLIS: Long = 30L * 24L * 60L * 60L * 1000L
 
@@ -163,7 +164,13 @@ fun IDDocumentDetailScreen(
     // fields and photo must not leak into a screenshot, screen recording, or the
     // recents thumbnail. Cleared on dispose so navigating away restores normal
     // behavior. Mirrors PassportCardDetailScreen. ADR-0069.
-    val secureWindow = (LocalContext.current as? FragmentActivity)?.window
+    // LocalActivity, not (LocalContext.current as? FragmentActivity). The cast
+    // resolves today only because this content is hosted directly by the Activity's
+    // setContent; hosting it in a Dialog or behind any ContextWrapper makes the cast
+    // null, and because the window is used with a safe call that means FLAG_SECURE is
+    // silently NOT applied and the document's fields become screenshottable. A
+    // privacy control must not fail quietly. LocalActivity unwraps wrappers.
+    val secureWindow = LocalActivity.current?.window
     DisposableEffect(secureWindow) {
         secureWindow?.setFlags(WindowManager.LayoutParams.FLAG_SECURE, WindowManager.LayoutParams.FLAG_SECURE)
         onDispose { secureWindow?.clearFlags(WindowManager.LayoutParams.FLAG_SECURE) }

@@ -156,7 +156,7 @@
     <string name="settings_advanced_show">കാണിക്കുക</string>
     <string name="settings_advanced_hide">മറയ്ക്കുക</string>
     <string name="settings_show_testnet_anchors">Testnet ആങ്കറുകൾ കാണിക്കുക</string>
-    <string name="settings_show_testnet_anchors_footer">ക്രെഡൻഷ്യൽ കാർഡുകളിൽ Testnet ചെയിനുകൾക്കുള്ള (Sepolia, Base Sepolia) ഓൺ-ചെയിൻ ആങ്കർ ബാഡ്ജുകൾ കാണിക്കുക. ഡിഫോൾട്ടായി ഓഫാണ്; ക്രെഡൻഷ്യൽ എപ്പോഴും കാണിക്കും.</string>
+    <string name="settings_show_testnet_anchors_footer">ക്രെഡൻഷ്യൽ കാർഡുകളിൽ Testnet ചെയിനുകൾക്കുള്ള ഓൺ-ചെയിൻ ആങ്കർ ബാഡ്ജുകൾ കാണിക്കുക. ഡിഫോൾട്ടായി ഓഫാണ്; ക്രെഡൻഷ്യൽ എപ്പോഴും കാണിക്കും.</string>
     <string name="settings_hardware_second_factor">ഹാർഡ്വെയർ രണ്ടാം ഘടകം</string>
     <string name="settings_no_identity_devices">ഐഡന്റിറ്റി പിന്തുണയ്ക്കുന്ന ഉപകരണങ്ങളൊന്നും ഇതുവരെ രജിസ്റ്റർ ചെയ്തിട്ടില്ല.</string>
     <string name="settings_register_device_hint">ക്രമീകരണങ്ങൾ &gt; ഉപകരണങ്ങൾ എന്നതിൽ നിന്ന് ഒരു YubiKey അല്ലെങ്കിൽ Ledger Nano X രജിസ്റ്റർ ചെയ്യുക, പിന്നെ ഇവിടെ തിരികെ വന്ന് അത് രണ്ടാം ഘടകമായി പ്രവർത്തനക്ഷമമാക്കുക.</string>

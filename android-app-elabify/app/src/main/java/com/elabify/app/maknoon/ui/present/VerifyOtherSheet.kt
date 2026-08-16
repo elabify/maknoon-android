@@ -37,7 +37,6 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -105,6 +104,8 @@ import kotlinx.coroutines.launch
 import org.json.JSONObject
 import java.text.DateFormat
 import java.util.Date
+import androidx.compose.foundation.layout.windowInsetsPadding
+import com.elabify.app.maknoon.ui.safeStatusBarInsets
 
 // ---------------------------------------------------------------------------
 // Caller-supplied actions (keeps the composable stateless).
@@ -270,7 +271,7 @@ fun VerifyOtherSheet(
     // Edge-to-edge (Android 15 / SDK 35): full-screen route with no Scaffold, so
     // inset the top past the status bar / cutout. The bottom nav inset is already
     // consumed by MainTabs, so apply status bars only.
-    Box(modifier = Modifier.fillMaxSize().statusBarsPadding()) {
+    Box(modifier = Modifier.fillMaxSize().windowInsetsPadding(safeStatusBarInsets())) {
         when (val p = phase) {
             is VerifyPhase.Scanning -> ScanningView(onCode = { handle(it) }, onClose = onClose)
             is VerifyPhase.Collecting -> ScanningView(

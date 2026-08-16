@@ -156,7 +156,7 @@
     <string name="settings_advanced_show">አሳይ</string>
     <string name="settings_advanced_hide">ደብቅ</string>
     <string name="settings_show_testnet_anchors">የTestnet መልሕቆች አሳይ</string>
-    <string name="settings_show_testnet_anchors_footer">በክሬደንሻል ካርዶች ላይ ለTestnet ቼይኖች (Sepolia, Base Sepolia) የቼይን ላይ መልሕቅ ባጆችን አሳይ። በነባሪ ጠፍቷል፤ ክሬደንሻሉ ራሱ ሁልጊዜም ይታያል።</string>
+    <string name="settings_show_testnet_anchors_footer">በክሬደንሻል ካርዶች ላይ ለTestnet ቼይኖች የቼይን ላይ መልሕቅ ባጆችን አሳይ። በነባሪ ጠፍቷል፤ ክሬደንሻሉ ራሱ ሁልጊዜም ይታያል።</string>
     <string name="settings_hardware_second_factor">የሃርድዌር ሁለተኛ ማረጋገጫ</string>
     <string name="settings_no_identity_devices">እስካሁን ማንነትን የሚደግፍ መሣሪያ አልተመዘገበም።</string>
     <string name="settings_register_device_hint">YubiKey ወይም Ledger Nano X ከቅንብሮች &gt; መሣሪያዎች ይመዝግቡ፣ ከዚያም እንደ ሁለተኛ ማረጋገጫ ለማንቃት ወደዚህ ይመለሱ።</string>

@@ -156,7 +156,7 @@
     <string name="settings_advanced_show">Afficher</string>
     <string name="settings_advanced_hide">Masquer</string>
     <string name="settings_show_testnet_anchors">Afficher les ancrages testnet</string>
-    <string name="settings_show_testnet_anchors_footer">Afficher les badges d\'ancrage on-chain des chaînes Testnet (Sepolia, Base Sepolia) sur les cartes d\'attestation. Désactivé par défaut ; l\'attestation elle-même est toujours affichée.</string>
+    <string name="settings_show_testnet_anchors_footer">Afficher les badges d\'ancrage on-chain des chaînes Testnet sur les cartes d\'attestation. Désactivé par défaut ; l\'attestation elle-même est toujours affichée.</string>
     <string name="settings_hardware_second_factor">Second facteur matériel</string>
     <string name="settings_no_identity_devices">Aucun appareil compatible identité enregistré.</string>
     <string name="settings_register_device_hint">Enregistrez une YubiKey ou un Ledger Nano X depuis Paramètres &gt; Appareils, puis revenez ici pour l\'activer comme second facteur.</string>

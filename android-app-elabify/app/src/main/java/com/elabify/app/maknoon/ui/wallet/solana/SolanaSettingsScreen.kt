@@ -13,7 +13,6 @@ import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
@@ -33,6 +32,8 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.elabify.app.maknoon.R
 import com.elabify.musnad.wallet.solana.SolanaNetwork
+import androidx.compose.foundation.layout.windowInsetsPadding
+import com.elabify.app.maknoon.ui.safeStatusBarInsets
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
@@ -57,7 +58,7 @@ internal fun SolanaSettingsScreen(
     }
 
     Column(
-        modifier = Modifier.fillMaxSize().statusBarsPadding().verticalScroll(rememberScrollState()).padding(24.dp),
+        modifier = Modifier.fillMaxSize().windowInsetsPadding(safeStatusBarInsets()).verticalScroll(rememberScrollState()).padding(24.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
         Text(stringResource(R.string.sol_solana_settings), style = MaterialTheme.typography.headlineSmall)

@@ -33,6 +33,13 @@ fun QrCode(content: String, modifier: Modifier = Modifier, sizePx: Int = 512) {
     // Encode off the main thread: ZXing encode + bitmap fill on a large payload
     // is heavy enough to visibly freeze the UI if done during composition. Show
     // a spinner until the bitmap is ready instead of blocking on a blank screen.
+    // ProduceStateDoesNotAssignValue is a FALSE POSITIVE here: the producer does
+    // assign `value` on the next line. The check does not see through an assignment
+    // whose right-hand side is a suspend call, which was confirmed by trying an
+    // explicit `this.value` receiver and getting the same report. Suppressed rather
+    // than worked around, because restructuring correct code to satisfy a broken
+    // check is worse than saying so.
+    @Suppress("ProduceStateDoesNotAssignValue")
     val bitmap by produceState<ImageBitmap?>(initialValue = null, content, sizePx) {
         value = withContext(Dispatchers.Default) { qrBitmap(content, sizePx).asImageBitmap() }
     }

@@ -156,7 +156,7 @@
     <string name="settings_advanced_show">दिखाएँ</string>
     <string name="settings_advanced_hide">छिपाएँ</string>
     <string name="settings_show_testnet_anchors">testnet ऐंकर दिखाएँ</string>
-    <string name="settings_show_testnet_anchors_footer">क्रेडेंशियल कार्ड पर Testnet चेन (Sepolia, Base Sepolia) के लिए ऑन-चेन एंकर बैज दिखाएँ। डिफ़ॉल्ट रूप से बंद; क्रेडेंशियल खुद हमेशा दिखता है।</string>
+    <string name="settings_show_testnet_anchors_footer">क्रेडेंशियल कार्ड पर Testnet चेन के लिए ऑन-चेन एंकर बैज दिखाएँ। डिफ़ॉल्ट रूप से बंद; क्रेडेंशियल खुद हमेशा दिखता है।</string>
     <string name="settings_hardware_second_factor">हार्डवेयर दूसरा फ़ैक्टर</string>
     <string name="settings_no_identity_devices">अभी तक कोई पहचान-सक्षम डिवाइस रजिस्टर नहीं हुआ।</string>
     <string name="settings_register_device_hint">सेटिंग्स &gt; डिवाइस से कोई YubiKey या Ledger Nano X रजिस्टर करें, फिर उसे दूसरे फ़ैक्टर के रूप में चालू करने के लिए यहाँ लौटें।</string>

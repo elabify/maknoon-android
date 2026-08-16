@@ -153,7 +153,16 @@ interface MaknoonHardware {
     suspend fun sign(tx: UnsignedTx, device: DeviceRef): SignedTx
 }
 
-/** SDK version, kept in one place so the umbrella and manifests agree. */
+/**
+ * SDK version, kept in one place so the umbrella and the artifact agree.
+ *
+ * This read "0.1.0" while `build.gradle.kts` published on the app's release line,
+ * so `MaknoonSDK.version` disagreed with the coordinate a host had resolved: a
+ * bug report quoting the version named a release that was never published.
+ * Corrected, and `scripts/check-sdk-facade.sh` now compares it against the
+ * build's `version` and the release line, because a constant that only a human
+ * keeps in step does not stay in step.
+ */
 internal object MaknoonSdkVersion {
-    const val VALUE: String = "0.1.0"
+    const val VALUE: String = "0.7.2"
 }

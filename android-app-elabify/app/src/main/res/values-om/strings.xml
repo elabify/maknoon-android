@@ -156,7 +156,7 @@
     <string name="settings_advanced_show">Agarsiisi</string>
     <string name="settings_advanced_hide">Dhoksi</string>
     <string name="settings_show_testnet_anchors">Hidhata Testnet agarsiisi</string>
-    <string name="settings_show_testnet_anchors_footer">Kaardii waabii irratti, chainoota Testnet (Sepolia, Base Sepolia) kanaaf beekkamtii hundee chain irraa agarsiisi. Durtiidhaan cufaadha; waabiin mataan isaa yeroo hunda ni mul\'ata.</string>
+    <string name="settings_show_testnet_anchors_footer">Kaardii waabii irratti, chainoota Testnet kanaaf beekkamtii hundee chain irraa agarsiisi. Durtiidhaan cufaadha; waabiin mataan isaa yeroo hunda ni mul\'ata.</string>
     <string name="settings_hardware_second_factor">Faktarii lammaffaa haardiweerii</string>
     <string name="settings_no_identity_devices">Ammatti meeshaaleen eenyummaa danda\'an hin galmoofne.</string>
     <string name="settings_register_device_hint">Qindaa\'ina &gt; Meeshaalee keessaa YubiKey yookaan Ledger Nano X galmeessi, sana booda akka faktarii lammaffaatti dandeessisuuf as deebi\'i.</string>

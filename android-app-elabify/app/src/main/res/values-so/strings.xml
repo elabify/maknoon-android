@@ -156,7 +156,7 @@
     <string name="settings_advanced_show">Muuji</string>
     <string name="settings_advanced_hide">Qari</string>
     <string name="settings_show_testnet_anchors">Duubisyada testnet muuji</string>
-    <string name="settings_show_testnet_anchors_footer">Kaararka shahaadada ku muuji biladaha duubista silsiladda ee silsilooyinka Testnet (Sepolia, Base Sepolia). Si caadi ah way damisan tahay; shahaadada laftigeeda had iyo jeer way muuqataa.</string>
+    <string name="settings_show_testnet_anchors_footer">Kaararka shahaadada ku muuji biladaha duubista silsiladda ee silsilooyinka Testnet. Si caadi ah way damisan tahay; shahaadada laftigeeda had iyo jeer way muuqataa.</string>
     <string name="settings_hardware_second_factor">Xaqiijin labaad oo qalab ah</string>
     <string name="settings_no_identity_devices">Weli lama diiwaan gelin aalado aqoonsiga u qalma.</string>
     <string name="settings_register_device_hint">Ka diiwaan geli YubiKey ama Ledger Nano X Habaynta &gt; Aalado, kadibna halkan ku soo noqo si aad ugu shido xaqiijin labaad.</string>

@@ -1,6 +1,18 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <!-- Compose drives the real theming (ui/theme/Theme.kt). This base
-         theme just gives the activity a no-action-bar window. -->
-    <style name="Theme.Maknoon" parent="android:Theme.Material.Light.NoActionBar" />
+    <!-- Compose drives the real theming (ui/theme/Theme.kt). This base theme only
+         gives the activity a no-action-bar window and a window background.
+
+         The background matters more than it looks. Compose paints nothing until the
+         first frame, so whatever this says is what the user sees during cold start.
+         Parented on the platform Light theme with no override, that was a white
+         flash before a dark-themed app drew. values-night/ supplies the dark
+         counterpart, so the flash now matches the theme the app is about to render.
+
+         Deliberately NOT setting statusBarColor / navigationBarColor here: those are
+         deprecated in Android 15 and the window setup in ui/EdgeToEdge.kt owns them
+         (ADR-0080). -->
+    <style name="Theme.Maknoon" parent="android:Theme.Material.Light.NoActionBar">
+        <item name="android:windowBackground">@color/window_background</item>
+    </style>
 </resources>

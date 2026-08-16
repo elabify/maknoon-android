@@ -25,9 +25,13 @@ TARGET="${1:-.}"
 
 # Components that live only upstream and must never appear in a public mirror, minus
 # whatever this repo legitimately ships. Deliberately omits the trees that are
-# always mirrored (ios-app-maknoon, android-app-elabify, android-sdk-musnad,
-# elabify-core, the ledger/trezor crates).
-ALL_COMPONENTS="issuer-backend verifier-server vault-plugin smart-contracts demo-web-app ios-sdk-musnad"
+# always mirrored (ios-app-maknoon, ios-sdk-musnad, android-app-elabify,
+# android-sdk-musnad, elabify-core, the ledger/trezor crates).
+#
+# ios-sdk-musnad moved into the always-mirrored set in 0.7.2. Before that it
+# was a README describing an unbuilt design, so publishing a reference to it
+# would have advertised something that did not exist.
+ALL_COMPONENTS="issuer-backend verifier-server vault-plugin smart-contracts demo-web-app"
 inscope=" ${LEAK_SCAN_INSCOPE:-} "
 oos=()
 for c in $ALL_COMPONENTS; do

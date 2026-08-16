@@ -80,7 +80,7 @@ android {
         // dev value. versionName/MARKETING stays at the release. Mirrors the iOS
         // CURRENT_PROJECT_VERSION=run_number approach (ADR-0048 0.6.3 hardening).
         versionCode = System.getenv("ANDROID_VERSION_CODE")?.toIntOrNull() ?: 11
-        versionName = "0.7.1"
+        versionName = "0.7.2"
         buildConfigField("String", "GIT_COMMIT", "\"${gitShortSha()}\"")
         // WalletConnect / Reown Cloud project id (ADR-0049). Public client id,
         // allowlisted by app id in Reown Cloud; not a secret.
@@ -116,10 +116,21 @@ android {
             // Publisher auto-associates it and Play can deobfuscate crashes/ANRs.
             // Conservative keep-rules (proguard-rules.pro) protect the JNI +
             // reflection + serialization surface (WalletCore, JNA/uniffi cores,
-            // BouncyCastle, jmrtd, Reown, our own JSON models). Resource shrinking
-            // is intentionally left OFF for now (separate risk vector). MUST pass a
-            // full on-device regression before shipping.
+            // BouncyCastle, jmrtd, Reown, our own JSON models). MUST pass a full
+            // on-device regression before shipping.
             isMinifyEnabled = true
+            // Resource shrinking, which ADR-0068 deferred as "a separate risk
+            // vector - dynamic resource lookups". That risk was checked rather
+            // than assumed and is not present: `Resources.getIdentifier(` has zero
+            // hits in the app and the SDK, there is no reflective R lookup, and the
+            // mini-app WebView asset loader serves bytes from app storage rather
+            // than res/ or assets/. Play asks for it, and it is free here.
+            //
+            // The genuine consideration is not dynamic lookup but the 31 shipped
+            // locales: `bundle { language { enableSplit = false } }` below keeps
+            // them all in one artifact, so verify a locale switch on device after
+            // any change here.
+            isShrinkResources = true
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
             // Embed a native symbol file in the AAB so Play can symbolicate
             // crashes/ANRs in the Rust + WalletCore .so libs. SYMBOL_TABLE gives
@@ -167,13 +178,19 @@ android {
     }
 
     lint {
-        checkReleaseBuilds = false
+        // Restored (ADR-0080). This was false because the NullSafeMutableLiveData
+        // detector used to crash the whole analysis on Kotlin 2.x, which made lint
+        // unrunnable and left Google Play as the ONLY detector for the entire class
+        // of issue this release is cleaning up. With the disable below correctly
+        // spelled, lint runs, and it immediately found two real defects: a Vibrator
+        // call with no VIBRATE permission (silently swallowed by runCatching, so
+        // mini-app haptics never worked) and a LocalContext-to-Activity cast used to
+        // set FLAG_SECURE on the passport screens, which fails silently behind any
+        // ContextWrapper and would leave personal data screenshottable.
+        checkReleaseBuilds = true
         // The ISSUE id is NullSafeMutableLiveData; NonNullableMutableLiveData is
         // the DETECTOR class name and silently matches nothing, so this disable
-        // never took effect and the detector kept running. It crashes the whole
-        // analysis on Kotlin 2.x ("Found class KaCallableMemberCall, but
-        // interface was expected"), which is what made lint unrunnable and forced
-        // checkReleaseBuilds = false.
+        // never took effect and the detector kept running.
         disable += "NullSafeMutableLiveData"
         // i18n correctness, promoted to errors now that 31 locales ship.
         //

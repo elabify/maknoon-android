@@ -166,7 +166,9 @@
     <string name="settings_advanced_show">Show</string>
     <string name="settings_advanced_hide">Hide</string>
     <string name="settings_show_testnet_anchors">Show testnet anchors</string>
-    <string name="settings_show_testnet_anchors_footer">Show on-chain anchor badges for Testnet chains (Sepolia, Base Sepolia) on credential cards. Off by default; the credential itself always shows.</string>
+    <!-- Deliberately does NOT name the test chains: the list changes as chains are
+         added, and a stale list here shipped in 30 locales. -->
+    <string name="settings_show_testnet_anchors_footer">Show on-chain anchor badges for Testnet chains on credential cards. Off by default; the credential itself always shows.</string>
     <string name="settings_hardware_second_factor">Hardware second factor</string>
     <string name="settings_no_identity_devices">No identity-capable devices registered yet.</string>
     <string name="settings_register_device_hint">Register a YubiKey or a Ledger Nano X from Settings &gt; Devices, then return here to enable it as a second factor.</string>
@@ -663,7 +665,13 @@
     <string name="identity_quick_actions">Quick actions</string>
     <string name="identity_scan_verifier">Scan verifier</string>
     <string name="identity_verify_someone">Verify credential</string>
-    <string name="identity_tap_id_document">Hold ID document to phone</string>
+    <!-- NFC. The user holds the document against the phone until the chip is read;
+         this is NOT a touchscreen tap. English says "Tap" because that is the verb
+         people know from contactless payments, but translate it as HOLD AGAINST /
+         PRESS TO THE PHONE. Two translators independently reported that rendering
+         the touchscreen sense here tells someone to press their passport on the
+         screen. -->
+    <string name="identity_tap_id_document">Tap ID document</string>
     <string name="identity_error">Error</string>
     <string name="identity_no_credentials_yet">No credentials yet</string>
     <string name="identity_empty_subtitle">Use the + menu to receive your first credential or to tap an ID document.</string>

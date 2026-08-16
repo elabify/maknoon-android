@@ -95,6 +95,10 @@ object EthereumTokenCatalog {
             EthereumNetwork.BASE_SEPOLIA,
             EthereumNetwork.OPTIMISM_SEPOLIA -> emptyList()
             EthereumNetwork.ADI_TESTNET -> emptyList()
+            // No curated tokens: these carry anchors, not assets we ship. A user
+            // can still add a custom ERC-20 through Add Token.
+            EthereumNetwork.PHAROS_ATLANTIC_TESTNET,
+            EthereumNetwork.HASHKEY_TESTNET -> emptyList()
         }
     }
 

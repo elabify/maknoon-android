@@ -156,7 +156,7 @@
     <string name="settings_advanced_show">Onyesha</string>
     <string name="settings_advanced_hide">Ficha</string>
     <string name="settings_show_testnet_anchors">Onyesha nanga za Testnet</string>
-    <string name="settings_show_testnet_anchors_footer">Onyesha beji za nanga za on-chain kwa chain za Testnet (Sepolia, Base Sepolia) kwenye kadi za hati. Imezimwa kwa chaguomsingi; hati yenyewe huonyeshwa kila wakati.</string>
+    <string name="settings_show_testnet_anchors_footer">Onyesha beji za nanga za on-chain kwa chain za Testnet kwenye kadi za hati. Imezimwa kwa chaguomsingi; hati yenyewe huonyeshwa kila wakati.</string>
     <string name="settings_hardware_second_factor">Hatua ya pili ya Hardware</string>
     <string name="settings_no_identity_devices">Hakuna vifaa vyenye uwezo wa utambulisho vilivyosajiliwa bado.</string>
     <string name="settings_register_device_hint">Sajili YubiKey au Ledger Nano X kutoka Mipangilio &gt; Vifaa, kisha urudi hapa kuiwasha kama kigezo cha pili.</string>

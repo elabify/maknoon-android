@@ -156,7 +156,7 @@
     <string name="settings_advanced_show">Anzeigen</string>
     <string name="settings_advanced_hide">Ausblenden</string>
     <string name="settings_show_testnet_anchors">Testnet-Anker anzeigen</string>
-    <string name="settings_show_testnet_anchors_footer">Auf Nachweiskarten On-chain-Anker-Abzeichen für Testnet-Chains (Sepolia, Base Sepolia) anzeigen. Standardmäßig aus; der Nachweis selbst wird immer angezeigt.</string>
+    <string name="settings_show_testnet_anchors_footer">Auf Nachweiskarten On-chain-Anker-Abzeichen für Testnet-Chains anzeigen. Standardmäßig aus; der Nachweis selbst wird immer angezeigt.</string>
     <string name="settings_hardware_second_factor">Hardware-Zweitfaktor</string>
     <string name="settings_no_identity_devices">Noch keine identitätsfähigen Geräte registriert.</string>
     <string name="settings_register_device_hint">Unter Einstellungen &gt; Geräte einen YubiKey oder Ledger Nano X registrieren, dann hier als Zweitfaktor aktivieren.</string>

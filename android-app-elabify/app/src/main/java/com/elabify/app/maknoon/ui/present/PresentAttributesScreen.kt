@@ -24,7 +24,6 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.systemBarsPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.filled.Close
@@ -109,6 +108,8 @@ import com.elabify.musnad.present.VerifierRequest
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import androidx.compose.foundation.layout.windowInsetsPadding
+import com.elabify.app.maknoon.ui.safeBarsInsets
 
 /** A built, signed presentation plus its canonical JSON text (for copy). */
 private data class BuiltShare(val presentation: Presentation, val jsonText: String)
@@ -745,7 +746,7 @@ private fun QrSheet(title: String, onDone: () -> Unit, content: @Composable () -
                     // Edge-to-edge: inset content from the status + nav bars
                     // (this Dialog sits outside the tab Scaffold). Surface
                     // background stays full-bleed.
-                    .systemBarsPadding()
+                    .windowInsetsPadding(safeBarsInsets())
                     .verticalScroll(rememberScrollState())
                     .padding(Spacing.lg),
                 verticalArrangement = Arrangement.spacedBy(Spacing.md),
@@ -791,6 +792,9 @@ private fun RotatingFramesCard(frames: List<LocalFrames.Frame>) {
     // sequence on the UI thread: a multi-frame presentation is dozens of 600px
     // ZXing encodes and would ANR). One encode per tick, on Default.
     val safeIndex = if (frames.isEmpty()) 0 else index % frames.size
+    // False positive, same as in ui/components/QrCode.kt: `value` IS assigned
+    // below, but the check cannot follow an assignment from a suspend call.
+    @Suppress("ProduceStateDoesNotAssignValue")
     val bitmap by produceState<ImageBitmap?>(initialValue = null, frames, safeIndex) {
         value = if (frames.isEmpty()) {
             null

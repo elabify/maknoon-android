@@ -156,7 +156,7 @@
     <string name="settings_advanced_show">표시</string>
     <string name="settings_advanced_hide">숨기기</string>
     <string name="settings_show_testnet_anchors">testnet 앵커 표시</string>
-    <string name="settings_show_testnet_anchors_footer">자격증명 카드에 Testnet 체인 (Sepolia, Base Sepolia)의 온체인 앵커 배지를 표시합니다. 기본값은 꺼짐이며, 자격증명 자체는 항상 표시됩니다.</string>
+    <string name="settings_show_testnet_anchors_footer">자격증명 카드에 Testnet 체인의 온체인 앵커 배지를 표시합니다. 기본값은 꺼짐이며, 자격증명 자체는 항상 표시됩니다.</string>
     <string name="settings_hardware_second_factor">하드웨어 2차 인증 수단</string>
     <string name="settings_no_identity_devices">신원 기능을 지원하는 기기가 아직 등록되지 않았습니다.</string>
     <string name="settings_register_device_hint">설정 &gt; 기기에서 YubiKey 또는 Ledger Nano X를 등록한 후 여기로 돌아와 2차 인증 수단으로 사용하십시오.</string>

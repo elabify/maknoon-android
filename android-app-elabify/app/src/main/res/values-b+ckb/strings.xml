@@ -156,7 +156,7 @@
     <string name="settings_advanced_show">پیشان بدە</string>
     <string name="settings_advanced_hide">بشارەوە</string>
     <string name="settings_show_testnet_anchors">لەنگەرەکانی Testnet پیشان بدە</string>
-    <string name="settings_show_testnet_anchors_footer">نیشانەکانی لەنگەری لەسەر زنجیرە بۆ زنجیرەکانی Testnet (Sepolia، Base Sepolia) لەسەر کارتەکانی بڕوانامە پیشان بدە. بە بنەڕەت کوژاوەتەوە؛ خودی بڕوانامەکە هەمیشە پیشان دەدرێت.</string>
+    <string name="settings_show_testnet_anchors_footer">نیشانەکانی لەنگەری لەسەر زنجیرە بۆ زنجیرەکانی Testnet لەسەر کارتەکانی بڕوانامە پیشان بدە. بە بنەڕەت کوژاوەتەوە؛ خودی بڕوانامەکە هەمیشە پیشان دەدرێت.</string>
     <string name="settings_hardware_second_factor">فاکتەری دووەمی هاردوێر</string>
     <string name="settings_no_identity_devices">هێشتا هیچ ئامێرێکی توانای ناسنامە تۆمار نەکراوە.</string>
     <string name="settings_register_device_hint">YubiKeyەک یان Ledger Nano Xەک لە ڕێکخستنەکان &gt; ئامێرەکان تۆمار بکە، پاشان بگەڕێوە بۆ ئێرە بۆ چالاککردنی وەک فاکتەری دووەم.</string>

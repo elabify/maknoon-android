@@ -156,7 +156,7 @@
     <string name="settings_advanced_show">Tonen</string>
     <string name="settings_advanced_hide">Verbergen</string>
     <string name="settings_show_testnet_anchors">Testnet-ankers tonen</string>
-    <string name="settings_show_testnet_anchors_footer">Toon on-chain ankerbadges voor Testnet-chains (Sepolia, Base Sepolia) op bewijskaarten. Standaard uit; het bewijs zelf wordt altijd getoond.</string>
+    <string name="settings_show_testnet_anchors_footer">Toon on-chain ankerbadges voor Testnet-chains op bewijskaarten. Standaard uit; het bewijs zelf wordt altijd getoond.</string>
     <string name="settings_hardware_second_factor">Tweede factor via hardware</string>
     <string name="settings_no_identity_devices">Nog geen identiteitsgeschikte apparaten geregistreerd.</string>
     <string name="settings_register_device_hint">Registreer een YubiKey of een Ledger Nano X via Instellingen &gt; Apparaten en kom hier terug om die als tweede factor aan te zetten.</string>

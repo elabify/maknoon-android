@@ -5,12 +5,16 @@ import androidx.compose.ui.res.stringResource
 
 import androidx.annotation.StringRes
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.WindowInsetsSides
+import androidx.compose.foundation.layout.displayCutout
+import androidx.compose.foundation.layout.only
+import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.systemBarsPadding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AccountCircle
 import androidx.compose.material.icons.filled.CreditCard
@@ -211,9 +215,25 @@ private fun MainTabs() {
                 }
             },
         ) { padding ->
-            // Only consume the BOTTOM inset (the nav/tab bar). Each tab screen
-            // owns its own top status-bar inset via its TopAppBar.
-            Box(modifier = Modifier.fillMaxSize().padding(bottom = padding.calculateBottomPadding())) {
+            // Bottom inset only from the Scaffold: that is the nav/tab bar. Each tab
+            // screen owns its own top status-bar inset via its TopAppBar, which is
+            // why the top is deliberately not consumed here.
+            //
+            // The display-cutout inset is separate and was missing entirely. In
+            // landscape on a cutout device the notch sits on a SIDE edge, and with
+            // targetSdk 36 the platform enforces edge-to-edge, so content was being
+            // drawn under it. systemBarsPadding does NOT cover this: the cutout is
+            // its own inset type, and nothing in the app consumed it.
+            //
+            // Horizontal only, and only the cutout, so it cannot double-pad against
+            // the systemBarsPadding / statusBarsPadding already applied by
+            // individual screens and sheets.
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(bottom = padding.calculateBottomPadding())
+                    .windowInsetsPadding(WindowInsets.displayCutout.only(WindowInsetsSides.Horizontal)),
+            ) {
                 when (selected) {
                     Tab.IDENTITY -> IdentityScreen(
                         resetKey = identityResetKey,
@@ -293,7 +313,7 @@ private fun LockScreen(onUnlocked: () -> Unit) {
         Column(
             // Edge-to-edge: this lock overlay renders above the tab Scaffold, so
             // it must inset itself from the system bars.
-            Modifier.fillMaxSize().systemBarsPadding().padding(Spacing.xl),
+            Modifier.fillMaxSize().windowInsetsPadding(safeBarsInsets()).padding(Spacing.xl),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center,
         ) {

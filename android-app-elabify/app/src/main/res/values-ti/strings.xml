@@ -156,7 +156,7 @@
     <string name="settings_advanced_show">ኣርኢ</string>
     <string name="settings_advanced_hide">ሕባእ</string>
     <string name="settings_show_testnet_anchors">Testnet መልህቓት ኣርኢ</string>
-    <string name="settings_show_testnet_anchors_footer">ኣብ ካርድታት ክረደንሻል ንTestnet ሰንሰለታት (Sepolia, Base Sepolia) ኣብ ሰንሰለት ዘለዉ መለለዪታት መልህቕ ኣርኢ. ብነባሪ ጠፊኡ ኣሎ; እቲ ክረደንሻል ባዕሉ ግና ወትሩ ይረአ.</string>
+    <string name="settings_show_testnet_anchors_footer">ኣብ ካርድታት ክረደንሻል ንTestnet ሰንሰለታት ኣብ ሰንሰለት ዘለዉ መለለዪታት መልህቕ ኣርኢ. ብነባሪ ጠፊኡ ኣሎ; እቲ ክረደንሻል ባዕሉ ግና ወትሩ ይረአ.</string>
     <string name="settings_hardware_second_factor">ሃርድወር ካልኣይ ረቓሒ</string>
     <string name="settings_no_identity_devices">ንመንነት ዝኸውን መሳርሒ ክሳብ ሕጂ ኣይተመዝገበን.</string>
     <string name="settings_register_device_hint">YubiKey ወይ Ledger Nano X ካብ ቅንብራት &gt; መሳርሕታት መዝግብ, ደሓር ከም ካልኣይ ረቓሒ ንምውላዑ ናብዚ ተመለስ.</string>

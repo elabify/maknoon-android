@@ -156,7 +156,7 @@
     <string name="settings_advanced_show">表示</string>
     <string name="settings_advanced_hide">非表示</string>
     <string name="settings_show_testnet_anchors">Testnetのアンカーを表示</string>
-    <string name="settings_show_testnet_anchors_footer">クレデンシャルカードに、Testnetチェーン（Sepolia、Base Sepolia）のオンチェーンアンカーのバッジを表示します。デフォルトはオフです。クレデンシャル自体は常に表示されます。</string>
+    <string name="settings_show_testnet_anchors_footer">クレデンシャルカードに、Testnetチェーンのオンチェーンアンカーのバッジを表示します。デフォルトはオフです。クレデンシャル自体は常に表示されます。</string>
     <string name="settings_hardware_second_factor">ハードウェア第2要素</string>
     <string name="settings_no_identity_devices">アイデンティティ対応デバイスはまだ登録されていません。</string>
     <string name="settings_register_device_hint">「設定 &gt; デバイス」でYubiKeyまたはLedger Nano Xを登録し、ここに戻って第2要素として有効にしてください。</string>

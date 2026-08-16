@@ -156,7 +156,7 @@
     <string name="settings_advanced_show">Mostrar</string>
     <string name="settings_advanced_hide">Ocultar</string>
     <string name="settings_show_testnet_anchors">Mostrar anclajes de testnet</string>
-    <string name="settings_show_testnet_anchors_footer">Muestra distintivos de anclaje on-chain para las cadenas Testnet (Sepolia, Base Sepolia) en las tarjetas de credencial. Desactivado por defecto; la credencial siempre se muestra.</string>
+    <string name="settings_show_testnet_anchors_footer">Muestra distintivos de anclaje on-chain para las cadenas Testnet en las tarjetas de credencial. Desactivado por defecto; la credencial siempre se muestra.</string>
     <string name="settings_hardware_second_factor">Segundo factor de hardware</string>
     <string name="settings_no_identity_devices">Aún no hay dispositivos con capacidad de identidad registrados.</string>
     <string name="settings_register_device_hint">Registra una YubiKey o un Ledger Nano X en Ajustes &gt; Dispositivos y vuelve aquí para activarlo como segundo factor.</string>

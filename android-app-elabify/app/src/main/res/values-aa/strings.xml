@@ -156,7 +156,7 @@
     <string name="settings_advanced_show">Ubullus</string>
     <string name="settings_advanced_hide">Qellis</string>
     <string name="settings_show_testnet_anchors">Testnet sabbitooma ubullus</string>
-    <string name="settings_show_testnet_anchors_footer">Sumaq kaartitte amol Testnet Chainitteh (Sepolia, Base Sepolia) Chainil yan sabbito qalaamatitte ubullus. Qaadih alfimeh; sumaq isi nafsi inkih ubullumta.</string>
+    <string name="settings_show_testnet_anchors_footer">Sumaq kaartitte amol Testnet Chainitteh Chainil yan sabbito qalaamatitte ubullus. Qaadih alfimeh; sumaq isi nafsi inkih ubullumta.</string>
     <string name="settings_hardware_second_factor">Hardware namma qaamil</string>
     <string name="settings_no_identity_devices">Hawiyya duuda aalatitte kutbisimeh mali.</string>
     <string name="settings_register_device_hint">Missoyso &gt; Aalatitte addak YubiKey hinnay Ledger Nano X kutbis, tohuk lakal namma qaamilih kaa fakuh tal gac.</string>

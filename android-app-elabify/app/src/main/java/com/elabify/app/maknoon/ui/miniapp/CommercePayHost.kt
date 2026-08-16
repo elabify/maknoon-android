@@ -18,7 +18,6 @@ import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.foundation.layout.systemBarsPadding
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
@@ -45,6 +44,8 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.json.JSONObject
 import com.elabify.app.maknoon.R
+import androidx.compose.foundation.layout.windowInsetsPadding
+import com.elabify.app.maknoon.ui.safeBarsInsets
 
 @Composable
 fun CommercePayHost(
@@ -209,7 +210,7 @@ fun CommercePayHost(
         onClose = onClose,
         // Inset below the status bar / above the nav bar; without this the
         // scrollable form rendered flush under the status bar (too high).
-        modifier = modifier.systemBarsPadding(),
+        modifier = modifier.windowInsetsPadding(safeBarsInsets()),
     )
 
     // Pre-sign "ready your device" sheet for the selected hardware wallet.

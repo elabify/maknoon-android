@@ -156,7 +156,7 @@
     <string name="settings_advanced_show">காட்டு</string>
     <string name="settings_advanced_hide">மறை</string>
     <string name="settings_show_testnet_anchors">Testnet நங்கூரங்களைக் காட்டு</string>
-    <string name="settings_show_testnet_anchors_footer">அத்தாட்சி அட்டைகளில் Testnet செயின்களுக்கான (Sepolia, Base Sepolia) செயினில் உள்ள நங்கூரப் பேட்ஜ்களைக் காட்டு. இயல்பாக முடக்கப்பட்டுள்ளது; அத்தாட்சி எப்போதும் காட்டப்படும்.</string>
+    <string name="settings_show_testnet_anchors_footer">அத்தாட்சி அட்டைகளில் Testnet செயின்களுக்கான செயினில் உள்ள நங்கூரப் பேட்ஜ்களைக் காட்டு. இயல்பாக முடக்கப்பட்டுள்ளது; அத்தாட்சி எப்போதும் காட்டப்படும்.</string>
     <string name="settings_hardware_second_factor">வன்பொருள் இரண்டாம் காரணி</string>
     <string name="settings_no_identity_devices">அடையாளத்திற்கு உகந்த சாதனங்கள் இதுவரை பதிவுசெய்யப்படவில்லை.</string>
     <string name="settings_register_device_hint">அமைப்புகள் &gt; சாதனங்கள் என்பதிலிருந்து ஒரு YubiKey அல்லது Ledger Nano X ஐப் பதிவுசெய்யவும், பிறகு இங்கு திரும்பி அதை இரண்டாம் காரணியாக இயக்கவும்.</string>

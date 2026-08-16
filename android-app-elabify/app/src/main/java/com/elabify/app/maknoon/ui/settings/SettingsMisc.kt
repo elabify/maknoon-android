@@ -834,9 +834,9 @@ private object DiagnosticsLog {
     fun clear() = entries.clear()
 }
 
-private data class CreditEntry(val name: String, val description: String, val url: String)
+internal data class CreditEntry(val name: String, val description: String, val url: String)
 
-private data class ComponentEntry(val name: String, val version: String, val license: String, val url: String)
+internal data class ComponentEntry(val name: String, val version: String, val license: String, val url: String)
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -1118,46 +1118,48 @@ private fun shareDiagnosticLogs(context: Context, commit: String, build: String)
 }
 
 // The default-services credit list, in the exact iOS order.
-private val SERVICES: List<CreditEntry> = listOf(
-    CreditEntry("mempool.space", "Bitcoin fee estimates, block explorer, and the Electrum endpoint Maknoon uses by default", "https://mempool.space"),
-    CreditEntry("Blockstream", "Public Electrum servers and esplora APIs that Bitcoin wallets fall back on", "https://blockstream.info"),
-    CreditEntry("CoinGecko", "Fiat price feeds for Bitcoin display", "https://www.coingecko.com"),
-    CreditEntry("PublicNode", "Default JSON-RPC for Ethereum mainnet + Sepolia, Polygon, and BNB Chain", "https://www.publicnode.com"),
+internal val SERVICES: List<CreditEntry> = listOf(
     CreditEntry("Arbitrum Foundation", "Arbitrum One + Sepolia RPC", "https://arbitrum.foundation"),
-    CreditEntry("Optimism", "OP Mainnet + Sepolia RPC", "https://www.optimism.io"),
-    CreditEntry("Base", "Base Mainnet + Sepolia RPC", "https://base.org"),
-    CreditEntry("Polygon Labs", "Polygon PoS + zkEVM RPC", "https://polygon.technology"),
-    CreditEntry("BNB Chain", "BSC RPC", "https://www.bnbchain.org"),
     CreditEntry("Ava Labs", "Avalanche C-Chain RPC", "https://www.avax.network"),
-    CreditEntry("Scroll", "Scroll mainnet RPC", "https://scroll.io"),
-    CreditEntry("Linea", "Linea mainnet RPC", "https://linea.build"),
-    CreditEntry("Matter Labs", "zkSync Era RPC", "https://zksync.io"),
-    CreditEntry("Mantle", "Mantle mainnet RPC", "https://mantle.xyz"),
-    CreditEntry("Hyperliquid", "Hyperliquid EVM RPC", "https://hyperliquid.xyz"),
+    CreditEntry("Base", "Base Mainnet + Sepolia RPC", "https://base.org"),
     CreditEntry("Blockscout", "Open-source block-explorer API used by default on every EVM chain that has a Blockscout deployment", "https://www.blockscout.com"),
-    CreditEntry("Snowtrace", "Avalanche block explorer API", "https://snowtrace.io"),
-    CreditEntry("Circle", "USDC contract addresses across chains and the Sepolia faucet for test USDC", "https://www.circle.com"),
+    CreditEntry("Blockstream", "Public Electrum servers and esplora APIs that Bitcoin wallets fall back on", "https://blockstream.info"),
+    CreditEntry("BNB Chain", "BSC RPC", "https://www.bnbchain.org"),
     CreditEntry("Chainlink", "LINK contract addresses and the Sepolia LINK faucet", "https://chain.link"),
+    CreditEntry("Circle", "USDC contract addresses across chains and the Sepolia faucet for test USDC", "https://www.circle.com"),
+    CreditEntry("CoinGecko", "Fiat price feeds for Bitcoin display", "https://www.coingecko.com"),
+    CreditEntry("HashKey Chain", "HashKey Chain testnet RPC and block explorer", "https://hsk.xyz"),
+    CreditEntry("Hyperliquid", "Hyperliquid EVM RPC", "https://hyperliquid.xyz"),
+    CreditEntry("Linea", "Linea mainnet RPC", "https://linea.build"),
+    CreditEntry("Mantle", "Mantle mainnet RPC", "https://mantle.xyz"),
+    CreditEntry("Matter Labs", "zkSync Era RPC", "https://zksync.io"),
+    CreditEntry("mempool.space", "Bitcoin fee estimates, block explorer, and the Electrum endpoint Maknoon uses by default", "https://mempool.space"),
+    CreditEntry("Optimism", "OP Mainnet + Sepolia RPC", "https://www.optimism.io"),
+    CreditEntry("Pharos", "Pharos Atlantic testnet RPC and block explorer", "https://pharosnetwork.xyz"),
+    CreditEntry("Polygon Labs", "Polygon PoS + zkEVM RPC", "https://polygon.technology"),
+    CreditEntry("PublicNode", "Default JSON-RPC for Ethereum mainnet + Sepolia, Polygon, and BNB Chain", "https://www.publicnode.com"),
+    CreditEntry("Scroll", "Scroll mainnet RPC", "https://scroll.io"),
+    CreditEntry("Snowtrace", "Avalanche block explorer API", "https://snowtrace.io"),
     CreditEntry("Trust Wallet token lists", "Reputable-token verification cross-reference for auto-discover", "https://github.com/trustwallet/assets"),
 )
 
-// The open-source components list, in the exact iOS order.
-private val COMPONENTS: List<ComponentEntry> = listOf(
-    ComponentEntry("Trust Wallet Core", "4.6.9", "Apache 2.0", "https://github.com/trustwallet/wallet-core"),
+// The open-source components list. Alphabetical by name, matching iOS.
+internal val COMPONENTS: List<ComponentEntry> = listOf(
+    ComponentEntry("BC DCBOR", "1.0.7", "BSD-2-Clause-Patent", "https://github.com/BlockchainCommons/BCSwiftDCBOR"),
+    ComponentEntry("BC Float16", "1.0.0", "BSD-2-Clause-Patent", "https://github.com/BlockchainCommons/BCSwiftFloat16"),
+    ComponentEntry("BC Tags", "0.2.3", "BSD-2-Clause-Patent", "https://github.com/BlockchainCommons/BCSwiftTags"),
     ComponentEntry("BitcoinDevKit", "2.3.1", "MIT / Apache 2.0", "https://github.com/bitcoindevkit/bdk-swift"),
-    ComponentEntry("SwiftProtobuf", "Bundled with TWC", "Apache 2.0", "https://github.com/apple/swift-protobuf"),
     ComponentEntry("ElabifyCore", "In-tree", "Apache 2.0 / MIT", "https://github.com/elabify/elabify-core"),
     ComponentEntry("Ledger device SDKs (BTC/ETH/SOL/TRON)", "In-tree", "Apache 2.0", "https://github.com/elabify/maknoon-ios"),
+    ComponentEntry("NFCPassportReader", "2.3.0", "MIT", "https://github.com/AndyQ/NFCPassportReader"),
+    ComponentEntry("NumberKit", "2.4.3", "Apache 2.0", "https://github.com/wolfmcnally/swift-numberkit"),
+    ComponentEntry("OpenSSL", "3.3.3001", "Apache 2.0", "https://github.com/krzyzanowskim/OpenSSL-Package"),
+    ComponentEntry("Swift Collections", "1.1.4", "Apache 2.0", "https://github.com/wolfmcnally/swift-collections"),
+    ComponentEntry("SwiftProtobuf", "Bundled with TWC", "Apache 2.0", "https://github.com/apple/swift-protobuf"),
+    ComponentEntry("Trust Wallet Core", "4.6.9", "Apache 2.0", "https://github.com/trustwallet/wallet-core"),
+    ComponentEntry("URKit", "14.0.2", "BSD-2-Clause-Patent", "https://github.com/BlockchainCommons/URKit"),
     ComponentEntry("WalletConnect (Reown)", "1.5.0", "Apache 2.0", "https://github.com/reown-com/reown-android"),
     ComponentEntry("YubiKit", "4.7.0", "Apache 2.0", "https://github.com/Yubico/yubikit-ios"),
-    ComponentEntry("NFCPassportReader", "2.3.0", "MIT", "https://github.com/AndyQ/NFCPassportReader"),
-    ComponentEntry("URKit", "14.0.2", "BSD-2-Clause-Patent", "https://github.com/BlockchainCommons/URKit"),
-    ComponentEntry("BC DCBOR", "1.0.7", "BSD-2-Clause-Patent", "https://github.com/BlockchainCommons/BCSwiftDCBOR"),
-    ComponentEntry("BC Tags", "0.2.3", "BSD-2-Clause-Patent", "https://github.com/BlockchainCommons/BCSwiftTags"),
-    ComponentEntry("BC Float16", "1.0.0", "BSD-2-Clause-Patent", "https://github.com/BlockchainCommons/BCSwiftFloat16"),
-    ComponentEntry("NumberKit", "2.4.3", "Apache 2.0", "https://github.com/wolfmcnally/swift-numberkit"),
-    ComponentEntry("Swift Collections", "1.1.4", "Apache 2.0", "https://github.com/wolfmcnally/swift-collections"),
-    ComponentEntry("OpenSSL", "3.3.3001", "Apache 2.0", "https://github.com/krzyzanowskim/OpenSSL-Package"),
 )
 
 @Composable

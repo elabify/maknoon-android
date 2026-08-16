@@ -156,7 +156,7 @@
     <string name="settings_advanced_show">دکھائیں</string>
     <string name="settings_advanced_hide">چھپائیں</string>
     <string name="settings_show_testnet_anchors">testnet اینکرز دکھائیں</string>
-    <string name="settings_show_testnet_anchors_footer">سند کارڈز پر Testnet چینز (Sepolia، Base Sepolia) کے آن چین اینکر نشان دکھائیں۔ ڈیفالٹ طور پر بند؛ سند خود ہمیشہ دکھائی دیتی ہے۔</string>
+    <string name="settings_show_testnet_anchors_footer">سند کارڈز پر Testnet چینز کے آن چین اینکر نشان دکھائیں۔ ڈیفالٹ طور پر بند؛ سند خود ہمیشہ دکھائی دیتی ہے۔</string>
     <string name="settings_hardware_second_factor">ہارڈ ویئر دوسرا فیکٹر</string>
     <string name="settings_no_identity_devices">ابھی کوئی شناخت کے قابل ڈیوائس رجسٹر نہیں۔</string>
     <string name="settings_register_device_hint">ترتیبات &gt; ڈیوائسز سے YubiKey یا Ledger Nano X رجسٹر کریں، پھر یہاں واپس آ کر اسے دوسرے فیکٹر کے طور پر فعال کریں۔</string>

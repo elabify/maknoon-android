@@ -265,6 +265,25 @@ object OnChainVerifier {
     }
 
     /** bytes32 from hex: exactly 32 bytes, right-padded if short. */
+    /**
+     * A `bytes32` word from hex.
+     *
+     * READ THIS BEFORE MAKING [hexToBytes] LENIENT. This function's safety on
+     * untrusted input is INCIDENTAL, not designed. A credential id reaching the
+     * verifier comes from a scanned presentation or badge, so it is whatever the
+     * person holding the QR chose. What saves us is that [hexToBytes] uses
+     * `digitToInt(16)`, which THROWS on a non-hex character, and every call site
+     * here is inside a `runCatching` whose null result maps to
+     * [OnChainTier.Unknown]. So a malformed cid reports "could not check" today.
+     *
+     * Change `digitToInt` to anything that returns a default, or add a
+     * `?: ByteArray(0)` style fallback, and this silently becomes the zero word.
+     * The chain then gets a well-formed `isRevoked(did, 0x00..00)`, the registry
+     * has no such credential, and it answers false, which renders as a green "not
+     * revoked" tier for a credential nobody checked. That is not hypothetical:
+     * the same encoder written with a lenient hex helper shipped exactly that
+     * defect, which is why this comment exists rather than a tidier parser.
+     */
     private fun bytes32(hex: String): ByteArray {
         val d = hexToBytes(hex)
         return when {

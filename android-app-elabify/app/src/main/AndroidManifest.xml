@@ -8,6 +8,11 @@
     <uses-permission android:name="android.permission.USE_BIOMETRIC" />
     <uses-permission android:name="android.permission.NFC" />
     <uses-permission android:name="android.permission.CAMERA" />
+    <!-- Mini-app haptics (the bridge's haptic.fire). Without this the Vibrator
+         call throws SecurityException, and because the call site wraps it in
+         runCatching the failure was silent: the API has never actually vibrated.
+         A normal permission, so no runtime prompt and no privacy surface. -->
+    <uses-permission android:name="android.permission.VIBRATE" />
     <uses-permission android:name="android.permission.BLUETOOTH_CONNECT" />
     <uses-permission
         android:name="android.permission.BLUETOOTH_SCAN"

@@ -102,6 +102,7 @@ import com.elabify.app.maknoon.ui.components.CardPalette
 import com.elabify.musnad.present.AnchorEntry
 import java.util.Calendar
 import java.util.TimeZone
+import androidx.activity.compose.LocalActivity
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -121,8 +122,11 @@ fun PassportCardDetailScreen(
     // personal fields must not leak into a screenshot, screen recording, or the
     // recents thumbnail. Cleared on dispose so navigating away (e.g. to the QR
     // present route) restores normal behavior.
-    val secureContext = LocalContext.current
-    val secureWindow = (secureContext as? FragmentActivity)?.window
+    // LocalActivity, not a LocalContext cast: see the note in
+    // IDDocumentDetailScreen. The cast fails silently behind any ContextWrapper and
+    // FLAG_SECURE would then never be set, exposing the passport photo and every
+    // personal field to screenshots and the recents thumbnail.
+    val secureWindow = LocalActivity.current?.window
     DisposableEffect(secureWindow) {
         secureWindow?.setFlags(WindowManager.LayoutParams.FLAG_SECURE, WindowManager.LayoutParams.FLAG_SECURE)
         onDispose { secureWindow?.clearFlags(WindowManager.LayoutParams.FLAG_SECURE) }
@@ -304,7 +308,12 @@ private fun HeroCard(
         // the holder opted in (Settings, Identity, Advanced, "Show testnet
         // anchors"). The credential itself always shows (ADR-0040 / ADR-0043).
         val showTestnet = com.elabify.app.maknoon.ui.settings.TestnetAnchorSettings.showTestnetAnchors
-        val shownAnchors = anchors.filter { isProductionChain(it.chain) || (showTestnet && chainIsTestnet(it.chain)) }
+        // `|| showTestnet` alone, NOT `&& chainIsTestnet(...)`. An anchor on a
+        // chain the app does not recognise satisfied neither arm and was
+        // invisible in both modes: Pharos and HashKey anchors landed on chain
+        // and never appeared. Any chain added from now on shows under the
+        // toggle without needing an app release first.
+        val shownAnchors = anchors.filter { isProductionChain(it.chain) || showTestnet }
         if (shownAnchors.isNotEmpty()) {
             Spacer(Modifier.height(9.dp))
             PinnedStrip(shownAnchors, fg)
@@ -644,11 +653,22 @@ private val PRODUCTION_CHAINS = setOf("eip155:1", "eip155:8453")
 
 fun isProductionChain(chain: String): Boolean = chain.lowercase() in PRODUCTION_CHAINS
 
-/** True for a testnet anchor (drives the red testnet pill). */
+/** True for a non-production anchor (drives the red testnet pill).
+ *
+ *  Unknown chains count as non-production. The old substring heuristic returned
+ *  false for anything without "sepolia"/"testnet"/"devnet" in its id, so a
+ *  Pharos Atlantic anchor (eip155:688689) was treated as production-grade for
+ *  styling while being hidden from the card entirely. Failing safe here is the
+ *  direction that cannot overstate an anchor. Mirrors iOS ChainMark. */
+private val KNOWN_MAINNETS = setOf(
+    "eip155:1", "eip155:8453", "eip155:42161", "eip155:137", "eip155:1672", "eip155:177",
+)
+
 private fun chainIsTestnet(chain: String): Boolean {
     val c = chain.lowercase()
-    return c == "eip155:11155111" || c == "eip155:84532" || c.contains("sepolia") ||
-        c.contains("testnet") || c.contains("devnet") || c.contains("goerli")
+    if (c in KNOWN_MAINNETS) return false
+    if (c.startsWith("bip122:") || c.startsWith("tron:")) return false
+    return true
 }
 
 /** Block-explorer URL for the registry contract address on a chain; null when
@@ -677,7 +697,11 @@ private fun chainDrawable(chain: String): Int? {
     return when {
         // Base mainnet (8453) + Base Sepolia (84532) carry the Base mark.
         c == "eip155:8453" || c == "eip155:84532" || c.contains("base") -> R.drawable.ic_chain_base
-        c.contains("eip155") || c.contains("eth") -> R.drawable.ic_chain_ethereum
+        // Ethereum's mark ONLY for Ethereum's own chains. `contains("eip155")`
+        // matched every EVM chain, so a Pharos or HashKey anchor would have worn
+        // the Ethereum logo. An unrecognised chain falls through to null and
+        // renders its glyph instead, which is honest.
+        c == "eip155:1" || c == "eip155:11155111" || c.contains("eth") -> R.drawable.ic_chain_ethereum
         c.contains("solana") || c.contains("sol") -> R.drawable.ic_chain_solana
         c.contains("bip122") || c.contains("bitcoin") || c.contains("btc") -> R.drawable.ic_chain_bitcoin
         c.contains("tron") || c.contains("trx") -> R.drawable.ic_chain_tron
@@ -693,6 +717,10 @@ private fun chainTestnetLabel(chain: String): String {
         c.contains("sepolia") || c == "eip155:11155111" || c == "eip155:84532" -> "Sepolia"
         c.contains("devnet") -> "Devnet"
         c.contains("goerli") -> "Goerli"
-        else -> "TEST"
+        c == "eip155:688689" || c == "eip155:133" -> "Testnet"
+        // A chain we have no mark for. "Unverified" rather than "TEST" because we
+        // do not actually know it is a test chain; we know only that it is not on
+        // the production allowlist. Matches iOS ChainMark.
+        else -> "Unverified"
     }
 }

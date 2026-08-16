@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Cold-start window background. Kept in step with the Compose light scheme's
+         background so the pre-first-frame flash is not a different colour from the
+         app. See values-night/colors_window.xml for the dark counterpart. -->
+    <color name="window_background">#FCF9FD</color>
+</resources>

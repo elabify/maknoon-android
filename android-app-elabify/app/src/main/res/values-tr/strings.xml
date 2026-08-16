@@ -156,7 +156,7 @@
     <string name="settings_advanced_show">Göster</string>
     <string name="settings_advanced_hide">Gizle</string>
     <string name="settings_show_testnet_anchors">Testnet sabitlemelerini göster</string>
-    <string name="settings_show_testnet_anchors_footer">Kimlik bilgisi kartlarında Testnet zincirleri (Sepolia, Base Sepolia) için zincir üstü sabitleme rozetlerini göster. Varsayılan olarak kapalıdır; kimlik bilgisinin kendisi her zaman görünür.</string>
+    <string name="settings_show_testnet_anchors_footer">Kimlik bilgisi kartlarında Testnet zincirleri için zincir üstü sabitleme rozetlerini göster. Varsayılan olarak kapalıdır; kimlik bilgisinin kendisi her zaman görünür.</string>
     <string name="settings_hardware_second_factor">Donanım ikinci faktörü</string>
     <string name="settings_no_identity_devices">Henüz kimlik destekleyen tanımlı cihaz yok.</string>
     <string name="settings_register_device_hint">Ayarlar &gt; Cihazlar bölümünden bir YubiKey veya Ledger Nano X tanımlayın, sonra ikinci faktör olarak etkinleştirmek için buraya dönün.</string>

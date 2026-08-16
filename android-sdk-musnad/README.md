@@ -45,7 +45,7 @@ flows run on both platforms; a credential issued for one is readable on the othe
 |---|---|---|
 | Min SDK | API 33 (Android 13) | See §3.1; bank-grade floor with modern Keystore, photo picker, predictive back, runtime notification permissions |
 | Target SDK | latest stable (API 35 at time of writing) | Standard Play Store policy |
-| Distribution | Maven Central as `.aar` library | Standard for Android library consumers |
+| Distribution | **Not published.** `publishToMavenLocal` produces the AAR; see the note under 11.1 | A remote coordinate was advertised here before one existed |
 | Module | `com.elabify.musnad:musnad-sdk` | Gradle coordinates |
 | Language | Kotlin 2.0+ with Coroutines + Flow | Standard for new Android |
 | UI | Jetpack Compose 1.7+ | Modern declarative; UIKit-equivalent of SwiftUI for view modifiers |
@@ -84,6 +84,23 @@ A host app may have all of those things in its own code. The SDK's dependency su
 ---
 
 ## 4. Public API
+
+> **SUPERSEDED. Do not code against this section.** The authoritative API is
+> `the wire-format spec` sections 3.1 to 3.9, and the shipped
+> Kotlin is `MaknoonFacades.kt` / `MaknoonModels.kt` / `MaknoonConfig.kt`. This
+> section is a May-2026 design that the product moved past, kept only because
+> parts of the surrounding prose are still accurate and deleting it wholesale
+> would take those with it.
+>
+> Concretely, and these are the kind of differences that make it unsafe to read as
+> current: the umbrella and config are `MaknoonSDK` / `MaknoonConfig`, not
+> `MusnadSDK` / `MusnadConfig`; credential storage is `MusnadCredentials`, not
+> `MusnadWallet`; there is a `MaknoonWallet` and a `MaknoonHardware` that this
+> section does not mention at all; `chainRpcUrl` and the registry addresses are
+> optional (discovered per ADR-0054) rather than required; and the
+> `trezorCoinType` field below **does not exist** on the shipped `MaknoonConfig`.
+> The `// AI: do not deviate` markers in this section are also void; the contract
+> is what must not be deviated from.
 
 The Kotlin API mirrors the Swift API one-for-one. Type names match where possible; serialization is identical; error variants are isomorphic.
 
@@ -464,16 +481,37 @@ Static check at CI time:
 
 ## 11. Distribution
 
-### 11.1 Maven Central
+### 11.1 Not published, and the POM does not say so
 
-```kotlin
-// In a host's build.gradle.kts
-dependencies {
-  implementation("com.elabify.musnad:musnad-sdk:0.1.0")
-}
-```
+This section used to show a `com.elabify.musnad:musnad-sdk:0.1.0` coordinate as
+though a host could resolve it. **It cannot.** No version was ever published to
+Maven Central or anywhere else, and the version in that snippet also disagreed
+with what the build produces.
 
-The artifact transitively pulls `com.elabify:elabify-core-android` (pure Kotlin, no native code) and the `pq-crypto-rs` native library for `arm64-v8a`. 32-bit ABIs (`armeabi-v7a`) are NOT shipped; they are below the SDK's modern-device floor.
+`./gradlew :musnad-sdk:publishToMavenLocal` does produce a real AAR plus sources
+and POM, on the app's release line. It is not consumable outside this workspace,
+and the failure mode is worth knowing precisely: six of its 24 dependencies are
+the locally-built Rust/UniFFI cores (`pq-crypto`, four Ledger cores, Trezor)
+declared via flatDir. flatDir carries no version, so the generated POM emits them
+with a groupId and artifactId and **no `<version>`**. They are not omitted; they
+are present and unresolvable, so a consumer's build fails during dependency
+resolution rather than later at link time.
+
+`./gradlew :musnad-sdk:verifyPublication` parses the generated POM and reports
+exactly this. It reads the real file rather than restating a list, which is how
+the version-less behaviour was found: the first cut asserted the deps were absent,
+and they are not.
+
+Closing this means publishing those six AARs as real coordinates, which is a Rust
+toolchain plus cargo-ndk per crate and a separate decision from producing this
+artifact. The recipe to copy is versioned, checksummed release assets, which is
+what `scripts/package-ios-core-xcframeworks.sh` produces for the equivalent
+native cores.
+
+When it IS published, the artifact will transitively pull
+`com.elabify:elabify-core-android` (pure Kotlin, no native code) and the
+`pq-crypto-rs` native library for `arm64-v8a`. 32-bit ABIs (`armeabi-v7a`) are NOT
+shipped; they are below the SDK's modern-device floor.
 
 ### 11.2 Versioning
 

@@ -156,7 +156,7 @@
     <string name="settings_advanced_show">Hiện</string>
     <string name="settings_advanced_hide">Ẩn</string>
     <string name="settings_show_testnet_anchors">Hiện neo testnet</string>
-    <string name="settings_show_testnet_anchors_footer">Hiện huy hiệu neo trên chuỗi cho các chuỗi Testnet (Sepolia, Base Sepolia) trên thẻ chứng chỉ. Mặc định tắt; bản thân chứng chỉ luôn hiển thị.</string>
+    <string name="settings_show_testnet_anchors_footer">Hiện huy hiệu neo trên chuỗi cho các chuỗi Testnet trên thẻ chứng chỉ. Mặc định tắt; bản thân chứng chỉ luôn hiển thị.</string>
     <string name="settings_hardware_second_factor">Yếu tố thứ hai phần cứng</string>
     <string name="settings_no_identity_devices">Chưa có thiết bị hỗ trợ danh tính nào được đăng ký.</string>
     <string name="settings_register_device_hint">Hãy đăng ký một YubiKey hoặc Ledger Nano X trong Cài đặt &gt; Thiết bị, rồi quay lại đây để bật nó làm yếu tố thứ hai.</string>

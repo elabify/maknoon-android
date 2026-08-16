@@ -33,7 +33,6 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -87,6 +86,8 @@ import com.elabify.musnad.data.CredentialEntity
 import com.elabify.musnad.present.Presentation
 import com.elabify.musnad.present.VerifierRequestValidator
 import kotlinx.coroutines.launch
+import androidx.compose.foundation.layout.windowInsetsPadding
+import com.elabify.app.maknoon.ui.safeStatusBarInsets
 
 // ---------------------------------------------------------------------------
 // Caller-supplied actions. Keeps the composable stateless: the host wires its
@@ -227,7 +228,7 @@ fun ScanVerifierSheet(
     // Scaffold, so inset the top past the status bar / cutout. The bottom nav
     // inset is already consumed by MainTabs, so apply status bars only (full
     // systemBars would double-pad the bottom).
-    Box(modifier = Modifier.fillMaxSize().statusBarsPadding()) {
+    Box(modifier = Modifier.fillMaxSize().windowInsetsPadding(safeStatusBarInsets())) {
         when (val p = phase) {
             is ScanPhase.Scanning -> ScannerView(
                 prompt = stringResource(R.string.present_scan_verifier_prompt),

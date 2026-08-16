@@ -156,7 +156,7 @@
     <string name="settings_advanced_show">Ipakita</string>
     <string name="settings_advanced_hide">Itago</string>
     <string name="settings_show_testnet_anchors">Ipakita ang mga testnet anchor</string>
-    <string name="settings_show_testnet_anchors_footer">Ipakita ang mga on-chain anchor badge para sa mga Testnet chain (Sepolia, Base Sepolia) sa mga card ng kredensyal. Naka-off bilang default; palaging lumilitaw ang kredensyal mismo.</string>
+    <string name="settings_show_testnet_anchors_footer">Ipakita ang mga on-chain anchor badge para sa mga Testnet chain sa mga card ng kredensyal. Naka-off bilang default; palaging lumilitaw ang kredensyal mismo.</string>
     <string name="settings_hardware_second_factor">Hardware second factor</string>
     <string name="settings_no_identity_devices">Wala pang nakarehistrong device na may kakayahan sa identidad.</string>
     <string name="settings_register_device_hint">Irehistro ang isang YubiKey o Ledger Nano X mula sa Mga setting &gt; Mga device, pagkatapos bumalik dito para i-enable ito bilang pangalawang factor.</string>

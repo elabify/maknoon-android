@@ -10,14 +10,14 @@ plugins {
 group = "com.elabify.musnad"
 
 // Overridable so a release can stamp the tag without editing this file:
-//   ./gradlew :musnad-sdk:publishToMavenLocal -PsdkVersion=0.7.1
+//   ./gradlew :musnad-sdk:publishToMavenLocal -PsdkVersion=0.7.2
 //
 // The default deliberately tracks the app's versionName rather than staying on
 // the old standalone 0.1.0. The SDK and the app ship from one commit, so two
 // unrelated version lines only invite "which 0.1.0 was that" questions. When
 // the SDK genuinely releases independently this can fork, and the versioning
 // rules in the SDK README apply from that point.
-version = (findProperty("sdkVersion") as String?) ?: "0.7.1"
+version = (findProperty("sdkVersion") as String?) ?: "0.7.2"
 
 // WalletCore pulls full guava (with the real ListenableFuture); androidx pulls
 // the empty `listenablefuture` stub. Drop the stub to avoid a duplicate class.

@@ -36,7 +36,6 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.systemBarsPadding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -88,6 +87,8 @@ import com.elabify.musnad.identity.IdentityStore
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import androidx.compose.foundation.layout.windowInsetsPadding
+import com.elabify.app.maknoon.ui.safeBarsInsets
 
 private enum class Step {
     WELCOME, CREATE_PASSPHRASE, BACKUP,
@@ -242,7 +243,7 @@ fun OnboardingScreen(onComplete: () -> Unit) {
             // Onboarding is the full-screen root (no Scaffold / tab bar to
             // consume insets), and the app is edge-to-edge, so inset the content
             // within the system bars; otherwise the top sits under the status bar.
-            .systemBarsPadding()
+            .windowInsetsPadding(safeBarsInsets())
             .verticalScroll(rememberScrollState())
             .padding(Spacing.xl),
         verticalArrangement = Arrangement.spacedBy(Spacing.lg),

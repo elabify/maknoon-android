@@ -156,7 +156,7 @@
     <string name="settings_advanced_show">הצגה</string>
     <string name="settings_advanced_hide">הסתרה</string>
     <string name="settings_show_testnet_anchors">הצגת עוגני Testnet</string>
-    <string name="settings_show_testnet_anchors_footer">הצגת תגי עוגן בשרשרת עבור שרשראות Testnet (Sepolia, Base Sepolia) בכרטיסי התעודות. כבוי כברירת מחדל; התעודה עצמה תמיד מוצגת.</string>
+    <string name="settings_show_testnet_anchors_footer">הצגת תגי עוגן בשרשרת עבור שרשראות Testnet בכרטיסי התעודות. כבוי כברירת מחדל; התעודה עצמה תמיד מוצגת.</string>
     <string name="settings_hardware_second_factor">גורם שני בחומרה</string>
     <string name="settings_no_identity_devices">אין עדיין מכשירים רשומים שתומכים בזהות.</string>
     <string name="settings_register_device_hint">יש לרשום YubiKey או Ledger Nano X מהגדרות &gt; מכשירים, ואז לחזור לכאן כדי להפעיל אותו כגורם שני.</string>

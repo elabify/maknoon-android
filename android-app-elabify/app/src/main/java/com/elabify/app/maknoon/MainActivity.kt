@@ -4,11 +4,12 @@ import android.content.Context
 import android.content.Intent
 import android.os.Bundle
 import androidx.activity.compose.setContent
-import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.fragment.app.FragmentActivity
 import com.elabify.app.maknoon.miniapp.MiniAppBundleStore
 import com.elabify.app.maknoon.ui.MaknoonRoot
+import com.elabify.app.maknoon.ui.SystemBarIconAppearance
+import com.elabify.app.maknoon.ui.applyEdgeToEdgeWindow
 import com.elabify.app.maknoon.ui.theme.DisplayPreferences
 import com.elabify.app.maknoon.ui.theme.LocaleSupport
 import com.elabify.app.maknoon.ui.theme.MaknoonTheme
@@ -24,7 +25,10 @@ class MainActivity : FragmentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        enableEdgeToEdge()
+        // Hand-rolled rather than enableEdgeToEdge(): see ui/EdgeToEdge.kt and
+        // ADR-0080. androidx's version reaches a deprecated cutout-mode constant
+        // that Play flags, and sets two more deprecated window colour setters.
+        applyEdgeToEdgeWindow()
         // Process-wide mini-app bundle cache; the Apps tab host reads it via
         // MiniAppBundleStore.shared (idempotent init).
         MiniAppBundleStore.init(applicationContext)
@@ -42,6 +46,10 @@ class MainActivity : FragmentActivity() {
             // recomposes here and applies live. Automatic follows the system.
             val dark = DisplayPreferences.theme.resolveDark(isSystemInDarkTheme())
             MaknoonTheme(darkTheme = dark) {
+                // Follows the theme live. A one-shot call in onCreate would leave
+                // the bar icons stale after a Settings > Display theme change,
+                // because that recomposes without recreating the activity.
+                SystemBarIconAppearance(darkTheme = dark)
                 MaknoonRoot()
             }
         }
